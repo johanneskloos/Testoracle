@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="OcamlProjectSettings">
+	<section name="OcamlbuildSettings">
+		<item value="" key="ocamlbuildProjectLinkerFlags"/>
+		<item value="" key="ocamlbuildProjectLibs"/>
+		<item value="true" key="ocamlbuildGenerateTypeInfo"/>
+		<item value="-use-ocamlfind" key="ocamlbuildProjectOtherFlags"/>
+		<item value="matchObjects_unit.native,matchTraces_unit.native,localFacts_unit.native,test_calculations.native,matchTraces_matcher_unit.native,matchTraces_matcher_unit.d.byte,oracle.native" key="ocamlbuildProjectTargets"/>
+		<item value="" key="ocamlbuildProjectCompilerFlags"/>
+	</section>
+</section>

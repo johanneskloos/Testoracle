@@ -1,0 +1,12 @@
+*.cm*
+*.o
+*~
+\#*\#
+*.trace
+*.newtrace
+*.native
+_build
+*_jalangi_*
+*.dot
+*.pptrace
+/test.out
