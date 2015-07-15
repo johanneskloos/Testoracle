@@ -10,3 +10,4 @@ _build
 *.dot
 *.pptrace
 /test.out
+*.byte
