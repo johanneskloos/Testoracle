@@ -1,6 +1,7 @@
 open Format
 open Complex
 
+(* BISECT-IGNORE-BEGIN *)
 (** * Helper functions. *)
 (** These helper functions should probably go to stdlib. *)
 (** [curry] and [uncurry] transform between functions
@@ -214,3 +215,4 @@ module HashtblFormat(T: Hashtbl.S) = struct
 end;;
 
 
+(* BISECT-IGNORE-END *)

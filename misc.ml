@@ -1,5 +1,6 @@
 open Format
 
+(* BISECT-IGNORE-BEGIN *)
 (** Standard maps and sets. *)
 module IntMap = Map.Make(struct type t = int let compare = compare end)
 module StringMap = Map.Make(struct type t = string let compare = compare end)
@@ -72,3 +73,4 @@ end;;
 let to_string fmt x =
     let str = Format.asprintf "%a" fmt x in
     ignore (flush_str_formatter ()); str
+(* BISECT-IGNORE-END *)
