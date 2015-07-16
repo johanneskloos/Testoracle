@@ -17,14 +17,16 @@ type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
 
 let pp_local_facts pp
-  {last_arguments; last_parameters; versions; aliases} =
+  {last_arguments; last_parameters; last_update; versions; aliases} =
       Format.fprintf pp "@[<v>\
         Last caller-side argument object: %a@ \
         Last callee-side argument object: %a@ \
+        Last update: %a@ \
         Versions: @[<hov 2>%a@]@ \
         Aliases: @[<hov 2>%a@]@ @]"
         (FormatHelper.pp_print_option Format.pp_print_int) last_arguments
         (FormatHelper.pp_print_option Format.pp_print_int) last_parameters
+        (FormatHelper.pp_print_option pp_versioned_reference) last_update
         (pp_reference_map Format.pp_print_int) versions
         (StringMapFormat.pp_print_map "" "" ","
           (fun pp name (obj, fld) ->
