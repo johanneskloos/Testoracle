@@ -100,6 +100,8 @@ let reference_of_variable gap facts global name =
     reference_of_name gap facts.aliases global name
 
 let make_versioned state ref =
-    (ref, ReferenceMap.find ref state.versions)
+    try (ref, ReferenceMap.find ref state.versions)
+    with Not_found -> (Format.eprintf "Did not find %a in %a"
+      pp_reference ref pp_local_facts state; raise Not_found)
 
 
