@@ -156,7 +156,7 @@ let enrich_step globals_are_properties objs (op, data) =
   | FunPost { f; base; args; result } -> [RFunPost {f; base; args; result}]
   | Literal { value; hasGetterSetter } -> [RLiteral {value; hasGetterSetter}]
   | ForIn { value } -> [RForIn value]
-  | Declare { name; argument=Some idx } when idx > 0 ->
+  | Declare { name; argument=Some idx } when idx >= 0 ->
       [RAlias { name;
                 ref=Misc.StringMap.find name data.aliases
                     |> reference_of_fieldref
