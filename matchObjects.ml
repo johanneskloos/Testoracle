@@ -18,13 +18,46 @@ type data = {
     pt2: points_to_map
 }
 
-(** Strict matching of functions. *)
-let match_functions {funs1; funs2} fun1 fun2 =
-    match (funs1.(fun1), funs2.(fun2)) with
-    | (Local { instrumented=i1; uninstrumented=u1 },
-       Local { instrumented=i2; uninstrumented=u2 }) ->
+let function_body_split s =
+    try
+        if s = "(unknown)" then
+            None
+        else
+            Some (Str.string_after s (String.index s '('))
+    with Not_found -> None
 
-           (u1 <> "(unknown)" && u1 = u2) || (u1 = "(unknown)" && i1 = i2)
+(** Strict matching of functions. *)
+let match_functions { funs1; funs2 } fun1 fun2 =
+    match (funs1.(fun1), funs2.(fun2)) with
+    | (Local { instrumented = i1; uninstrumented = u1 },
+    Local { instrumented = i2; uninstrumented = u2 }) ->
+    (* This is a hack. The function text used here can be either
+     * function name(args) { body } or (unknown). We say that
+     * two functions are "intensionally equivalent" if they have the same
+     * function body. This is, strictly speaking, not correct, but we simply
+     * use this as a heuristic to drive the search, and actually validate that
+     * guess using the trace. Note that the original implementation
+     * blindly compared the two strings. This will not work: It is likely
+     * that the function names are different, due to the way the transform
+     * works. Thus, we compare the arguments and the body separately;
+     * XXX Consider using an even better comparison based on actually parsing
+     * the Javascript, at least removing comments and normalizing semicolons
+     * and whitespace.
+     *)
+    begin
+        Format.eprintf "Function match, %s vs. %s@." u1 u2;
+        match function_body_split u1, function_body_split u2 with
+          | Some body1, Some body2 ->
+            Format.eprintf "Decomposed to `%s' vs. `%s'@."
+                  body1 body2;
+               body1 = body2
+          | None, None ->
+            Format.eprintf "Neither could be decomposed, matching instrumented code@.";
+            i1 = i2
+          | _ ->
+            Format.eprintf "Only one could be decomposed. Proposing not equal";
+            false
+     end
     | (External id1, External id2) -> id1 = id2
     | _ -> false
 
