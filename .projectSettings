@@ -5,7 +5,7 @@
 		<item value="" key="ocamlbuildProjectLibs"/>
 		<item value="true" key="ocamlbuildGenerateTypeInfo"/>
 		<item value="-use-ocamlfind" key="ocamlbuildProjectOtherFlags"/>
-		<item value="matchObjects_unit.native,matchTraces_unit.native,localFacts_unit.native,test_calculations.native,matchTraces_matcher_unit.native,matchTraces_matcher_unit.d.byte,oracle.native,richtrace_unit.native" key="ocamlbuildProjectTargets"/>
+		<item value="matchObjects_unit.native,matchTraces_unit.native,localFacts_unit.native,test_calculations.native,matchTraces_matcher_unit.native,matchTraces_matcher_unit.d.byte,oracle.native,richtrace_unit.native,pprichtrace.native,pptrace.native" key="ocamlbuildProjectTargets"/>
 		<item value="" key="ocamlbuildProjectCompilerFlags"/>
 	</section>
 </section>
