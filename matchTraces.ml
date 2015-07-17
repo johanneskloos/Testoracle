@@ -18,9 +18,9 @@ let is_unobservable = function
     | RForIn _ | RLocal _ | RAlias _ | RRead _ | RReturn _
     | RWith _ | RScriptEnter | RScriptExit | RScriptExc _ | RBinary _
     | RUnary _ | REndExpression | RConditional _ | RLiteral _
-    | RFunEnter _ | RFunPost _ ->
+    | RFunEnter _ | RFunExit _ ->
         true
-    | RFunPre _ | RWrite _ | RFunExit _ | RThrow _ ->
+    | RFunPre _ | RWrite _ | RFunPost _ | RThrow _ ->
         false
 
 (**
@@ -341,19 +341,19 @@ let regular_candidates matching_state op1 op2 =
     (match_op1_op2 && is_matching_external_call matching_state op1 op2, MatchPush External);
     (is_matching_toString_call matching_state op1 op2, MatchPush ToString);
     (match_op1_op2 && may_be_wrapper_entry matching_state op1 op2, MatchPush Wrapper);
-    (match_op1_op2 && is_exit op2, MatchPop) ]
+    (match_op1_op2 && is_post_exit op2, MatchPop) ]
     |> List.filter fst |> List.map snd |> add_objeq op2 objeq
 
 let wrap_candidates matching_state op1 op2 =
     [ (is_internal_call matching_state.rt2 op2, WrapperPush Regular);
     (is_internal_call matching_state.rt2 op2, WrapperPush Wrapper);
-    (is_exit op2, WrapperPop);
+    (is_post_exit op2, WrapperPop);
     (may_insert_in_wrap_simple matching_state op2, WrapperSimple) ]
     |> List.filter fst |> List.map snd |> add_objeq op2 matching_state.objeq
 
 let toString_candidates matching_state op1 op2 =
     [ (is_internal_call matching_state.rt2 op2, WrapperPush ToString);
-    (is_exit op2, WrapperPop);
+    (is_post_exit op2, WrapperPop);
     (is_unobservable op2, WrapperSimple) ]
     |> List.filter fst |> List.map snd |> add_objeq op2 matching_state.objeq
 
