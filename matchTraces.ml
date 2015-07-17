@@ -385,6 +385,24 @@ type match_type =
     | Wrap of rich_operation
     | Init of rich_operation
 
+(** Pretty-printers for matching state and match operations *)
+let pp_matching_state pp { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data } =
+  Format.fprintf pp "..."
+let pp_print_mode pp = function
+  | Regular -> Format.pp_print_string pp "regular"
+  | Wrapper -> Format.pp_print_string pp "wrap"
+  | External -> Format.pp_print_string pp "external"
+  | ToString ->  Format.pp_print_string pp "toString"
+  
+let pp_match_operation pp = function
+  | Initialization -> Format.pp_print_string pp "init"
+  | WrapperSimple -> Format.pp_print_string pp "wrap"
+  | WrapperPop -> Format.pp_print_string pp "wrap, pop"
+  | WrapperPush m -> Format.fprintf pp "wrap, push %a" pp_print_mode m
+  | MatchSimple -> Format.pp_print_string pp "match"
+  | MatchPop -> Format.pp_print_string pp "match, pop"
+  | MatchPush m -> Format.fprintf pp "match, push %a" pp_print_mode m 
+
 (**
 * Helpers for the matching engine.
 *
@@ -398,11 +416,14 @@ let get_state = function
     | [] -> InToplevel
 
 (**
-* Special - case handling for a trace ending in initialisation code.
+* Special-case handling for a trace ending in initialisation code.
 * This is legal, but probably not very useful, except in the degenerate
 * case of empty code.
 *)
 let can_be_added_as_initialisation matching_state trace stack =
+    Format.eprintf "Checking if %a with stack %a can be added as tail initialisation code"
+      pp_rich_trace trace
+      (FormatHelper.pp_print_list pp_print_mode) stack;
     get_state stack = InToplevel &&
     List.for_all
         (fun (op, facts) ->
@@ -494,6 +515,12 @@ let adapt_matching_state op op1 op2 matching_state =
 let rec matching_engine matching_state trace1 trace2 stack =
     match trace1, trace2 with
     | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
+        Format.eprintf
+          "Trying to match %a (%d remaining) with %a (%d remaining) in state %a, stack %a@."
+          pp_rich_operation op1 (List.length trace1)
+          pp_rich_operation op2 (List.length trace2)
+          pp_matching_state matching_state
+          (FormatHelper.pp_print_list pp_print_mode) stack;
         let matching_state' = { matching_state with facts1; facts2 } in
         let (ops, objeq) =
             build_candidates matching_state' op1 op2 (get_state stack) in
@@ -534,4 +561,3 @@ let match_traces rt1 rt2 =
         } rt1.trace rt2.trace []
 
 let match_traces rt1 rt2 = Printexc.print (match_traces rt1) rt2
-    
