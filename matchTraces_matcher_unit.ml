@@ -36,11 +36,12 @@ let rfo_2 = RFunPost { f = f1''; args = a'; base = b'; result = v1 }
 let run = RUnary { op = "-"; arg = v5; result = vm5 }
 let ree2 = RConditional v2
 let ree3 = RConditional v3
+let rse = RScriptExit
 
 let tu1 = [ rfp_0; rfe_0; rfx; rfo_0; run ]
 let tm1 = [ rfp_1; rfe_1; rfx; rfo_1; ree2; run; ree3 ]
-let tu2 = [ rfp_0; rfe_0; run; rfx; rfo_0 ]
-let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2 ]
+let tu2 = [ rfp_0; rfe_0; run; rfx; rfo_0; rse ]
+let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2; rse ]
 
 let facts_empty = {
     last_arguments = None;
@@ -131,9 +132,10 @@ let match2 = [
   Pair(rfe_0, rfe_1);
   Pair(run, run);
   Pair(rfx, rfx);
-  Wrap(rfo_1);
+  Pair(rfo_0,rfo_1);
   Wrap(rfx);
-  Pair(rfo_0, rfo_2)
+  Wrap(rfo_2);
+  Pair(rse, rse)
   ] 
 
 let pp_match pp = function
