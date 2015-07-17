@@ -109,7 +109,8 @@ let operation_classification = [
 		false, false, false, false, false, false, false, false, false, false);
 	(RFunPre { f = func3; base = base1; args = args1; call_type = Function },
 		false, false, false, false, false, false, false, true, false, false);
-	(bc (RFunPost { f = func1; base = base1; args = args1; result = val1 }));
+	(RFunPost { f = func1; base = base1; args = args1; result = val1 },
+    false, false, false, false, false, false, false, false, false, false);
 	(bc (RLiteral { value = val1; hasGetterSetter = false }));
 	(bc (RForIn base1));
 	(bc (RLocal { name = "x"; ref = (reference_of_local_name "x", 0) }));
@@ -129,7 +130,7 @@ let operation_classification = [
 	(bc (RWith val1));
 	(bc (RFunEnter { f = func1; this = base1; args = args1 }));
 	(RFunExit { ret = val1; exc = val1 },
-		false, false, true, false, false, false, false, false, false, false);
+   true, false, true, false, false, true, true, false, true, true);
 	(bc (RScriptEnter));
 	(bc (RScriptExit));
 	(bc (RScriptExc val1));
@@ -661,18 +662,18 @@ let rfunpost_expectations = [
   ("RFunPost, matching",
    RFunPost { f = func1; base = val1; args = val2; result = obj1 },
    RFunPost { f = func1; base = val1; args = val2; result = obj1 },
-   [ MatchSimple ], [ MatchSimple ],
-   [ MatchSimple ], [ MatchSimple ],
-   [ WrapperSimple ], [ WrapperSimple ],
-   [ WrapperSimple ], [ WrapperSimple ],
+   [], [],
+   [ MatchPop ], [ MatchPop ],
+   [ WrapperPop ], [ WrapperPop ],
+   [ WrapperPop ], [ WrapperPop ],
    [ MatchPop ], [ MatchPop ]);
   ("RFunPost, non-matching",
    RFunPost { f = func1; base = val1; args = val2; result = obj1 },
    RFunPost { f = func2; base = val1; args = val2; result = obj1 },
    [], [],
    [], [],
-   [ WrapperSimple ], [ WrapperSimple ],
-   [ WrapperSimple ], [ WrapperSimple ],
+   [ WrapperPop ], [ WrapperPop ],
+   [ WrapperPop ], [ WrapperPop ],
    [], []);
 ]
 
@@ -724,17 +725,17 @@ let rfunexit_expectation = [
    RFunExit { ret = val1; exc = OUndefined },
    RFunExit { ret = val1; exc = OUndefined },
    [], [],
-   [ MatchPop ], [ MatchPop ],
-   [ WrapperPop ], [ WrapperPop ],
-   [ WrapperPop ], [ WrapperPop ],
+   [ MatchSimple ], [ MatchSimple ],
+   [ WrapperSimple ], [ WrapperSimple ],
+   [ WrapperSimple ], [ WrapperSimple ],
    [], []);
   ("RFunExit, non-matching",
    RFunExit { ret = val1; exc = OUndefined },
    RFunExit { ret = val1; exc = ONull },
    [], [],
    [], [],
-   [ WrapperPop ], [ WrapperPop ],
-   [ WrapperPop ], [ WrapperPop ],
+   [ WrapperSimple ], [ WrapperSimple ],
+   [ WrapperSimple ], [ WrapperSimple ],
    [], [])  
 ] 
 

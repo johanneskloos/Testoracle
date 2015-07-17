@@ -13,16 +13,16 @@ let (|>) = Pervasives.(|>)
 
 (** Tests for the function matcher. *)
 let funs1 =
-    [| Local { instrumented="random stuff 1"; uninstrumented="function 1" };
-       Local { instrumented="random stuff 2"; uninstrumented="function 2" };
+    [| Local { instrumented="random stuff 1"; uninstrumented="function name (args) 1" };
+       Local { instrumented="random stuff 2"; uninstrumented="function name (args) 2" };
        Local { instrumented="random stuff 3"; uninstrumented="(unknown)" };
        Local { instrumented="random stuff 4"; uninstrumented="(unknown)" };
        External 0;
        External 1 |];;
 let funs2 =
     [| External 1;
-       Local { instrumented="random stuff 1"; uninstrumented="function 1'" };
-       Local { instrumented="random stuff 2"; uninstrumented="function 2" };
+       Local { instrumented="random stuff 1"; uninstrumented="function name (args) 1'" };
+       Local { instrumented="random stuff 2"; uninstrumented="function name' (args) 2" };
        Local { instrumented="random stuff 3"; uninstrumented="(unknown)" };
        Local { instrumented="random stuff 4"; uninstrumented="(unknown)" };
        External 0 |];;

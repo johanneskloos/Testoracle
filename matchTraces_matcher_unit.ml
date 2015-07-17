@@ -51,8 +51,8 @@ let facts_empty = {
 }
 let enrich = List.map (fun x -> (x, facts_empty))
 
-let body1 = "body 1"
-let body2 = "body 2"
+let body1 = "function f1 (args) { body 1 }"
+let body2 = "function f2 (args) { body 2 }"
 let fun_u = [|
     Local { instrumented = body1; uninstrumented = body1 }
     |]
