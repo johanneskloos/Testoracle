@@ -143,23 +143,23 @@ let pp_match pp = function
 let match_print_trace tr =
   to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
 let match_print = function
-  | Some tr -> match_print_trace tr
-  | None -> "(none)"
+  | Success tr -> match_print_trace tr
+  | _ -> "(none)"
   
 let match_equal exp got = Assert.make_equal (=) match_print exp got
   
 let test_11 =
   Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 1"
     (fun () ->
-      match_equal (Some match1) (match_traces rtu1 rtm1))
+      match_equal (Success match1) (match_traces rtu1 rtm1))
 let test_22 =
   Test.make_simple_test ~title:"Comparing traces unmod. 2 and mod. 2"
     (fun () ->
-      match_equal (Some match2) (match_traces rtu2 rtm2))
+      match_equal (Success match2) (match_traces rtu2 rtm2))
 let test_12 =
   Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 2"
-    (fun () ->
-      match_equal None (match_traces rtu1 rtm2))
+    (fun () -> 
+      Assert.equal_bool false (match match_traces rtu1 rtm2 with Success _ -> true | Failure _ -> false))
 
 let () =
   Printexc.record_backtrace true;

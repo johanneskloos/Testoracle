@@ -503,6 +503,25 @@ let adapt_matching_state op op1 op2 matching_state =
     | _ -> perpetuate_initialisation_data matching_state op2
     end |> detect_toString op1
 
+
+type matching_anti_tree_node = {
+  op1: rich_operation;
+  op2: rich_operation;
+  stack: mode list
+  }
+type matching_anti_tree =
+  | Node of matching_anti_tree_node * (match_operation * matching_anti_tree) list
+  | EndFailure of rich_trace
+  | InitTailFailure of rich_trace * mode list
+
+type result =
+  | Success of match_type list
+  | Failure of matching_anti_tree
+
+type apply_one_result =
+  | A1Success of match_type list
+  | A1Failure of matching_anti_tree list
+   
 (** The matching engine.
 *
 * It consists of two mutually - recursive functions:
@@ -524,18 +543,32 @@ let rec matching_engine matching_state trace1 trace2 stack =
         let matching_state' = { matching_state with facts1; facts2 } in
         let (ops, objeq) =
             build_candidates matching_state' op1 op2 (get_state stack) in
-        apply_first_working
+        Format.eprintf "Candidates to try: %a@."
+          (FormatHelper.pp_print_list pp_match_operation) ops;
+        begin match apply_first_working
             { matching_state' with objeq }
             op1 op2 trace1 trace2 stack ops
-    | _ :: _, [] -> None
+        with
+          | A1Success tr -> Success tr
+          | A1Failure l -> Failure (Node ({ op1; op2; stack}, List.map2 (fun op mat -> (op, mat)) ops l))
+        end
+    | _ :: _, [] ->
+       Format.eprintf "Failure: non-empty unmodified trace can't match []@.";
+       Failure (EndFailure trace1)
     | [], trace2 ->
-        if can_be_added_as_initialisation matching_state trace2 stack then
-            Some (List.map (fun (op, _) -> Init op) trace2)
-        else
-            None
+        Format.eprintf "Suffix `%a' remaining@." pp_rich_trace trace2;
+        if can_be_added_as_initialisation matching_state trace2 stack then begin
+            Format.eprintf "Suffix is all-init@.";
+            Success (List.map (fun (op, _) -> Init op) trace2)
+        end else begin
+            Format.eprintf "Suffix is NOT all-init@.";
+            Failure (InitTailFailure (trace2, stack))
+        end
 and apply_first_working matching_state op1 op2 trace1 trace2 stack =
     function
-    | [] -> None
+    | [] ->
+      Format.eprintf "No match found@."; 
+      A1Failure []
     | op :: ops ->
         match
         matching_engine
@@ -544,10 +577,15 @@ and apply_first_working matching_state op1 op2 trace1 trace2 stack =
             trace2
             (adapt_stack op stack)
         with
-        | Some matching ->
-            Some (extend_matching op op1 op2 matching)
-        | None ->
+        | Success matching ->
+            Format.eprintf "Used %a@." pp_match_operation op;
+            A1Success (extend_matching op op1 op2 matching)
+        | Failure ft ->
+          match
             apply_first_working matching_state op1 op2 trace1 trace2 stack ops
+            with
+              | A1Success s -> A1Success s
+              | A1Failure l -> A1Failure (ft :: l)
 
 (** The main entry point for trace matching. *)
 let match_traces rt1 rt2 =
