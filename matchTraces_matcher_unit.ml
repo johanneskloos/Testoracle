@@ -142,20 +142,20 @@ let pp_match pp = function
   | Init op -> Format.fprintf pp "init %a" pp_rich_operation op
 let match_print_trace tr =
   to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
-let match_print = function
+let match_print tr1 tr2 = function
   | Success tr -> match_print_trace tr
-  | _ -> "(none)"
+  | Failure mat -> OracleDebug.trace_base := Some "dump"; OracleDebug.dump_result tr1 tr2 (Failure mat); "see dump"   
   
-let match_equal exp got = Assert.make_equal (=) match_print exp got
+let match_equal tr1 tr2 exp = Assert.make_equal (=) (match_print tr1 tr2) exp (match_traces tr1 tr2)
   
 let test_11 =
   Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 1"
     (fun () ->
-      match_equal (Success match1) (match_traces rtu1 rtm1))
+      match_equal rtu1 rtm1 (Success match1))
 let test_22 =
   Test.make_simple_test ~title:"Comparing traces unmod. 2 and mod. 2"
     (fun () ->
-      match_equal (Success match2) (match_traces rtu2 rtm2))
+      match_equal rtu2 rtm2 (Success match2))
 let test_12 =
   Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 2"
     (fun () -> 
