@@ -4,6 +4,7 @@ open Misc;;
 open Trace;;
 open CalculateVersions;;
 open PointsTo;;
+open Cleantrace
 
 let add_write (facts: local_facts) (state: points_to_map) (ref: reference) (value: objid): points_to_map =
     let vref = make_versioned facts ref in
@@ -25,36 +26,36 @@ let add_read (facts: local_facts) (state: points_to_map) (ref: reference) (value
 
 let add_known_new_object (objects: objects) (facts: local_facts) (state: points_to_map) (obj: objid): points_to_map =
     let id = get_object obj in
-    StringMap.fold (fun name {value} state ->
-        add_write facts state (reference_of_fieldref (id, name)) value)
+    StringMap.fold (fun name (objspec: Trace.fieldspec) state ->
+        add_write facts state (reference_of_fieldref (id, name)) objspec.value)
         objects.(id) state
 
 let add_literal (objects: objects) (facts: local_facts) (state: points_to_map) (value: objid): points_to_map =
     match value with
     | OObject id | OOther (_, id) | OFunction (id, _) ->
-            StringMap.fold (fun name {value} state ->
-                add_read facts state (reference_of_fieldref (id, name)) value)
+            StringMap.fold (fun name (objspec: Trace.fieldspec) state ->
+                add_read facts state (reference_of_fieldref (id, name)) objspec.value)
             objects.(id) state
     | _ -> state
 
-let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (state: points_to_map) (facts: local_facts): operation -> points_to_map = function
-    | FunPre { args } ->
+let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (state: points_to_map) (facts: local_facts): clean_operation -> points_to_map = function
+    | CFunPre { args } ->
             add_known_new_object objects facts state args
-    | Literal { value } ->
+    | CLiteral { value } ->
             add_literal objects facts state value
-    | Declare { argument = Some i } when i >= 0 ->
+    | CDeclare { declaration_type = ArgumentBinding _ } ->
             state
-    | Declare { name; value } ->
+    | CDeclare { name; value } ->
             add_write facts state (reference_of_local_name name) value
-    | GetField { base; offset; value } ->
+    | CGetField { base; offset; value } ->
             add_read facts state (reference_of_field base offset) value
-    | PutField { base; offset; value } ->
+    | CPutField { base; offset; value } ->
             add_write facts state (reference_of_field base offset) value
-    | Read { name; value; isGlobal } ->
+    | CRead { name; value; isGlobal } ->
             add_read facts state (reference_of_variable globals_are_properties facts isGlobal name) value
-    | Write { name; value; isGlobal } ->
+    | CWrite { name; value; isGlobal } ->
             add_write facts state (reference_of_variable globals_are_properties facts isGlobal name) value
-    | FunEnter { args } ->
+    | CFunEnter { args } ->
             add_known_new_object objects facts state args
     | _ -> state
 let collect_pointsto globals_are_properties objects =

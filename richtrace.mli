@@ -1,10 +1,9 @@
 type alias_source = Argument of int | With of Reference.versioned_reference
-type call_type = Function | Method | Constructor | ConstructorMethod
 type rfunpre = {
   f : Trace.objid;
   base : Trace.objid;
   args : Trace.objid;
-  call_type : call_type;
+  call_type : Cleantrace.call_type;
 }
 type rfunpost = {
   f : Trace.objid;

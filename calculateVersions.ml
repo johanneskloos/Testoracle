@@ -2,6 +2,7 @@ open LocalFacts
 open Misc
 open Reference
 open Trace
+open Cleantrace
 
 type saved_variable =
     | Unknown
@@ -135,29 +136,30 @@ let provide_literal objs state = function
     | _ -> state
 
 let collect_versions_step objects globals_are_properties state facts op =
-    let nameref = reference_of_name globals_are_properties state.aliases in
+    let nameref isGlobal =
+       reference_of_name globals_are_properties state.aliases isGlobal in
     let res = match op with
-    | FunPre { args } ->
+    | CFunPre { args } ->
             provide_object objects state args
-    | Literal { value } ->
+    | CLiteral { value } ->
             provide_literal  objects state value
-    | Declare { name; argument = Some i } when i >= 0 ->
+    | CDeclare { name; declaration_type = ArgumentBinding i } ->
             provide_argument_alias (save_version state name) name facts i
-    | Declare { name } ->
+    | CDeclare { name } ->
             provide_write objects
                 (reference_of_local_name name)
                 (save_version state name)
-    | GetField { base; offset } ->
+    | CGetField { base; offset } ->
             provide_read (reference_of_field base offset) state
-    | PutField { base; offset } ->
+    | CPutField { base; offset } ->
             provide_write objects (reference_of_field base offset) state 
-    | Read { name; isGlobal } ->
+    | CRead { name; isGlobal } ->
             provide_read (nameref isGlobal name) state
-    | Write { name; isGlobal } ->
+    | CWrite { name; isGlobal } ->
             provide_write objects (nameref isGlobal name) state
-    | FunEnter { args } ->
+    | CFunEnter { args } ->
             provide_object objects (push state) args
-    | FunExit _ ->
+    | CFunExit _ ->
             pop state
     | _ ->
             state in

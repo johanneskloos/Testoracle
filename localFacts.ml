@@ -2,6 +2,7 @@ open Trace
 open Reference
 open Misc
 open Notations
+open Cleantrace 
 
 type local_facts = {
     last_arguments: int option;
@@ -11,7 +12,7 @@ type local_facts = {
     aliases: (int * string) StringMap.t
 }
 
-type 'a enriched_trace = (operation * 'a) list
+type 'a enriched_trace = (clean_operation * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
 type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
@@ -36,7 +37,7 @@ let pp_enriched_trace fmt =
     FormatHelper.pp_print_list_lines
         (fun pp (op, facts) ->
             Format.fprintf pp "@[<v 2>%a@ %a@]"
-            pp_operation op
+            pp_clean_operation op
             fmt facts)
 let pp_facts_trace = pp_enriched_trace pp_local_facts
 
@@ -54,14 +55,15 @@ let empty_local_facts = {
     last_parameters = None;
     last_update = None;
     versions = ReferenceMap.empty;
-    aliases = StringMap.empty
+    aliases = StringMap.empty;
+    globals = []
 }
 
-let trace_initialize: trace -> facts_trace =
-  List.map (fun op -> (op, empty_local_facts))
+let trace_initialize tr =
+  tr |> clean_trace |> List.map (fun op -> (op, empty_local_facts))
 
 let trace_collect
-  (f: 'state -> 'olddata -> operation -> 'newdata * 'state)
+  (f: 'state -> 'olddata -> clean_operation -> 'newdata * 'state)
   (init: 'state) (tr: 'olddata enriched_trace):
   ('newdata enriched_trace * 'state) =
   List.fold_left (fun (enriched_trace, state) (operation, olddata) ->
@@ -72,17 +74,17 @@ let trace_collect
 
 let trace_enrich f init tr = trace_collect f init tr |> fst
 
-let trace_fold (f: 'acc -> 'data -> operation -> 'acc):
+let trace_fold (f: 'acc -> 'data -> clean_operation -> 'acc):
     'acc -> 'data enriched_trace -> 'acc =
   List.fold_left (fun acc (operation, data) -> f acc data operation)
 
 let collect_arguments_and_parameters_step 
         (last_arguments, last_parameters) facts op =
     let (arguments, parameters) = match op with
-    | FunPre { args } -> (args::last_arguments, last_parameters)
-    | FunPost _ -> (List.tl last_arguments, last_parameters)
-    | FunEnter { args } -> (last_arguments, args::last_parameters)
-    | FunExit _ -> (last_arguments, List.tl last_parameters)
+    | CFunPre { args } -> (args::last_arguments, last_parameters)
+    | CFunPost _ -> (List.tl last_arguments, last_parameters)
+    | CFunEnter { args } -> (last_arguments, args::last_parameters)
+    | CFunExit _ -> (last_arguments, List.tl last_parameters)
     | _ -> (last_arguments, last_parameters)
     in ({ facts with
         last_arguments = hd_err arguments >|? get_object;

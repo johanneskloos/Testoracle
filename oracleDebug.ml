@@ -1,6 +1,7 @@
 open MatchTraces
 open Richtrace
 open Trace
+open Cleantrace
 
 let trace_base = ref None
 

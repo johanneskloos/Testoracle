@@ -6,6 +6,7 @@ open Abbreviations
 open Misc
 open Reference
 open LocalFacts
+open Cleantrace
 
 let (|>>) = (|>)
 let (|>) = Pervasives.(|>)

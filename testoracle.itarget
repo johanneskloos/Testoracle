@@ -3,3 +3,6 @@ matchTraces_matcher_unit.native
 matchTraces_unit.native
 oracle.native
 test_calculations.native
+pptrace.native
+pprichtrace.native
+ppcleantrace.native

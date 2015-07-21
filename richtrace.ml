@@ -5,9 +5,9 @@ open CalculatePointsTo
 open PointsTo
 open Trace
 open Reference
+open Cleantrace
 
 type alias_source = Argument of int | With of versioned_reference
-type call_type = Function | Method | Constructor | ConstructorMethod
 type rfunpre = { f: objid; base: objid; args: objid; call_type: call_type }
 type rfunpost = { f: objid; base: objid; args: objid; result: objid }
 type rliteral = { value: objid; hasGetterSetter: bool }
@@ -147,39 +147,33 @@ let enrich_step globals_are_properties objs (op, data) =
         reference_of_name globals_are_properties data.aliases isGlobal name
         |> make_versioned data in
     let res = match op with
-  | FunPre { f; base; args; isConstructor; isMethod } ->
-          [RFunPre { f; base; args; call_type =
-              if isConstructor && isMethod then ConstructorMethod
-              else if isConstructor then Constructor
-              else if isMethod then Method
-              else Function }]
-  | FunPost { f; base; args; result } -> [RFunPost {f; base; args; result}]
-  | Literal { value; hasGetterSetter } -> [RLiteral {value; hasGetterSetter}]
-  | ForIn { value } -> [RForIn value]
-  | Declare { name; argument=Some idx } when idx >= 0 ->
+  | CFunPre { f; base; args; call_type } ->
+          [RFunPre { f; base; args; call_type } ]
+  | CFunPost { f; base; args; result } -> [RFunPost {f; base; args; result}]
+  | CLiteral { value; hasGetterSetter } -> [RLiteral {value; hasGetterSetter}]
+  | CForIn value -> [RForIn value]
+  | CDeclare { name; declaration_type = ArgumentBinding idx } ->
       [RAlias { name;
                 ref=Misc.StringMap.find name data.aliases
                     |> reference_of_fieldref
                     |> make_versioned data;
                 source = Argument idx }]
-  | Declare { name; value } ->
+  | CDeclare { name; value } ->
           let ref = reference_of_local_name name |> make_versioned data in
           [RLocal { name; ref };
            RWrite { ref; oldref=ref; value; success=true} ]
-  | GetFieldPre _ -> []
-  | GetField { base; offset; value } ->
+  | CGetField { base; offset; value } ->
       [RRead { ref = mkfieldref base offset; value }]
-  | PutFieldPre _ -> []
-  | PutField { base; offset; value } ->
+  | CPutField { base; offset; value } ->
       (* FIXME success handling *)
       [RWrite {
           ref = mkfieldref base offset;
           oldref = Option.some data.last_update;
           value; success = true
       }]
-  | Read { name; value; isGlobal } ->
+  | CRead { name; value; isGlobal } ->
       [RRead { ref = mkvarref isGlobal name; value }]
-  | Write { name; lhs; value; isGlobal } ->
+  | CWrite { name; lhs; value; isGlobal } ->
       (* FIXME success handling *)
       [RWrite {
           ref = mkvarref isGlobal name;
@@ -187,20 +181,18 @@ let enrich_step globals_are_properties objs (op, data) =
           value;
           success = true
       }]
-  | Return { value } -> [RReturn value]
-  | Throw { value } -> [RThrow value]
-  | With { value } -> [RWith value]
-  | FunEnter { f; this; args } -> [RFunEnter { f; this; args }]
-  | FunExit { ret; exc } -> [RFunExit { ret; exc }]
-  | ScriptEnter -> [RScriptEnter]
-  | ScriptExit -> [RScriptExit]
-  | ScriptExc exc -> [RScriptExc exc]
-  | BinPre _ -> []
-  | BinPost { op; left; right; result } -> [RBinary { op; left; right; result }]
-  | UnaryPre _ -> []
-  | UnaryPost { op; arg; result } -> [RUnary { op; arg; result }]
-  | EndExpression _ -> [REndExpression]
-  | Conditional {value} -> [RConditional value] in
+  | CReturn value -> [RReturn value]
+  | CThrow value -> [RThrow value]
+  | CWith value -> [RWith value]
+  | CFunEnter { f; this; args } -> [RFunEnter { f; this; args }]
+  | CFunExit { ret; exc } -> [RFunExit { ret; exc }]
+  | CScriptEnter -> [RScriptEnter]
+  | CScriptExit -> [RScriptExit]
+  | CScriptExc exc -> [RScriptExc exc]
+  | CBinary { op; left; right; result } -> [RBinary { op; left; right; result }]
+  | CUnary { op; arg; result } -> [RUnary { op; arg; result }]
+  | CEndExpression _ -> [REndExpression]
+  | CConditional value -> [RConditional value] in
     List.map (fun op -> (op, data)) res
 
 let calculate_rich_tracefile tracefile =
