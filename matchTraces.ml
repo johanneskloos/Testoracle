@@ -421,9 +421,6 @@ let get_state = function
 * case of empty code.
 *)
 let can_be_added_as_initialisation matching_state trace stack =
-    Format.eprintf "Checking if %a with stack %a can be added as tail initialisation code"
-      pp_rich_trace trace
-      (FormatHelper.pp_print_list pp_print_mode) stack;
     get_state stack = InToplevel &&
     List.for_all
         (fun (op, facts) ->
@@ -534,17 +531,9 @@ type apply_one_result =
 let rec matching_engine matching_state trace1 trace2 stack =
     match trace1, trace2 with
     | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
-        Format.eprintf
-          "Trying to match %a (%d remaining) with %a (%d remaining) in state %a, stack %a@."
-          pp_rich_operation op1 (List.length trace1)
-          pp_rich_operation op2 (List.length trace2)
-          pp_matching_state matching_state
-          (FormatHelper.pp_print_list pp_print_mode) stack;
         let matching_state' = { matching_state with facts1; facts2 } in
         let (ops, objeq) =
             build_candidates matching_state' op1 op2 (get_state stack) in
-        Format.eprintf "Candidates to try: %a@."
-          (FormatHelper.pp_print_list pp_match_operation) ops;
         begin match apply_first_working
             { matching_state' with objeq }
             op1 op2 trace1 trace2 stack ops
@@ -553,21 +542,16 @@ let rec matching_engine matching_state trace1 trace2 stack =
           | A1Failure l -> Failure (Node ({ op1; op2; stack}, List.map2 (fun op mat -> (op, mat)) ops l))
         end
     | _ :: _, [] ->
-       Format.eprintf "Failure: non-empty unmodified trace can't match []@.";
        Failure (EndFailure trace1)
     | [], trace2 ->
-        Format.eprintf "Suffix `%a' remaining@." pp_rich_trace trace2;
         if can_be_added_as_initialisation matching_state trace2 stack then begin
-            Format.eprintf "Suffix is all-init@.";
             Success (List.map (fun (op, _) -> Init op) trace2)
         end else begin
-            Format.eprintf "Suffix is NOT all-init@.";
             Failure (InitTailFailure (trace2, stack))
         end
 and apply_first_working matching_state op1 op2 trace1 trace2 stack =
     function
     | [] ->
-      Format.eprintf "No match found@."; 
       A1Failure []
     | op :: ops ->
         match
@@ -578,7 +562,6 @@ and apply_first_working matching_state op1 op2 trace1 trace2 stack =
             (adapt_stack op stack)
         with
         | Success matching ->
-            Format.eprintf "Used %a@." pp_match_operation op;
             A1Success (extend_matching op op1 op2 matching)
         | Failure ft ->
           match

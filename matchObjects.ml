@@ -45,17 +45,12 @@ let match_functions { funs1; funs2 } fun1 fun2 =
      * and whitespace.
      *)
     begin
-        Format.eprintf "Function match, %s vs. %s@." u1 u2;
         match function_body_split u1, function_body_split u2 with
           | Some body1, Some body2 ->
-            Format.eprintf "Decomposed to `%s' vs. `%s'@."
-                  body1 body2;
                body1 = body2
           | None, None ->
-            Format.eprintf "Neither could be decomposed, matching instrumented code@.";
             i1 = i2
           | _ ->
-            Format.eprintf "Only one could be decomposed. Proposing not equal";
             false
      end
     | (External id1, External id2) -> id1 = id2
