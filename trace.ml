@@ -379,17 +379,17 @@ let pp_objid pp = function
 
 let pp_operation pp = function
   | FunPre x ->
-      if x.isConstructor && x.isMethod then fprintf pp "new %a.%a(%a)" pp_objid x.base pp_objid x.f pp_objid x.args
-      else if x.isConstructor then fprintf pp "new %a::%a(%a)" pp_objid x.base pp_objid x.f pp_objid x.args
-      else if x.isMethod then fprintf pp "%a.%a(%a)" pp_objid x.base pp_objid x.f pp_objid x.args
-      else fprintf pp "%a::%a(%a)" pp_objid x.base pp_objid x.f pp_objid x.args
+      if x.isConstructor && x.isMethod then fprintf pp "Calling constructor %a on %a with %a" pp_objid x.f pp_objid x.base pp_objid x.args
+      else if x.isConstructor then fprintf pp "Calling constructor %a using base %a on %a" pp_objid x.f pp_objid x.base pp_objid x.args
+      else if x.isMethod then fprintf pp "Calling function %a on %a with %a" pp_objid x.f pp_objid x.base pp_objid x.args
+      else fprintf pp "Calling function %a using base %a on %a" pp_objid x.f pp_objid x.base pp_objid x.args
   | FunPost x ->
-      if x.isConstructor && x.isMethod then fprintf pp "new %a.%a(%a) ⇒ %a" pp_objid x.base pp_objid x.f pp_objid x.args pp_objid x.result
-      else if x.isConstructor then fprintf pp "new %a::%a(%a) ⇒ %a" pp_objid x.base pp_objid x.f pp_objid x.args pp_objid x.result
-      else if x.isMethod then fprintf pp "%a.%a(%a) ⇒ %a" pp_objid x.base pp_objid x.f pp_objid x.args pp_objid x.result
-      else fprintf pp "%a::%a(%a) ⇒ %a" pp_objid x.base pp_objid x.f pp_objid x.args pp_objid x.result
-  | Literal x -> fprintf pp "literal %a%s" pp_objid x.value (if x.hasGetterSetter then " (has getter and setter)" else "")
-  | ForIn x -> fprintf pp "for (… in %a)" pp_objid x.value
+      if x.isConstructor && x.isMethod then fprintf pp "Called constructor %a on %a with %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
+      else if x.isConstructor then fprintf pp "Called constructor %a using base %a on %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
+      else if x.isMethod then fprintf pp "Called function %a on %a with %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
+      else fprintf pp "Called function %a using base %a on %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
+  | Literal x -> fprintf pp "Literal %a%s" pp_objid x.value (if x.hasGetterSetter then " (has getter and setter)" else "")
+  | ForIn x -> fprintf pp "for (... in %a)" pp_objid x.value
   | Declare x ->
       begin match x.argument with
         | Some i -> fprintf pp "argument def: %s from %d = %a" x.name i pp_objid x.value
@@ -401,44 +401,42 @@ let pp_operation pp = function
       end
   | GetFieldPre x ->
       if x.isOpAssign then
-        fprintf pp "%a[%s] (for assign-and-modify)" pp_objid x.base x.offset
+        fprintf pp "Reading %a.%s (for assign-and-modify)" pp_objid x.base x.offset
       else if x.isMethodCall then
-        fprintf pp "%a[%s] (for method call)" pp_objid x.base x.offset
+        fprintf pp "Reading %a.%s (for method call)" pp_objid x.base x.offset
       else
-        fprintf pp "%a[%s]" pp_objid x.base x.offset
+        fprintf pp "Reading %a.%s" pp_objid x.base x.offset
   | GetField x ->
       if x.isOpAssign then
-        fprintf pp "%a[%s] ⇒ %a (for assign-and-modify)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Reading %a.%s gives %a (for assign-and-modify)" pp_objid x.base x.offset pp_objid x.value
       else if x.isMethodCall then
-        fprintf pp "%a[%s] ⇒ %a (for method call)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Reading %a.%s gives %a (for method call)" pp_objid x.base x.offset pp_objid x.value
       else
-        fprintf pp "%a[%s] ⇒ %a" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Reading %a.%s gives %a" pp_objid x.base x.offset pp_objid x.value
   | PutFieldPre x ->
       if x.isOpAssign then
-        fprintf pp "%a[%s] = %a (pre, for assign-and-modify)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Writing %a to %a.%s (pre, for assign-and-modify)" pp_objid x.value pp_objid x.base x.offset
       else
-        fprintf pp "%a[%s] = %a (pre)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Writing %a to %a.%s (pre)" pp_objid x.value pp_objid x.base x.offset
   | PutField x ->
       if x.isOpAssign then
-        fprintf pp "%a[%s] = %a (for assign-and-modify)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Writing %a to %a.%s (for assign-and-modify)" pp_objid x.value pp_objid x.base x.offset
       else
-        fprintf pp "%a[%s] = %a" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Writing %a to %a.%s" pp_objid x.value pp_objid x.base x.offset
   | Read x ->
-      fprintf pp "%s ⇒ %a%s" x.name pp_objid x.value (if x.isGlobal then " (global)"
-                                                     else if x.isScriptLocal then " (scriptLocal)"
-                                                     else "")
+    fprintf pp "Reading %s (global=%B, scriptLocal=%B) gives %a"
+      x.name x.isGlobal x.isScriptLocal pp_objid x.value
   | Write x ->
-      fprintf pp "%s (%a) = %a%s" x.name pp_objid x.lhs pp_objid x.value (if x.isGlobal then " (global)"
-                                                     else if x.isScriptLocal then " (scriptLocal)"
-                                                     else "")
+    fprintf pp "Writing to %s (global=%B, scriptLocal=%B), new value: %a"
+      x.name x.isGlobal x.isScriptLocal pp_objid x.value 
   | Return x -> fprintf pp "return %a" pp_objid x.value
   | Throw x -> fprintf pp "throw %a" pp_objid x.value
   | With x -> fprintf pp "with %a" pp_objid x.value
-  | FunEnter x -> fprintf pp "enter %a@@%a(%a)" pp_objid x.f pp_objid x.this pp_objid x.args
-  | FunExit x -> fprintf pp "exit %a/%a" pp_objid x.ret pp_objid x.exc
+  | FunEnter x -> fprintf pp "Entering %a with base %a and arguments %a" pp_objid x.f pp_objid x.this pp_objid x.args
+  | FunExit x -> fprintf pp "Exiting function, return %a and exception %a" pp_objid x.ret pp_objid x.exc
   | ScriptEnter -> pp_print_string pp "script entry"
   | ScriptExit -> pp_print_string pp "script exit"
-  | ScriptExc exc -> fprintf pp "script exception %a" pp_objid exc
+  | ScriptExc exc -> fprintf pp "script exit with exception %a" pp_objid exc
   | BinPre x ->
       if x.isOpAssign then
         fprintf pp "%a %s= %a" pp_objid x.left x.op pp_objid x.right
@@ -448,13 +446,13 @@ let pp_operation pp = function
         fprintf pp "%a %s %a" pp_objid x.left x.op pp_objid x.right
   | BinPost x ->
       if x.isOpAssign then
-        fprintf pp "%a %s= %a ⇒ %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
+        fprintf pp "%a %s= %a returns�� %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
       else if x.isSwitchCaseComparison then
-        fprintf pp "case %a %s %a ⇒ %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
+        fprintf pp "case %a %s %a �returns %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
       else
         fprintf pp "%a %s %a ⇒ %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
   | UnaryPre x -> fprintf pp "%s %a" x.op pp_objid x.arg
-  | UnaryPost x -> fprintf pp "%s %a ⇒ %a" x.op pp_objid x.arg pp_objid x.result
+  | UnaryPost x -> fprintf pp "%s %a returns�� %a" x.op pp_objid x.arg pp_objid x.result
   | EndExpression iid -> pp_print_string pp "(end of expression)"
   | Conditional v -> fprintf pp "end of conditional, %a" pp_objid v.value
 
