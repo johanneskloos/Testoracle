@@ -198,6 +198,7 @@ let enrich_step globals_are_properties objs (op, data) =
 let calculate_rich_tracefile tracefile =
     tracefile |>
     calculate_arguments_and_parameters |>
+    calculate_globals |>
     calculate_versions |>
     fun tf ->
     let (funcs, objs, etrace, globals, globals_are_properties) = tf in

@@ -37,7 +37,9 @@ val trace_fold:
   'data enriched_trace -> 'acc
 val trace_initialize : trace -> facts_trace
 val collect_arguments_and_parameters: facts_trace -> facts_trace
+val collect_globals: facts_trace -> facts_trace
 val calculate_arguments_and_parameters: tracefile -> facts_tracefile
+val calculate_globals: tracefile -> facts_tracefile
 val reference_of_variable: bool -> local_facts -> bool -> string -> reference
 
 val make_versioned : local_facts -> reference -> versioned_reference
