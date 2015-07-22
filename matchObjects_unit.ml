@@ -145,7 +145,7 @@ let test_match_objects_raw_targeted_objeq_update =
     Test.make_simple_test ~title:"Testing targeted objeq updates"
         (fun () ->
             let mock_match data _ objeq (val1, _) =
-                Assert.make_equal (=) (to_string Trace.pp_objid)
+                Assert.make_equal (=) (to_string Trace.pp_jsval)
                         (ONumberInt 0) val1;
                 (true, IntIntMap.add (0, 0) true objeq) in
             match_objects_raw mock_match ["ign"] fundata IntIntSet.empty
