@@ -38,7 +38,7 @@ let pp_lftrace pp =
 let pp_pointsto pp map =
     fprintf pp "@[<v>%a@]"
         (fun pp -> VersionReferenceMap.iter (fun (ref, fld) value ->
-            fprintf pp "%a:%d -> %a@ " Reference.pp_reference ref fld pp_objid value)) map
+            fprintf pp "%a:%d -> %a@ " Reference.pp_reference ref fld pp_jsval value)) map
 
 let print_results ((funs, objs, _, globals, globals_are_properties), trace, pointsto) =
     printf "@[<v>\

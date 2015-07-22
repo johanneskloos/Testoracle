@@ -40,7 +40,7 @@ let points_to_facts =
 let print_objfacts =
     to_string
         (StringMapFormat.pp_print_map_default Format.pp_print_string
-                Trace.pp_objid)
+                Trace.pp_jsval)
 
 let equal_objfacts =
     Assert.make_equal (StringMap.equal (=)) print_objfacts

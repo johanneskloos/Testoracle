@@ -7,72 +7,74 @@ type declaration_type =
   | ArgumentBinding of int
   | CatchParam
 type funpre = {
-  f : objid;
-  base : objid;
-  args : objid;
+  f : jsval;
+  base : jsval;
+  args : jsval;
   call_type: call_type
 }
 type funpost = {
-  f : objid;
-  base : objid;
-  args : objid;
-  result : objid;
+  f : jsval;
+  base : jsval;
+  args : jsval;
+  result : jsval;
   call_type: call_type
 }
-type literal = { value : objid; hasGetterSetter : bool; }
+type literal = { value : jsval; hasGetterSetter : bool; }
 type declare = {
   name : string;
-  value : objid;
+  value : jsval;
   declaration_type: declaration_type
 }
 type accessfield = {
-  base : objid;
+  base : jsval;
   offset : string;
-  value : objid
+  value : jsval
 }
 type read = {
   name : string;
-  value : objid;
+  value : jsval;
   isGlobal: bool
 }
 type write = {
   name : string;
-  lhs : objid;
-  value : objid;
+  lhs : jsval;
+  value : jsval;
   isGlobal : bool;
   isSuccessful: bool
 }
 type binary = {
   op : string;
-  left : objid;
-  right : objid;
-  result : objid
+  left : jsval;
+  right : jsval;
+  result : jsval
 }
-type unary = { op : string; arg : objid; result : objid; }
-type funenter = { f : objid; this : objid; args : objid; }
-type funexit = { ret : objid; exc : objid; }
+type unary = { op : string; arg : jsval; result : jsval; }
+type funenter = { f : jsval; this : jsval; args : jsval; }
+type funexit = { ret : jsval; exc : jsval; }
+
 type clean_operation =
   | CFunPre of funpre
   | CFunPost of funpost
   | CLiteral of literal
-  | CForIn of objid
+  | CForIn of jsval
   | CDeclare of declare
   | CGetField of accessfield
   | CPutField of accessfield
   | CRead of read
   | CWrite of write
-  | CReturn of objid
-  | CThrow of objid
-  | CWith of objid
+  | CReturn of jsval
+  | CThrow of jsval
+  | CWith of jsval
   | CFunEnter of funenter
   | CFunExit of funexit
   | CScriptEnter
   | CScriptExit
-  | CScriptExc of objid
+  | CScriptExc of jsval
   | CBinary of binary
   | CUnary of unary
   | CEndExpression
-  | CConditional of objid
+  | CConditional of jsval
+
 type clean_trace = clean_operation list
 type clean_tracefile = functions * objects * clean_trace * globals * bool
 val pp_clean_operation : Format.formatter -> clean_operation -> unit

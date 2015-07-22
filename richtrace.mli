@@ -1,60 +1,67 @@
 type alias_source = Argument of int | With of Reference.versioned_reference
 type rfunpre = {
-  f : Trace.objid;
-  base : Trace.objid;
-  args : Trace.objid;
+  f : Trace.jsval;
+  base : Trace.jsval;
+  args : Trace.jsval;
   call_type : Cleantrace.call_type;
 }
 type rfunpost = {
-  f : Trace.objid;
-  base : Trace.objid;
-  args : Trace.objid;
-  result : Trace.objid;
+  f : Trace.jsval;
+  base : Trace.jsval;
+  args : Trace.jsval;
+  result : Trace.jsval;
 }
-type rliteral = { value : Trace.objid; hasGetterSetter : bool; }
+type rliteral = { value : Trace.jsval; hasGetterSetter : bool; }
 type rlocal = { name : string; ref : Reference.versioned_reference; }
 type ralias = {
   name : string;
   source : alias_source;
   ref : Reference.versioned_reference;
 }
-type rread = { ref : Reference.versioned_reference; value : Trace.objid; }
+type rread = { ref : Reference.versioned_reference; value : Trace.jsval; }
 type rwrite = {
   ref : Reference.versioned_reference;
   oldref: Reference.versioned_reference;
-  value : Trace.objid;
+  value : Trace.jsval;
   success : bool;
 }
 type rbinary = {
   op : string;
-  left : Trace.objid;
-  right : Trace.objid;
-  result : Trace.objid;
+  left : Trace.jsval;
+  right : Trace.jsval;
+  result : Trace.jsval;
 }
-type runary = { op : string; arg : Trace.objid; result : Trace.objid; }
-type rfunenter = { f : Trace.objid; this : Trace.objid; args : Trace.objid; }
-type rfunexit = { ret : Trace.objid; exc : Trace.objid; }
+type runary = { op : string; arg : Trace.jsval; result : Trace.jsval; }
+type rfunenter = { f : Trace.jsval; this : Trace.jsval; args : Trace.jsval; }
+type rfunexit = { ret : Trace.jsval; exc : Trace.jsval; }
+(** Events that make use of the facts calculated by the [LocalFacts] module
+  * and consorts to provide a better representation for trace comparison.
+  * Compare with [clean_operation], and note that variable and field accessed
+  * have been unified to [RRead] and [RWrite], while [CDeclare] has been split
+  * into [RAlias] and [RLocal]. *)
 type rich_operation =
     RFunPre of rfunpre
   | RFunPost of rfunpost
   | RLiteral of rliteral
-  | RForIn of Trace.objid
+  | RForIn of Trace.jsval
   | RLocal of rlocal
   | RAlias of ralias
   | RRead of rread
   | RWrite of rwrite
-  | RReturn of Trace.objid
-  | RThrow of Trace.objid
-  | RWith of Trace.objid
+  | RReturn of Trace.jsval
+  | RThrow of Trace.jsval
+  | RWith of Trace.jsval
   | RFunEnter of rfunenter
   | RFunExit of rfunexit
   | RScriptEnter
   | RScriptExit
-  | RScriptExc of Trace.objid
+  | RScriptExc of Trace.jsval
   | RBinary of rbinary
   | RUnary of runary
   | REndExpression
-  | RConditional of Trace.objid
+  | RConditional of Trace.jsval
+
+(** A rich trace contains rich operations and local facts. *)
 type rich_trace = (rich_operation * LocalFacts.local_facts) list
 type rich_tracefile = {
   funcs : Trace.functions;

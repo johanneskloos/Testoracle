@@ -6,31 +6,31 @@ open CalculateVersions;;
 open PointsTo;;
 open Cleantrace
 
-let add_write (facts: local_facts) (state: points_to_map) (ref: reference) (value: objid): points_to_map =
+let add_write (facts: local_facts) (state: points_to_map) (ref: reference) (value: jsval): points_to_map =
     let vref = make_versioned facts ref in
     if VersionReferenceMap.mem vref state then
         state (* This write was dropped; most likely, the field was marked "not writable". *)
     else
         VersionReferenceMap.add vref value state
 
-let add_read (facts: local_facts) (state: points_to_map) (ref: reference) (value: objid): points_to_map =
+let add_read (facts: local_facts) (state: points_to_map) (ref: reference) (value: jsval): points_to_map =
     let vref = make_versioned facts ref in
     if VersionReferenceMap.mem vref state then begin
         if (value <> VersionReferenceMap.find vref state) then begin
             Format.eprintf "Weirdness detected: In read of %a, expected %a, but got %a@."
-                pp_reference ref pp_objid (VersionReferenceMap.find vref state) pp_objid value 
+                pp_reference ref pp_jsval (VersionReferenceMap.find vref state) pp_jsval value 
         end;
         state
     end else
         VersionReferenceMap.add vref value state
 
-let add_known_new_object (objects: objects) (facts: local_facts) (state: points_to_map) (obj: objid): points_to_map =
+let add_known_new_object (objects: objects) (facts: local_facts) (state: points_to_map) (obj: jsval): points_to_map =
     let id = get_object obj in
     StringMap.fold (fun name (objspec: Trace.fieldspec) state ->
         add_write facts state (reference_of_fieldref (id, name)) objspec.value)
         objects.(id) state
 
-let add_literal (objects: objects) (facts: local_facts) (state: points_to_map) (value: objid): points_to_map =
+let add_literal (objects: objects) (facts: local_facts) (state: points_to_map) (value: jsval): points_to_map =
     match value with
     | OObject id | OOther (_, id) | OFunction (id, _) ->
             StringMap.fold (fun name (objspec: Trace.fieldspec) state ->

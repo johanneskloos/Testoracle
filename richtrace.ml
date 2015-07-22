@@ -8,43 +8,43 @@ open Reference
 open Cleantrace
 
 type alias_source = Argument of int | With of versioned_reference
-type rfunpre = { f: objid; base: objid; args: objid; call_type: call_type }
-type rfunpost = { f: objid; base: objid; args: objid; result: objid }
-type rliteral = { value: objid; hasGetterSetter: bool }
+type rfunpre = { f: jsval; base: jsval; args: jsval; call_type: call_type }
+type rfunpost = { f: jsval; base: jsval; args: jsval; result: jsval }
+type rliteral = { value: jsval; hasGetterSetter: bool }
 type rlocal = { name: string; ref: versioned_reference }
 type ralias = { name: string; source: alias_source; ref: versioned_reference }
-type rread = { ref: versioned_reference; value: objid }
+type rread = { ref: versioned_reference; value: jsval }
 type rwrite = {
     ref: versioned_reference; 
     oldref: versioned_reference; 
-    value: objid; 
+    value: jsval; 
     success: bool
 }
-type rbinary = { op: string; left: objid; right: objid; result: objid }
-type runary = { op: string; arg: objid; result: objid }
-type rfunenter = { f: objid; this: objid; args: objid }
-type rfunexit = { ret: objid; exc: objid }
+type rbinary = { op: string; left: jsval; right: jsval; result: jsval }
+type runary = { op: string; arg: jsval; result: jsval }
+type rfunenter = { f: jsval; this: jsval; args: jsval }
+type rfunexit = { ret: jsval; exc: jsval }
 type rich_operation =
   | RFunPre of rfunpre
   | RFunPost of rfunpost
   | RLiteral of rliteral
-  | RForIn of objid
+  | RForIn of jsval
   | RLocal of rlocal
   | RAlias of ralias
   | RRead of rread
   | RWrite of rwrite
-  | RReturn of objid
-  | RThrow of objid
-  | RWith of objid
+  | RReturn of jsval
+  | RThrow of jsval
+  | RWith of jsval
   | RFunEnter of rfunenter
   | RFunExit of rfunexit
   | RScriptEnter
   | RScriptExit
-  | RScriptExc of objid
+  | RScriptExc of jsval
   | RBinary of rbinary
   | RUnary of runary
   | REndExpression
-  | RConditional of objid
+  | RConditional of jsval
 
 type rich_trace = (rich_operation * local_facts) list
 type rich_tracefile = {
@@ -67,24 +67,24 @@ let pp_rich_operation pp = function
         begin match call_type with
         | Function ->
             fprintf pp "Calling function %a on %a with %a"
-                pp_objid f pp_objid base pp_objid args
+                pp_jsval f pp_jsval base pp_jsval args
         | Method ->
             fprintf pp "Calling method %a on %a with %a"
-                pp_objid f pp_objid base pp_objid args
+                pp_jsval f pp_jsval base pp_jsval args
         | Constructor ->
             fprintf pp "Calling constructor %a on %a with %a"
-                pp_objid f pp_objid base pp_objid args
+                pp_jsval f pp_jsval base pp_jsval args
         | ConstructorMethod ->
             fprintf pp "Calling constructor method %a on %a with %a"
-                pp_objid f pp_objid base pp_objid args
+                pp_jsval f pp_jsval base pp_jsval args
         end
     | RFunPost { f; base; args; result } ->
         fprintf pp "Calling %a on %a with %a returns %a"
-            pp_objid f pp_objid base pp_objid args pp_objid result
+            pp_jsval f pp_jsval base pp_jsval args pp_jsval result
     | RLiteral { value; hasGetterSetter } ->
-        fprintf pp "Literal %a" pp_objid value;
+        fprintf pp "Literal %a" pp_jsval value;
         if hasGetterSetter then pp_print_string pp " (has getter and/or setter)"
-    | RForIn obj -> fprintf pp "for (... in %a)" pp_objid obj
+    | RForIn obj -> fprintf pp "for (... in %a)" pp_jsval obj
     | RLocal { name; ref } ->
         fprintf pp "var %s; (reference: %a)" name pp_versioned_reference ref
     | RAlias { name; source; ref } ->
@@ -92,34 +92,34 @@ let pp_rich_operation pp = function
             name pp_versioned_reference ref pp_alias_source source
     | RRead { ref; value } ->
         fprintf pp "Reading %a yields %a"
-            pp_versioned_reference ref pp_objid value
+            pp_versioned_reference ref pp_jsval value
     | RWrite { ref; value; oldref; success } ->
         if success then
             fprintf pp "Writing %a to %a (formerly %a)"
-                pp_objid value pp_versioned_reference ref
+                pp_jsval value pp_versioned_reference ref
                 pp_versioned_reference oldref
         else
             fprintf pp "Ignored write of %a to %a (formerly %a)" 
-                pp_objid value pp_versioned_reference ref
+                pp_jsval value pp_versioned_reference ref
                 pp_versioned_reference oldref
-    | RReturn obj -> fprintf pp "return %a" pp_objid obj
-    | RThrow obj -> fprintf pp "throw %a" pp_objid obj
-    | RWith obj -> fprintf pp "with %a" pp_objid obj
+    | RReturn obj -> fprintf pp "return %a" pp_jsval obj
+    | RThrow obj -> fprintf pp "throw %a" pp_jsval obj
+    | RWith obj -> fprintf pp "with %a" pp_jsval obj
     | RFunEnter { f; this; args } ->
         fprintf pp "Entering %a on %a with %a"
-            pp_objid f pp_objid this pp_objid args
+            pp_jsval f pp_jsval this pp_jsval args
     | RFunExit { ret; exc } ->
-        fprintf pp "Returning %a with exception %a" pp_objid ret pp_objid exc
+        fprintf pp "Returning %a with exception %a" pp_jsval ret pp_jsval exc
     | RScriptEnter -> pp_print_string pp "Entering script"
     | RScriptExit -> pp_print_string pp "Exiting script"
-    | RScriptExc e -> fprintf pp "Exiting script with exception %a" pp_objid e
+    | RScriptExc e -> fprintf pp "Exiting script with exception %a" pp_jsval e
     | RBinary { op; left; right; result } ->
         fprintf pp "Evaluationg %a %s %a yields %a"
-            pp_objid left op pp_objid right pp_objid result
+            pp_jsval left op pp_jsval right pp_jsval result
     | RUnary { op; arg; result } ->
-        fprintf pp "Evaluationg %s %a yields %a" op pp_objid arg pp_objid result
+        fprintf pp "Evaluationg %s %a yields %a" op pp_jsval arg pp_jsval result
     | REndExpression -> pp_print_string pp "(discarding expression result)"
-    | RConditional value -> fprintf pp "Conditional yielded %a" pp_objid value
+    | RConditional value -> fprintf pp "Conditional yielded %a" pp_jsval value
 
 let pp_rich_operation_with_facts pp (op, _) = pp_rich_operation pp op
 let pp_rich_trace pp trace =

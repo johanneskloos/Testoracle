@@ -5,11 +5,11 @@ open Trace;;
 open CalculateVersions;;
 
 module VersionReferenceMapFormat = FormatHelper.MapFormat(VersionReferenceMap)
-type points_to_map = objid VersionReferenceMap.t
+type points_to_map = jsval VersionReferenceMap.t
 
 let pp_points_to_map =
     VersionReferenceMapFormat.pp_print_map "" "" ","
-    (FormatHelper.pp_print_map_entry pp_versioned_reference pp_objid)
+    (FormatHelper.pp_print_map_entry pp_versioned_reference pp_jsval)
 
 let find_object_facts id ver pt =
     let vrefs = ReferenceMap.fold (fun ref ver acc ->

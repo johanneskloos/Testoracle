@@ -1,4 +1,4 @@
-type objid =
+type jsval =
     OUndefined
   | ONull
   | OBoolean of bool
@@ -11,33 +11,33 @@ type objid =
   | OOther of string * int
 type funpre = {
   iid : int;
-  f : objid;
-  base : objid;
-  args : objid;
+  f : jsval;
+  base : jsval;
+  args : jsval;
   isConstructor : bool;
   isMethod : bool;
 }
 type funpost = {
   iid : int;
-  f : objid;
-  base : objid;
-  args : objid;
-  result : objid;
+  f : jsval;
+  base : jsval;
+  args : jsval;
+  result : jsval;
   isConstructor : bool;
   isMethod : bool;
 }
-type literal = { iid : int; value : objid; hasGetterSetter : bool; }
-type value = { iid : int; value : objid; }
+type literal = { iid : int; value : jsval; hasGetterSetter : bool; }
+type value = { iid : int; value : jsval; }
 type declare = {
   iid : int;
   name : string;
-  value : objid;
+  value : jsval;
   argument : int option;
   isCatchParam : bool;
 }
 type getfieldpre = {
   iid : int;
-  base : objid;
+  base : jsval;
   offset : string;
   isComputed : bool;
   isOpAssign : bool;
@@ -45,41 +45,41 @@ type getfieldpre = {
 }
 type getfieldpost = {
   iid : int;
-  base : objid;
+  base : jsval;
   offset : string;
-  value : objid;
+  value : jsval;
   isComputed : bool;
   isOpAssign : bool;
   isMethodCall : bool;
 }
 type putfield = {
   iid : int;
-  base : objid;
+  base : jsval;
   offset : string;
-  value : objid;
+  value : jsval;
   isComputed : bool;
   isOpAssign : bool;
 }
 type access = {
   iid : int;
   name : string;
-  value : objid;
+  value : jsval;
   isGlobal : bool;
   isScriptLocal : bool;
 }
 type writeaccess = {
   iid : int;
   name : string;
-  lhs : objid;
-  value : objid;
+  lhs : jsval;
+  value : jsval;
   isGlobal : bool;
   isScriptLocal : bool;
 }
 type binpre = {
   iid : int;
   op : string;
-  left : objid;
-  right : objid;
+  left : jsval;
+  right : jsval;
   isOpAssign : bool;
   isSwitchCaseComparison : bool;
   isComputed : bool;
@@ -87,17 +87,17 @@ type binpre = {
 type binpost = {
   iid : int;
   op : string;
-  left : objid;
-  right : objid;
-  result : objid;
+  left : jsval;
+  right : jsval;
+  result : jsval;
   isOpAssign : bool;
   isSwitchCaseComparison : bool;
   isComputed : bool;
 }
-type unpre = { iid : int; op : string; arg : objid; }
-type unpost = { iid : int; op : string; arg : objid; result : objid; }
-type funenter = { iid : int; f : objid; this : objid; args : objid; }
-type funexit = { iid : int; ret : objid; exc : objid; }
+type unpre = { iid : int; op : string; arg : jsval; }
+type unpost = { iid : int; op : string; arg : jsval; result : jsval; }
+type funenter = { iid : int; f : jsval; this : jsval; args : jsval; }
+type funexit = { iid : int; ret : jsval; exc : jsval; }
 type operation =
   | FunPre of funpre
   | FunPost of funpost
@@ -117,7 +117,7 @@ type operation =
   | FunExit of funexit
   | ScriptEnter
   | ScriptExit
-  | ScriptExc of objid
+  | ScriptExc of jsval
   | BinPre of binpre
   | BinPost of binpost
   | UnaryPre of unpre
@@ -126,10 +126,10 @@ type operation =
   | Conditional of value
 type trace = operation list
 type fieldspec = {
-    value: objid;
+    value: jsval;
     writable: bool;
-    get: objid option;
-    set: objid option;
+    get: jsval option;
+    set: jsval option;
     enumerable: bool;
     configurable: bool
 }
@@ -138,11 +138,11 @@ type objects = objectspec array
 type local_funcspec = { instrumented : string; uninstrumented : string }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
-type globals = objid Misc.StringMap.t
+type globals = jsval Misc.StringMap.t
 type tracefile = functions * objects * trace * globals * bool
 val parse_tracefile : in_channel -> tracefile
 val dump_tracefile: out_channel -> tracefile -> unit
-val pp_objid : Format.formatter -> objid -> unit
+val pp_jsval : Format.formatter -> jsval -> unit
 val pp_operation : Format.formatter -> operation -> unit
 val pp_trace : Format.formatter -> operation list -> unit
 val pp_fieldspec : Format.formatter -> fieldspec -> unit
@@ -155,5 +155,5 @@ val pp_globals : Format.formatter -> globals -> unit
 val pp_tracefile : Format.formatter -> tracefile -> unit
 
 exception NotAnObject
-val get_object: objid -> int
+val get_object: jsval -> int
 

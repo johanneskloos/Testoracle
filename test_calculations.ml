@@ -188,7 +188,7 @@ let check_versions_equals got exp =
 let check_points_to_equals got exp =
     VersionReferenceMap.merge (fun vref got exp ->
         if got <> exp then begin
-            let fmt = FormatHelper.pp_print_option pp_objid in
+            let fmt = FormatHelper.pp_print_option pp_jsval in
             Format.asprintf "%a: got %a, expected %a"
                 pp_versioned_reference vref fmt got fmt exp |> add_error
         end; None) got exp |> ignore

@@ -1,6 +1,6 @@
 open Misc
 
-type objid =
+type jsval =
   | OUndefined
   | ONull
   | OBoolean of bool
@@ -12,22 +12,22 @@ type objid =
   | OObject of int
   | OOther of string * int
 
-type funpre = { iid: int; f: objid; base: objid; args: objid; isConstructor: bool; isMethod: bool }
-type funpost = { iid: int; f: objid; base: objid; args: objid; result: objid; isConstructor: bool; isMethod: bool }
-type literal = { iid: int; value: objid; hasGetterSetter: bool }
-type value = { iid: int; value: objid }
-type declare = { iid: int; name: string; value: objid; argument: int option; isCatchParam: bool }
-type getfieldpre = { iid: int; base: objid; offset: string; isComputed: bool; isOpAssign: bool; isMethodCall: bool }
-type getfieldpost = { iid: int; base: objid; offset: string; value: objid; isComputed: bool; isOpAssign: bool; isMethodCall: bool }
-type putfield = { iid: int; base: objid; offset: string; value: objid; isComputed: bool; isOpAssign: bool }
-type access = { iid: int; name: string; value: objid; isGlobal: bool; isScriptLocal: bool }
-type writeaccess = { iid: int; name: string; lhs: objid; value: objid; isGlobal: bool; isScriptLocal: bool }
-type binpre = { iid: int; op: string; left: objid; right: objid; isOpAssign: bool; isSwitchCaseComparison: bool; isComputed: bool }
-type binpost = { iid: int; op: string; left: objid; right: objid; result: objid; isOpAssign: bool; isSwitchCaseComparison: bool; isComputed: bool }
-type unpre = { iid: int; op: string; arg: objid }
-type unpost = { iid: int; op: string; arg: objid; result: objid }
-type funenter = { iid: int; f: objid; this: objid; args: objid }
-type funexit = { iid: int; ret: objid; exc: objid }
+type funpre = { iid: int; f: jsval; base: jsval; args: jsval; isConstructor: bool; isMethod: bool }
+type funpost = { iid: int; f: jsval; base: jsval; args: jsval; result: jsval; isConstructor: bool; isMethod: bool }
+type literal = { iid: int; value: jsval; hasGetterSetter: bool }
+type value = { iid: int; value: jsval }
+type declare = { iid: int; name: string; value: jsval; argument: int option; isCatchParam: bool }
+type getfieldpre = { iid: int; base: jsval; offset: string; isComputed: bool; isOpAssign: bool; isMethodCall: bool }
+type getfieldpost = { iid: int; base: jsval; offset: string; value: jsval; isComputed: bool; isOpAssign: bool; isMethodCall: bool }
+type putfield = { iid: int; base: jsval; offset: string; value: jsval; isComputed: bool; isOpAssign: bool }
+type access = { iid: int; name: string; value: jsval; isGlobal: bool; isScriptLocal: bool }
+type writeaccess = { iid: int; name: string; lhs: jsval; value: jsval; isGlobal: bool; isScriptLocal: bool }
+type binpre = { iid: int; op: string; left: jsval; right: jsval; isOpAssign: bool; isSwitchCaseComparison: bool; isComputed: bool }
+type binpost = { iid: int; op: string; left: jsval; right: jsval; result: jsval; isOpAssign: bool; isSwitchCaseComparison: bool; isComputed: bool }
+type unpre = { iid: int; op: string; arg: jsval }
+type unpost = { iid: int; op: string; arg: jsval; result: jsval }
+type funenter = { iid: int; f: jsval; this: jsval; args: jsval }
+type funexit = { iid: int; ret: jsval; exc: jsval }
 type operation =
   | FunPre of funpre
   | FunPost of funpost
@@ -47,7 +47,7 @@ type operation =
   | FunExit of funexit
   | ScriptEnter
   | ScriptExit
-  | ScriptExc of objid
+  | ScriptExc of jsval
   | BinPre of binpre
   | BinPost of binpost
   | UnaryPre of unpre
@@ -57,10 +57,10 @@ type operation =
 
 type trace = operation list
 type fieldspec = {
-    value: objid;
+    value: jsval;
     writable: bool;
-    get: objid option;
-    set: objid option;
+    get: jsval option;
+    set: jsval option;
     enumerable: bool;
     configurable: bool
 }
@@ -69,13 +69,13 @@ type objects = objectspec array
 type local_funcspec = { instrumented: string; uninstrumented: string }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
-type globals = objid StringMap.t
+type globals = jsval StringMap.t
 type tracefile = functions * objects * trace * globals * bool
 
 open Yojson.Basic;;
 open Yojson.Basic.Util;;
 
-let parse_objid json =
+let parse_jsval json =
   match member "type" json |> to_string with
     | "undefined" -> OUndefined
     | "boolean" -> OBoolean (member "val" json |> to_string |> bool_of_string)
@@ -103,12 +103,12 @@ let parse_funcspec json =
 let parse_fieldspec json =
     let default_to d = function Some x -> x | None -> d
     and fail_none msg = function Some x -> x | None -> failwith (msg ^ "\n" ^ Yojson.Basic.to_string json) in
-    { value = json |> member "value" |> to_option parse_objid |> fail_none "No value in field";
+    { value = json |> member "value" |> to_option parse_jsval |> fail_none "No value in field";
       writable = json |> member "writable" |> to_bool_option |> default_to true;
       enumerable = json |> member "enumerable" |> to_bool_option |> default_to true;
       configurable = json |> member "configurable" |> to_bool_option |> default_to true;
-      get = json |> member "get" |> to_option parse_objid;
-      set = json |> member "set" |> to_option parse_objid
+      get = json |> member "get" |> to_option parse_jsval;
+      set = json |> member "set" |> to_option parse_jsval
     }
 let parse_objectspec json =
   json |> to_assoc |>
@@ -119,88 +119,88 @@ let parse_objectspec json =
 let parse_operation json =
   let get_int key = member key json |> to_int
   and get_string key = member key json |> to_string
-  and get_objid key = member key json |> parse_objid
+  and get_jsval key = member key json |> parse_jsval
   and get_bool key = member key json |> to_bool in
   match member "step" json |> to_string with
-    | "funpre" -> FunPre { iid = get_int "iid"; f = get_objid "f";
-                           base = get_objid "base"; args = get_objid "args";
+    | "funpre" -> FunPre { iid = get_int "iid"; f = get_jsval "f";
+                           base = get_jsval "base"; args = get_jsval "args";
                            isConstructor = get_bool "isConstructor";
                            isMethod = get_bool "isMethod" }
-    | "funpost" -> FunPost { iid = get_int "iid"; f = get_objid "f";
-                             base = get_objid "base"; args = get_objid "args";
+    | "funpost" -> FunPost { iid = get_int "iid"; f = get_jsval "f";
+                             base = get_jsval "base"; args = get_jsval "args";
                              isConstructor = get_bool "isConstructor";
                              isMethod = get_bool "isMethod";
-                             result = get_objid "result" }
-    | "literal" -> Literal { iid = get_int "iid"; value = get_objid "val";
+                             result = get_jsval "result" }
+    | "literal" -> Literal { iid = get_int "iid"; value = get_jsval "val";
                              hasGetterSetter = get_bool "hasGetterSetter" }
-    | "forin"  -> ForIn  { iid = get_int "iid"; value = get_objid "val" }
+    | "forin"  -> ForIn  { iid = get_int "iid"; value = get_jsval "val" }
     | "declare" -> Declare { iid = get_int "iid"; name = get_string "name";
-                             value = get_objid "val";
+                             value = get_jsval "val";
                              isCatchParam = get_bool "isCatchParam";
                              argument = if get_bool "isArgument"
                              then Some (get_int "argumentIndex") else None }
-    | "getpre" -> GetFieldPre { iid = get_int "iid"; base = get_objid "base";
+    | "getpre" -> GetFieldPre { iid = get_int "iid"; base = get_jsval "base";
                                 offset = get_string "offset";
                                 isComputed = get_bool "isComputed";
                                 isOpAssign = get_bool "isOpAssign";
                                 isMethodCall = get_bool "isMethodCall" }
-    | "getpost" -> GetField { iid = get_int "iid"; base = get_objid "base";
+    | "getpost" -> GetField { iid = get_int "iid"; base = get_jsval "base";
                               offset = get_string "offset";
                               isComputed = get_bool "isComputed";
                               isOpAssign = get_bool "isOpAssign";
                               isMethodCall = get_bool "isMethodCall";
-                              value = get_objid "val" }
-    | "putpre" -> PutFieldPre { iid = get_int "iid"; base = get_objid "base";
+                              value = get_jsval "val" }
+    | "putpre" -> PutFieldPre { iid = get_int "iid"; base = get_jsval "base";
                                 offset = get_string "offset";
                                 isComputed = get_bool "isComputed";
                                 isOpAssign = get_bool "isOpAssign";
-                                value = get_objid "val" }
-    | "putpost" -> PutField { iid = get_int "iid"; base = get_objid "base";
+                                value = get_jsval "val" }
+    | "putpost" -> PutField { iid = get_int "iid"; base = get_jsval "base";
                               offset = get_string "offset";
                               isComputed = get_bool "isComputed";
                               isOpAssign = get_bool "isOpAssign";
-                              value = get_objid "val" }
+                              value = get_jsval "val" }
     | "read" -> Read { iid = get_int "iid"; name = get_string "name";
-                       value = get_objid "val"; isGlobal = get_bool "isGlobal";
+                       value = get_jsval "val"; isGlobal = get_bool "isGlobal";
                        isScriptLocal = get_bool "isScriptLocal" }
     | "write" -> Write { iid = get_int "iid"; name = get_string "name";
-                         value = get_objid "val"; lhs = get_objid "lhs";
+                         value = get_jsval "val"; lhs = get_jsval "lhs";
                          isGlobal = get_bool "isGlobal";
                          isScriptLocal = get_bool "isScriptLocal" }
-    | "return" -> Return { iid = get_int "iid"; value = get_objid "val" }
-    | "throw" -> Throw { iid = get_int "iid"; value = get_objid "val" }
-    | "with" -> With { iid = get_int "iid"; value = get_objid "val" }
-    | "funcenter" -> FunEnter { iid = get_int "iid"; f = get_objid "f";
-                                this = get_objid "this";
-                                args = get_objid "args" }
-    | "funcexit" -> FunExit { iid = get_int "iid"; ret = get_objid "ret";
-                              exc = get_objid "exc" }
+    | "return" -> Return { iid = get_int "iid"; value = get_jsval "val" }
+    | "throw" -> Throw { iid = get_int "iid"; value = get_jsval "val" }
+    | "with" -> With { iid = get_int "iid"; value = get_jsval "val" }
+    | "funcenter" -> FunEnter { iid = get_int "iid"; f = get_jsval "f";
+                                this = get_jsval "this";
+                                args = get_jsval "args" }
+    | "funcexit" -> FunExit { iid = get_int "iid"; ret = get_jsval "ret";
+                              exc = get_jsval "exc" }
     | "scriptenter" -> ScriptEnter
     | "scriptexit" -> ScriptExit
-    | "scriptexc" -> ScriptExc (get_objid "exc")
+    | "scriptexc" -> ScriptExc (get_jsval "exc")
     | "binarypre" -> BinPre { iid = get_int "iid"; op = get_string "op";
-                              left = get_objid "left";
-                              right = get_objid "right";
+                              left = get_jsval "left";
+                              right = get_jsval "right";
                               isOpAssign = get_bool "isOpAssign";
                               isSwitchCaseComparison =
                                 get_bool "isSwitchComparison";
                               isComputed = get_bool "isComputed" }
     | "binarypost" -> BinPost { iid = get_int "iid"; op = get_string "op";
-                                left = get_objid "left";
-                                right = get_objid "right";
+                                left = get_jsval "left";
+                                right = get_jsval "right";
                                 isOpAssign = get_bool "isOpAssign";
                                 isSwitchCaseComparison =
                                   get_bool "isSwitchComparison";
                                 isComputed = get_bool "isComputed";
-                                result = get_objid "result" }
+                                result = get_jsval "result" }
     | "unarypre" -> UnaryPre { iid = get_int "iid"; op = get_string "op";
-                               arg = get_objid "left" }
+                               arg = get_jsval "left" }
     | "unarypost" -> UnaryPost { iid = get_int "iid"; op = get_string "op";
-                                 arg = get_objid "left";
-                                 result = get_objid "result" }
+                                 arg = get_jsval "left";
+                                 result = get_jsval "result" }
     | "exprend" -> EndExpression (get_int "iid")
     | "conditional" -> Conditional { iid = get_int "iid";
-                                     value = get_objid "result" }
+                                     value = get_jsval "result" }
     | _ as op -> failwith ("Unknown operation " ^ op)
 
 let parse_functions json =
@@ -213,7 +213,7 @@ let parse_globals json =
   json |> to_assoc |>
     List.fold_left
     (fun spec (name, content) ->
-       StringMap.add name (parse_objid content) spec)
+       StringMap.add name (parse_jsval content) spec)
     StringMap.empty
 let parse_tracefile source =
   let json = from_channel source in
@@ -223,7 +223,7 @@ let parse_tracefile source =
      parse_globals (member "globals" json),
      to_bool (member "globals_are_properties" json))
 
-let dump_objid = function
+let dump_jsval = function
     | OUndefined -> `Assoc [ ("type", `String "undefined") ]
     | OBoolean b -> `Assoc [ ("type", `String "boolean"); ("val", `String (string_of_bool b)) ]
     | ONumberInt n -> `Assoc [ ("type", `String "number"); ("val", `String (string_of_int n)) ]
@@ -240,8 +240,8 @@ let dump_funcspec = function
     | Local {instrumented; uninstrumented} ->
             `Assoc [ ("instrumented", `String instrumented); ("uninstrumented", `String uninstrumented) ]
 let dump_fieldspec { value; writable; get; set; enumerable; configurable }: json =
-    let add name x l = match x with Some id -> (name, dump_objid id) :: l | None -> l in
-    `Assoc ([ ("value", dump_objid value); ("writable", `Bool writable);
+    let add name x l = match x with Some id -> (name, dump_jsval id) :: l | None -> l in
+    `Assoc ([ ("value", dump_jsval value); ("writable", `Bool writable);
     ("enumerable", `Bool enumerable); ("configurable", `Bool configurable) ] |>
     add "get" get |> add "set" set);;
 
@@ -250,100 +250,100 @@ let dump_objectspec os = `Assoc (List.map (map22 dump_fieldspec) (StringMap.bind
 let dump_operation = function
     | FunPre { iid; f; base; args; isConstructor; isMethod } ->
             `Assoc [ ("step", `String "funpre"); ("iid", `Int iid);
-            ("f", dump_objid f); ("base", dump_objid base);
-            ("args", dump_objid args);
+            ("f", dump_jsval f); ("base", dump_jsval base);
+            ("args", dump_jsval args);
             ("isConstructor", `Bool isConstructor);
             ("isMethod", `Bool isMethod) ]
     | FunPost { iid; f; base; args; isConstructor; isMethod; result } ->
             `Assoc [ ("step", `String "funpost"); ("iid", `Int iid);
-            ("f", dump_objid f); ("base", dump_objid base);
-            ("args", dump_objid args); ("result", dump_objid result);
+            ("f", dump_jsval f); ("base", dump_jsval base);
+            ("args", dump_jsval args); ("result", dump_jsval result);
             ("isConstructor", `Bool isConstructor);
             ("isMethod", `Bool isMethod) ]
     | Literal { iid; value; hasGetterSetter } ->
             `Assoc [ ("step", `String "literal"); ("iid", `Int iid);
-            ("val", dump_objid value); ("hasGetterSetter", `Bool hasGetterSetter)]
+            ("val", dump_jsval value); ("hasGetterSetter", `Bool hasGetterSetter)]
     | ForIn { iid; value } ->
             `Assoc [ ("step", `String "forin"); ("iid", `Int iid);
-            ("val", dump_objid value) ]
+            ("val", dump_jsval value) ]
     | Declare { iid; name; value; isCatchParam; argument=Some arg } ->
             `Assoc [ ("step", `String "declare"); ("iid", `Int iid);
-            ("val", dump_objid value); ("name", `String name);
+            ("val", dump_jsval value); ("name", `String name);
             ("isCatchParam", `Bool isCatchParam);
             ("isArgument", `Bool true); ("argumentIndex", `Int arg) ]
     | Declare { iid; name; value; isCatchParam; argument=None } ->
             `Assoc [ ("step", `String "declare"); ("iid", `Int iid);
-            ("val", dump_objid value); ("name", `String name);
+            ("val", dump_jsval value); ("name", `String name);
             ("isCatchParam", `Bool isCatchParam);
             ("isArgument", `Bool false) ]
     | GetFieldPre { iid; base; offset; isComputed; isOpAssign; isMethodCall } ->
             `Assoc [ ("step", `String "getpre"); ("iid", `Int iid);
-            ("base", dump_objid base); ("offset", `String offset);
+            ("base", dump_jsval base); ("offset", `String offset);
             ("isComputed", `Bool isComputed); ("isOpAssign", `Bool isOpAssign);
             ("isMethodCall", `Bool isMethodCall) ]
     | GetField { iid; base; offset; isComputed; isOpAssign; isMethodCall; value } ->
             `Assoc [ ("step", `String "getpost"); ("iid", `Int iid);
-            ("base", dump_objid base); ("offset", `String offset);
+            ("base", dump_jsval base); ("offset", `String offset);
             ("isComputed", `Bool isComputed); ("isOpAssign", `Bool isOpAssign);
-            ("isMethodCall", `Bool isMethodCall); ("val", dump_objid value) ]
+            ("isMethodCall", `Bool isMethodCall); ("val", dump_jsval value) ]
     | PutFieldPre { iid; base; offset; isComputed; isOpAssign; value } ->
             `Assoc [ ("step", `String "putpre"); ("iid", `Int iid);
-            ("base", dump_objid base); ("offset", `String offset);
+            ("base", dump_jsval base); ("offset", `String offset);
             ("isComputed", `Bool isComputed); ("isOpAssign", `Bool isOpAssign);
-            ("val", dump_objid value) ]
+            ("val", dump_jsval value) ]
     | PutField { iid; base; offset; isComputed; isOpAssign; value } ->
             `Assoc [ ("step", `String "putpost"); ("iid", `Int iid);
-            ("base", dump_objid base); ("offset", `String offset);
+            ("base", dump_jsval base); ("offset", `String offset);
             ("isComputed", `Bool isComputed); ("isOpAssign", `Bool isOpAssign);
-            ("val", dump_objid value) ]
+            ("val", dump_jsval value) ]
     | Read { iid; name; value; isGlobal; isScriptLocal } ->
             `Assoc [ ("step", `String "read"); ("iid", `Int iid);
-            ("name", `String name); ("val", dump_objid value);
+            ("name", `String name); ("val", dump_jsval value);
             ("isGlobal", `Bool isGlobal); ("isScriptLocal", `Bool isScriptLocal) ]
     | Write { iid; name; value; isGlobal; lhs; isScriptLocal } ->
-            `Assoc [ ("step", `String "write"); ("iid", `Int iid); ("lhs", dump_objid lhs);
-            ("name", `String name); ("val", dump_objid value);
+            `Assoc [ ("step", `String "write"); ("iid", `Int iid); ("lhs", dump_jsval lhs);
+            ("name", `String name); ("val", dump_jsval value);
             ("isGlobal", `Bool isGlobal); ("isScriptLocal", `Bool isScriptLocal) ]
     | Return { iid; value } ->
             `Assoc [ ("step", `String "return"); ("iid", `Int iid);
-            ("val", dump_objid value) ]
+            ("val", dump_jsval value) ]
     | Throw { iid; value } ->
             `Assoc [ ("step", `String "throw"); ("iid", `Int iid);
-            ("val", dump_objid value) ]
+            ("val", dump_jsval value) ]
     | With { iid; value } ->
             `Assoc [ ("step", `String "throw"); ("iid", `Int iid);
-            ("val", dump_objid value) ]
+            ("val", dump_jsval value) ]
     | FunEnter { iid; f; this; args } ->
             `Assoc [ ("step", `String "funcenter"); ("iid", `Int iid);
-            ("f", dump_objid f); ("this", dump_objid this); ("args", dump_objid args) ]
+            ("f", dump_jsval f); ("this", dump_jsval this); ("args", dump_jsval args) ]
     | FunExit { iid; ret; exc } ->
             `Assoc [ ("step", `String "funcexit"); ("iid", `Int iid);
-            ("ret", dump_objid ret); ("exc", dump_objid exc) ]
+            ("ret", dump_jsval ret); ("exc", dump_jsval exc) ]
     | ScriptEnter -> `Assoc [ ("step", `String "scriptenter") ]
     | ScriptExit -> `Assoc [ ("step", `String "scriptexit") ]
-    | ScriptExc exc -> `Assoc [ ("step", `String "scriptexc"); ("exc", dump_objid exc) ]
+    | ScriptExc exc -> `Assoc [ ("step", `String "scriptexc"); ("exc", dump_jsval exc) ]
     | BinPre { iid; op; left; right; isOpAssign; isSwitchCaseComparison; isComputed } ->
             `Assoc [ ("step", `String "binarypre"); ("iid", `Int iid); ("op", `String op);
-            ("left", dump_objid left); ("right", dump_objid right);
+            ("left", dump_jsval left); ("right", dump_jsval right);
             ("isOpAssign", `Bool isOpAssign); ("isComputed", `Bool isComputed);
             ("isSwitchComparison", `Bool isSwitchCaseComparison) ]
     | BinPost { iid; op; left; right; isOpAssign; isSwitchCaseComparison; isComputed; result } ->
             `Assoc [ ("step", `String "binarypost"); ("iid", `Int iid); ("op", `String op);
-            ("left", dump_objid left); ("right", dump_objid right);
+            ("left", dump_jsval left); ("right", dump_jsval right);
             ("isOpAssign", `Bool isOpAssign); ("isComputed", `Bool isComputed);
             ("isSwitchComparison", `Bool isSwitchCaseComparison);
-            ("result", dump_objid result) ]
+            ("result", dump_jsval result) ]
     | UnaryPre { iid; op; arg } ->
             `Assoc [ ("step", `String "unarypre"); ("iid", `Int iid);
-            ("op", `String op); ("left", dump_objid arg) ]
+            ("op", `String op); ("left", dump_jsval arg) ]
     | UnaryPost { iid; op; arg; result } ->
             `Assoc [ ("step", `String "unarypost"); ("iid", `Int iid);
-            ("op", `String op); ("left", dump_objid arg); ("result", dump_objid result) ]
+            ("op", `String op); ("left", dump_jsval arg); ("result", dump_jsval result) ]
     | EndExpression iid ->
             `Assoc [ ("step", `String "exprend"); ("iid", `Int iid) ]
     | Conditional { iid; value } ->
             `Assoc [ ("step", `String "conditional"); ("iid", `Int iid);
-                ("result", dump_objid value) ]
+                ("result", dump_jsval value) ]
 
 let dump_functions funs =
     `List (funs |> Array.map dump_funcspec |> Array.to_list)
@@ -352,7 +352,7 @@ let dump_objects objs =
 let dump_trace trace =
     `List (trace |> List.map dump_operation)
 let dump_globals globs: json =
-    `Assoc (globs |> StringMap.bindings |> List.map (map22 dump_objid))
+    `Assoc (globs |> StringMap.bindings |> List.map (map22 dump_jsval))
 let dump_tracefile_json (funs, objs, trace, globals, globals_are_properties) =
     `Assoc [
         ("func", dump_functions funs);
@@ -365,7 +365,7 @@ let dump_tracefile channel tr =
     tr |> dump_tracefile_json |> pretty_to_channel channel
 
 open Format
-let pp_objid pp = function
+let pp_jsval pp = function
   | OUndefined -> pp_print_string pp "undefined"
   | ONull -> pp_print_string pp "null"
   | OBoolean x -> fprintf pp "bool:%b" x
@@ -379,82 +379,82 @@ let pp_objid pp = function
 
 let pp_operation pp = function
   | FunPre x ->
-      if x.isConstructor && x.isMethod then fprintf pp "Calling constructor %a on %a with %a" pp_objid x.f pp_objid x.base pp_objid x.args
-      else if x.isConstructor then fprintf pp "Calling constructor %a using base %a on %a" pp_objid x.f pp_objid x.base pp_objid x.args
-      else if x.isMethod then fprintf pp "Calling function %a on %a with %a" pp_objid x.f pp_objid x.base pp_objid x.args
-      else fprintf pp "Calling function %a using base %a on %a" pp_objid x.f pp_objid x.base pp_objid x.args
+      if x.isConstructor && x.isMethod then fprintf pp "Calling constructor %a on %a with %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
+      else if x.isConstructor then fprintf pp "Calling constructor %a using base %a on %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
+      else if x.isMethod then fprintf pp "Calling function %a on %a with %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
+      else fprintf pp "Calling function %a using base %a on %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
   | FunPost x ->
-      if x.isConstructor && x.isMethod then fprintf pp "Called constructor %a on %a with %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
-      else if x.isConstructor then fprintf pp "Called constructor %a using base %a on %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
-      else if x.isMethod then fprintf pp "Called function %a on %a with %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
-      else fprintf pp "Called function %a using base %a on %a, returns %a" pp_objid x.f pp_objid x.base pp_objid x.args pp_objid x.result
-  | Literal x -> fprintf pp "Literal %a%s" pp_objid x.value (if x.hasGetterSetter then " (has getter and setter)" else "")
-  | ForIn x -> fprintf pp "for (... in %a)" pp_objid x.value
+      if x.isConstructor && x.isMethod then fprintf pp "Called constructor %a on %a with %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
+      else if x.isConstructor then fprintf pp "Called constructor %a using base %a on %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
+      else if x.isMethod then fprintf pp "Called function %a on %a with %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
+      else fprintf pp "Called function %a using base %a on %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
+  | Literal x -> fprintf pp "Literal %a%s" pp_jsval x.value (if x.hasGetterSetter then " (has getter and setter)" else "")
+  | ForIn x -> fprintf pp "for (... in %a)" pp_jsval x.value
   | Declare x ->
       begin match x.argument with
-        | Some i -> fprintf pp "argument def: %s from %d = %a" x.name i pp_objid x.value
+        | Some i -> fprintf pp "argument def: %s from %d = %a" x.name i pp_jsval x.value
         | None ->
             if x.isCatchParam then
-              fprintf pp "catch %s = %a" x.name pp_objid x.value
+              fprintf pp "catch %s = %a" x.name pp_jsval x.value
             else
-              fprintf pp "var %s = %a" x.name pp_objid x.value
+              fprintf pp "var %s = %a" x.name pp_jsval x.value
       end
   | GetFieldPre x ->
       if x.isOpAssign then
-        fprintf pp "Reading %a.%s (for assign-and-modify)" pp_objid x.base x.offset
+        fprintf pp "Reading %a.%s (for assign-and-modify)" pp_jsval x.base x.offset
       else if x.isMethodCall then
-        fprintf pp "Reading %a.%s (for method call)" pp_objid x.base x.offset
+        fprintf pp "Reading %a.%s (for method call)" pp_jsval x.base x.offset
       else
-        fprintf pp "Reading %a.%s" pp_objid x.base x.offset
+        fprintf pp "Reading %a.%s" pp_jsval x.base x.offset
   | GetField x ->
       if x.isOpAssign then
-        fprintf pp "Reading %a.%s gives %a (for assign-and-modify)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Reading %a.%s gives %a (for assign-and-modify)" pp_jsval x.base x.offset pp_jsval x.value
       else if x.isMethodCall then
-        fprintf pp "Reading %a.%s gives %a (for method call)" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Reading %a.%s gives %a (for method call)" pp_jsval x.base x.offset pp_jsval x.value
       else
-        fprintf pp "Reading %a.%s gives %a" pp_objid x.base x.offset pp_objid x.value
+        fprintf pp "Reading %a.%s gives %a" pp_jsval x.base x.offset pp_jsval x.value
   | PutFieldPre x ->
       if x.isOpAssign then
-        fprintf pp "Writing %a to %a.%s (pre, for assign-and-modify)" pp_objid x.value pp_objid x.base x.offset
+        fprintf pp "Writing %a to %a.%s (pre, for assign-and-modify)" pp_jsval x.value pp_jsval x.base x.offset
       else
-        fprintf pp "Writing %a to %a.%s (pre)" pp_objid x.value pp_objid x.base x.offset
+        fprintf pp "Writing %a to %a.%s (pre)" pp_jsval x.value pp_jsval x.base x.offset
   | PutField x ->
       if x.isOpAssign then
-        fprintf pp "Writing %a to %a.%s (for assign-and-modify)" pp_objid x.value pp_objid x.base x.offset
+        fprintf pp "Writing %a to %a.%s (for assign-and-modify)" pp_jsval x.value pp_jsval x.base x.offset
       else
-        fprintf pp "Writing %a to %a.%s" pp_objid x.value pp_objid x.base x.offset
+        fprintf pp "Writing %a to %a.%s" pp_jsval x.value pp_jsval x.base x.offset
   | Read x ->
     fprintf pp "Reading %s (global=%B, scriptLocal=%B) gives %a"
-      x.name x.isGlobal x.isScriptLocal pp_objid x.value
+      x.name x.isGlobal x.isScriptLocal pp_jsval x.value
   | Write x ->
     fprintf pp "Writing to %s (global=%B, scriptLocal=%B), new value: %a"
-      x.name x.isGlobal x.isScriptLocal pp_objid x.value 
-  | Return x -> fprintf pp "return %a" pp_objid x.value
-  | Throw x -> fprintf pp "throw %a" pp_objid x.value
-  | With x -> fprintf pp "with %a" pp_objid x.value
-  | FunEnter x -> fprintf pp "Entering %a with base %a and arguments %a" pp_objid x.f pp_objid x.this pp_objid x.args
-  | FunExit x -> fprintf pp "Exiting function, return %a and exception %a" pp_objid x.ret pp_objid x.exc
+      x.name x.isGlobal x.isScriptLocal pp_jsval x.value 
+  | Return x -> fprintf pp "return %a" pp_jsval x.value
+  | Throw x -> fprintf pp "throw %a" pp_jsval x.value
+  | With x -> fprintf pp "with %a" pp_jsval x.value
+  | FunEnter x -> fprintf pp "Entering %a with base %a and arguments %a" pp_jsval x.f pp_jsval x.this pp_jsval x.args
+  | FunExit x -> fprintf pp "Exiting function, return %a and exception %a" pp_jsval x.ret pp_jsval x.exc
   | ScriptEnter -> pp_print_string pp "script entry"
   | ScriptExit -> pp_print_string pp "script exit"
-  | ScriptExc exc -> fprintf pp "script exit with exception %a" pp_objid exc
+  | ScriptExc exc -> fprintf pp "script exit with exception %a" pp_jsval exc
   | BinPre x ->
       if x.isOpAssign then
-        fprintf pp "%a %s= %a" pp_objid x.left x.op pp_objid x.right
+        fprintf pp "%a %s= %a" pp_jsval x.left x.op pp_jsval x.right
       else if x.isSwitchCaseComparison then
-        fprintf pp "case %a %s %a" pp_objid x.left x.op pp_objid x.right
+        fprintf pp "case %a %s %a" pp_jsval x.left x.op pp_jsval x.right
       else
-        fprintf pp "%a %s %a" pp_objid x.left x.op pp_objid x.right
+        fprintf pp "%a %s %a" pp_jsval x.left x.op pp_jsval x.right
   | BinPost x ->
       if x.isOpAssign then
-        fprintf pp "%a %s= %a returns‡’ %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
+        fprintf pp "%a %s= %a returns‡’ %a" pp_jsval x.left x.op pp_jsval x.right pp_jsval x.result
       else if x.isSwitchCaseComparison then
-        fprintf pp "case %a %s %a âreturns %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
+        fprintf pp "case %a %s %a âreturns %a" pp_jsval x.left x.op pp_jsval x.right pp_jsval x.result
       else
-        fprintf pp "%a %s %a â‡’ %a" pp_objid x.left x.op pp_objid x.right pp_objid x.result
-  | UnaryPre x -> fprintf pp "%s %a" x.op pp_objid x.arg
-  | UnaryPost x -> fprintf pp "%s %a returns‡’ %a" x.op pp_objid x.arg pp_objid x.result
+        fprintf pp "%a %s %a â‡’ %a" pp_jsval x.left x.op pp_jsval x.right pp_jsval x.result
+  | UnaryPre x -> fprintf pp "%s %a" x.op pp_jsval x.arg
+  | UnaryPost x -> fprintf pp "%s %a returns‡’ %a" x.op pp_jsval x.arg pp_jsval x.result
   | EndExpression iid -> pp_print_string pp "(end of expression)"
-  | Conditional v -> fprintf pp "end of conditional, %a" pp_objid v.value
+  | Conditional v -> fprintf pp "end of conditional, %a" pp_jsval v.value
 
 let pp_trace pp trace =
   pp_open_vbox pp 0;
@@ -464,21 +464,21 @@ let pp_trace pp trace =
 let pp_fieldspec pp { value; set; get; writable; enumerable; configurable } =
     (* Special-case the most common case *)
     if writable && enumerable && configurable && set = None && get = None then
-        pp_objid pp value
+        pp_jsval pp value
     else if set = None && get = None then
         fprintf pp "[%s%s%s] %a"
           (if writable then "W" else "-")
           (if enumerable then "E" else "-")
           (if configurable then "C" else "-")
-          pp_objid value
+          pp_jsval value
     else
         fprintf pp "[%s%s%s] %a { get = %a, set = %a }"
           (if writable then "W" else "-")
           (if enumerable then "E" else "-")
           (if configurable then "C" else "-")
-          pp_objid value
-          (FormatHelper.pp_print_option pp_objid) get
-          (FormatHelper.pp_print_option pp_objid) set
+          pp_jsval value
+          (FormatHelper.pp_print_option pp_jsval) get
+          (FormatHelper.pp_print_option pp_jsval) set
 
 let pp_objectspec pp spec =
   pp_open_hovbox pp 0;
@@ -503,7 +503,7 @@ let pp_functions pp arr =
 let pp_globals pp spec =
   pp_open_hovbox pp 0;
   pp_print_string pp "{";
-  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s â†’ %a;@]" fld pp_objid value) spec;
+  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s â†’ %a;@]" fld pp_jsval value) spec;
   pp_print_string pp "}";
   pp_close_box pp ()
 

@@ -52,7 +52,7 @@ type matching_state = {
     facts2: local_facts;
     objeq: bool IntIntMap.t;
     initialisation_data: VersionReferenceSet.t;
-    toString_data: objid list
+    toString_data: jsval list
 }
 
 (**
