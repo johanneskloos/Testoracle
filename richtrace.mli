@@ -1,4 +1,9 @@
+(** * A nicer form of trace, with more uniform events. *)
+
+(** This contains an explanation of where an alias comes from. *)
 type alias_source = Argument of int | With of Reference.versioned_reference
+
+(** Structures that sum up data about certain operations. *)
 type rfunpre = {
   f : Trace.jsval;
   base : Trace.jsval;
@@ -63,6 +68,10 @@ type rich_operation =
 
 (** A rich trace contains rich operations and local facts. *)
 type rich_trace = (rich_operation * LocalFacts.local_facts) list
+(** A rich trace file contains the original function and object descriptions,
+ * as well as global object information and the [globals_are_properties] flag.
+ * Furthermore, it contains a rich trace and a points-to map for the references
+ * occuring in the program. *)
 type rich_tracefile = {
   funcs : Trace.functions;
   objs : Trace.objects;
@@ -71,8 +80,10 @@ type rich_tracefile = {
   globals_are_properties : bool;
   points_to : PointsTo.points_to_map;
 }
+(** Pretty-printers. *)
 val pp_alias_source : Format.formatter -> alias_source -> unit
 val pp_rich_operation : Format.formatter -> rich_operation -> unit
 val pp_rich_trace : Format.formatter -> rich_trace -> unit
 val pp_rich_tracefile : Format.formatter -> rich_tracefile -> unit
+(** Transform a trace file to a rich trace file. *)
 val calculate_rich_tracefile : Trace.tracefile -> rich_tracefile

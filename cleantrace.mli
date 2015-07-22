@@ -1,11 +1,24 @@
 open Trace
 
+(** * Cleaned-up traces. *)
+(** A cleaned-up trace is a version of a trace that has
+ * unneccesary detail removed, and contains proper information
+ * on whether a variable access goes to a global or a local variable. *)
+
+(** Classification of the different types of function calls. This just enumerates
+ * the combinations of flags. *)
 type call_type = Function | Method | Constructor | ConstructorMethod
+
+(** The different possible types of variable declarations. *)
 type declaration_type =
-  | Var
-  | ArgumentArray
-  | ArgumentBinding of int
-  | CatchParam
+  | Var (** A regular local variable. *)
+  | ArgumentArray (** The argument array [arguments] that is implicitly bound when entering a function. *)
+  | ArgumentBinding of int (** The variable binds to the [i]-th argument. Note that this is an alias. *)
+  | CatchParam (** The variable binds a caught exception. *)
+(** Structures that contain information about the different possible events on a trace.
+ * 
+ * These structures are pruned-down versions of those in [Trace].
+ *)
 type funpre = {
   f : jsval;
   base : jsval;
@@ -52,6 +65,8 @@ type unary = { op : string; arg : jsval; result : jsval; }
 type funenter = { f : jsval; this : jsval; args : jsval; }
 type funexit = { ret : jsval; exc : jsval; }
 
+(** Events that can occur in a cleaned-up trace. Note that certain
+ * events in a [Trace.trace] are redundant for out task, so we drop them. *)
 type clean_operation =
   | CFunPre of funpre
   | CFunPost of funpost
@@ -75,10 +90,15 @@ type clean_operation =
   | CEndExpression
   | CConditional of jsval
 
+(** A clean trace is a list of cleaned-up events. *)
 type clean_trace = clean_operation list
+(** A clean trace file is like a trace file, only it contains a clean trace. *)
 type clean_tracefile = functions * objects * clean_trace * globals * bool
+(** Pretty-printers. *)
 val pp_clean_operation : Format.formatter -> clean_operation -> unit
 val pp_clean_trace : Format.formatter -> clean_trace -> unit
 val pp_clean_tracefile : Format.formatter -> clean_tracefile -> unit
+(** Transform a trace to a clean trace. *)
 val clean_trace: trace -> clean_trace
+(** Transform a trace file to a clean trace file. *)
 val clean_tracefile: tracefile -> clean_tracefile

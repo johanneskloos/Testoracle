@@ -88,7 +88,7 @@ let provide_write (objects: objects) ref state =
                 else if fldspec.set = None then
                     state
                 else begin
-                    (* Put handlers can do whatever they like. Assume the
+                    (* Set handlers can do whatever they like. Assume the
                      * update goes through, but warn about possible
                      * unsoundness. *)
                     let msg =

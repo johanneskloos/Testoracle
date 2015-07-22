@@ -3,6 +3,7 @@ open Richtrace
 open Trace
 open Cleantrace
 
+(** Debugging functions for the oracle. *)
 let trace_base = ref None
 
 let pp_match pp = function
