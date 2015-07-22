@@ -70,14 +70,10 @@ val trace_fold:
 val trace_initialize : trace -> facts_trace
 (** Fill the arguments and parameters fields of an enriched trace. *)
 val collect_arguments_and_parameters: facts_trace -> facts_trace
-(** Fill the global_objects fields of an enriched trace. *)
-val collect_globals: facts_trace -> facts_trace
 
 (** Transform a trace file into an enriched trace file with
   * information about arguments and parameters filled in. *)
 val calculate_arguments_and_parameters: tracefile -> facts_tracefile
-(** Enrich a trace file with information about global objects .*) 
-val calculate_globals: tracefile -> facts_tracefile
 
 (** Create a reference for a variable.
  * [reference_of_variable globals_are_properties facts is_global name]

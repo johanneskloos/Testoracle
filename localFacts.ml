@@ -9,8 +9,7 @@ type local_facts = {
     last_parameters: int option;
     last_update: versioned_reference option;
     versions: int ReferenceMap.t;
-    aliases: (int * string) StringMap.t;
-    globals: (int * string) list
+    aliases: (int * string) StringMap.t
 }
 
 type 'a enriched_trace = (clean_operation * 'a) list
@@ -94,29 +93,11 @@ let collect_arguments_and_parameters_step
 let collect_arguments_and_parameters tr =
     trace_enrich collect_arguments_and_parameters_step ([], []) tr
 
-let collect_globals_step (locals, globals) facts op =
-  let (locals', globals') = match op with
-    | CLiteral { value = OObject id }
-    | CLiteral { value = OOther (_, id) }
-    | CLiteral { value = OFunction (id, _) } ->
-      (id :: locals, globals)
-    | CGetField { base; offset } when not (List.mem (get_object base) locals) ->
-      (locals, (get_object base, offset) :: globals)
-    | _ ->
-      (locals, globals)
-  in ({ facts with globals=globals' }, (locals', globals'))
-   
-let collect_globals tr =
-  trace_enrich collect_globals_step ([], []) tr
-  
 let calculate_arguments_and_parameters
     (funs, objs, trace, globals, globals_are_properties) =
     (funs, objs, trace_initialize trace |> collect_arguments_and_parameters,
      globals, globals_are_properties)
 
-let calculate_globals (funs, objs, trace, globals, globals_are_properties) =
-  (funs, objs, collect_globals, globals, globals_are_properties)
-  
 let reference_of_variable gap facts global name =
     reference_of_name gap facts.aliases global name
 
