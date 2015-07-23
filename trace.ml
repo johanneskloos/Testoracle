@@ -69,7 +69,12 @@ type objects = objectspec array
 type local_funcspec = { instrumented: string; uninstrumented: string }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
-type globals = jsval StringMap.t
+type global_desc = {
+  id: int;
+  obj: objectspec;
+  proto: objectspec
+  }
+type globals = global_desc Misc.StringMap.t
 type tracefile = functions * objects * trace * globals * bool
 
 open Yojson.Basic;;
@@ -209,12 +214,24 @@ let parse_objects json =
   json |> convert_each parse_objectspec |> Array.of_list
 let parse_trace json =
   json |> convert_each parse_operation
-let parse_globals json =
-  json |> to_assoc |>
-    List.fold_left
-    (fun spec (name, content) ->
-       StringMap.add name (parse_jsval content) spec)
-    StringMap.empty
+let parse_global_desc json =
+  Format.eprintf "Entering parse_global_desc@.";
+  let id = json |> member "id" |> member "id" |> to_int in
+  Format.eprintf "Parsed id@.";
+  let obj = json |> member "obj_data" |> parse_objectspec in
+  Format.eprintf "Parsed obj@.";
+  let proto = begin match json |> member "proto_data" with
+    |  `Null -> Misc.StringMap.empty
+    | data -> parse_objectspec data end in
+  { id; obj; proto}
+  |> fun x -> Format.eprintf "leaving parse_global_desc@."; x
+let parse_globals json: globals =
+  let module Extra = Misc.MapExtra(Misc.StringMap) in
+  Format.eprintf "entering parse_globals@.";
+  json |> to_assoc |> Extra.of_list |>
+  Misc.StringMap.map parse_global_desc
+  |> fun x -> Format.eprintf "leaving parse_globals@."; x
+  
 let parse_tracefile source =
   let json = from_channel source in
     (parse_functions (member "func" json),
@@ -351,8 +368,14 @@ let dump_objects objs =
     `List (objs |> Array.map dump_objectspec |> Array.to_list)
 let dump_trace trace =
     `List (trace |> List.map dump_operation)
-let dump_globals globs: json =
-    `Assoc (globs |> StringMap.bindings |> List.map (map22 dump_jsval))
+let dump_global_desc { id; obj; proto }: json =
+  `Assoc [
+     ("id", `Int id);
+     ("obj_data", dump_objectspec obj);
+     ("proto_data", dump_objectspec proto) ]
+let dump_globals globals: json =
+  `Assoc (globals |> Misc.StringMap.map dump_global_desc |> Misc.StringMap.bindings)
+  
 let dump_tracefile_json (funs, objs, trace, globals, globals_are_properties) =
     `Assoc [
         ("func", dump_functions funs);
@@ -500,10 +523,12 @@ let pp_functions pp arr =
   pp_open_vbox pp 0;
   Array.iteri (fun i s -> fprintf pp "%i ↦ %a;@ " i pp_funcspec s) arr;
   pp_close_box pp ()
+let pp_global_spec pp { id; obj; proto } =
+  fprintf pp "%d, object=%a, proto=%a" id pp_objectspec obj pp_objectspec proto
 let pp_globals pp spec =
   pp_open_hovbox pp 0;
   pp_print_string pp "{";
-  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s → %a;@]" fld pp_jsval value) spec;
+  StringMap.iter (fun fld value -> fprintf pp "@[<hov>%s → %a;@]" fld pp_global_spec value) spec;
   pp_print_string pp "}";
   pp_close_box pp ()
 

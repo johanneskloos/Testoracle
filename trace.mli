@@ -167,8 +167,14 @@ type local_funcspec = { instrumented : string; uninstrumented : string }
 type funcspec = Local of local_funcspec | External of int
 (** Description of all Javascript functions in a trace. *)
 type functions = funcspec array
-(** The values of all (known) global variables. FIXME check if we ever use this. *)
-type globals = jsval Misc.StringMap.t
+(** Description of a global object. *)
+type global_desc = {
+  id: int;
+  obj: objectspec;
+  proto: objectspec
+  }
+(** The values of all (known) global variables. *)
+type globals = global_desc Misc.StringMap.t
 (** A trace file is a tuple containing the various components defined above. *)
 type tracefile = functions * objects * trace * globals * bool
 (** [parse_tracefile c] parses a JSON trace file from input channel [c] and returns it. *) 

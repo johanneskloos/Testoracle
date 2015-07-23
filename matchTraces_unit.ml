@@ -67,7 +67,7 @@ let dummy_rt = {
 	funcs;
 	objs;
 	trace = [];
-	globals = StringMap.empty |> StringMap.add "a" (OObject 0) |> StringMap.add "b" (ONull);
+	globals = StringMap.empty |> StringMap.add "a" {id = 0; obj = StringMap.empty; proto = StringMap.empty };
 	globals_are_properties = false;
 	points_to
 }
