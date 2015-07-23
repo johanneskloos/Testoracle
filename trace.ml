@@ -517,5 +517,3 @@ let get_object = function
     | OOther (_, id) -> id
     | OFunction (id, _) -> id
     | _ -> raise NotAnObject
-
-

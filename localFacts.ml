@@ -55,8 +55,7 @@ let empty_local_facts = {
     last_parameters = None;
     last_update = None;
     versions = ReferenceMap.empty;
-    aliases = StringMap.empty;
-    globals = []
+    aliases = StringMap.empty
 }
 
 let trace_initialize tr =

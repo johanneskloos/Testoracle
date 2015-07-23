@@ -89,7 +89,7 @@ module StringMapExtra = MapExtra(StringMap);;
  * matching results.
  *)
 let match_objects_raw 
-        (matchobj: data -> IntIntSet.t -> bool IntIntMap.t -> Trace.objid * Trace.objid -> bool * bool IntIntMap.t)
+        (matchobj: data -> IntIntSet.t -> bool IntIntMap.t -> Trace.jsval * Trace.jsval -> bool * bool IntIntMap.t)
         ignored data seen objeq m1 m2 =
     let one_side_only field _ objeq =
         if List.mem field ignored then Some objeq else None

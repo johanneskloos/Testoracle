@@ -23,9 +23,9 @@ let v1 = ONumberInt 1
 let v2 = ONumberInt 2
 let v3 = ONumberInt 3
 
-let rfp_0 = RFunPre { f = f1; args = a; base = b; call_type = Method }
-let rfp_1 = RFunPre { f = f1'; args = a'; base = b'; call_type = Method }
-let rfp_2 = RFunPre { f = f1''; args = a'; base = b'; call_type = Method }
+let rfp_0 = RFunPre { f = f1; args = a; base = b; call_type = Cleantrace.Method }
+let rfp_1 = RFunPre { f = f1'; args = a'; base = b'; call_type = Cleantrace.Method }
+let rfp_2 = RFunPre { f = f1''; args = a'; base = b'; call_type = Cleantrace.Method }
 let rfe_0 = RFunEnter { f = f1; this = b; args = a }
 let rfe_1 = RFunEnter { f = f1'; args = a'; this = b' }
 let rfe_2 = RFunEnter { f = f1''; args = a'; this = b' }

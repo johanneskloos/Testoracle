@@ -16,7 +16,7 @@ let pp_print_int_pair = FormatHelper.pp_print_pair pp_print_int pp_print_int
 
 (** Helper functions for options. *)
 module Option = struct
-    (** Get the content of an option, or a default value if not content exists. *)
+    (** Get the content of an option, or a default value if not content exists.
      *
      * Here and below, content means the [x] of [Some x].
      *)
@@ -61,6 +61,10 @@ module MapExtra(S: Map.S) = struct
         (fun key val1 -> Option.bind (fleft key val1))
         (fun key val2 -> Option.bind (fright key val2))
         (fun key val1 val2 -> Option.bind (fboth key val1 val2))
+
+    (** Transform an association list to a map *)
+    let of_list l =
+       List.fold_left (fun map (key, value) -> S.add key value map) S.empty l
 end;;
 (** Mapping functions for tuples. *)
 let map12 f (x,y) = (f x, y)

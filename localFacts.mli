@@ -16,9 +16,6 @@ type local_facts = {
     versions: int ReferenceMap.t;
     (** All currently-existing aliases. *)
     aliases: (int * string) Misc.StringMap.t;
-    (** All objects that are currently known to be global, and their
-     * known initial fields. FIXME: Needs a better type. *)
-    global_objects: (int * string) list
 }
 (** An empty set of local facts. *)
 val empty_local_facts: local_facts
