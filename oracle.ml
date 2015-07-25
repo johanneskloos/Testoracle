@@ -50,8 +50,7 @@ let calculate_matching path_orig path_xfrm =
 
 let main () =
   let (path_orig, path_xfrm) = parse_args() in
-  match calculate_matching path_orig path_xfrm
-     >> debug_print "Matching" pp_matching with
+  match calculate_matching path_orig path_xfrm with
     | Success _ -> print_endline "OK"; exit 0
     | Failure _ -> print_endline "FAIL"; exit 1;;
 
