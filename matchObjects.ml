@@ -5,6 +5,17 @@ open Misc
 open Richtrace
 open Reference
 
+type obj_match_failure =
+  | NonMatching of string list * jsval * jsval
+  | MissingOrig of string list
+  | MissingXfrm of string list
+  | Other of string
+  
+type objeq = {
+  objeq_cache: bool Misc.IntIntMap.t;
+  failure_trace: (string * obj_match_failure) option 
+  }
+  
 let is_base = function
     | OFunction _ | OObject _ | OOther _ -> false
     | _ -> true
@@ -88,20 +99,41 @@ module StringMapExtra = MapExtra(StringMap);;
  * stating whether the objects are isomorphic, and [objeq'] memoizes
  * matching results.
  *)
-let match_objects_raw 
-        (matchobj: data -> IntIntSet.t -> bool IntIntMap.t -> Trace.jsval * Trace.jsval -> bool * bool IntIntMap.t)
-        ignored data seen objeq m1 m2 =
-    let one_side_only field _ objeq =
-        if List.mem field ignored then Some objeq else None
-    and match_both_sides field val1 val2 objeq =
-        if List.mem field ignored then
-            Some objeq
-        else
-            match matchobj data seen objeq (val1, val2) with
-            | (false, _) -> None
-            | (true, objeq') -> Some objeq' in
-    StringMapExtra.fold2_option one_side_only one_side_only
-        match_both_sides m1 m2 objeq
+let match_objects_raw name
+    (matchobj: string -> data -> IntIntSet.t -> objeq -> Trace.jsval * Trace.jsval -> bool * objeq)
+    ignored data seen objeq m1 m2 =
+    let fold fleft fright fboth =
+        StringMapExtra.fold2
+            (fun field _ (so_far, objeq) ->
+                    if so_far then fleft field objeq else (false, objeq))
+            (fun field _ (so_far, objeq) ->
+                    if so_far then fright field objeq else (false, objeq))
+            (fun field val1 val2 (so_far, objeq) ->
+                    if so_far then fboth field val1 val2 objeq else (false, objeq))
+            m1 m2 (true, objeq)
+    and extend_error field (res, { objeq_cache; failure_trace }) =
+      let failure_trace = match failure_trace with
+      | Some (name, NonMatching (trace, v1, v2)) -> Some (name, NonMatching (field :: trace, v1, v2))
+      | Some (name, MissingOrig tr) -> Some (name, MissingOrig (field :: tr))
+      | Some (name, MissingXfrm tr) -> Some (name, MissingXfrm (field :: tr))
+      | _ -> failure_trace in
+      (res, { objeq_cache; failure_trace }) in
+    fold
+      (fun field objeq ->
+         assert (objeq.failure_trace = None);
+         if List.mem field ignored then
+           (true, objeq)
+          else
+            (false, { objeq with  failure_trace = Some (name, MissingXfrm []) }))
+      (fun field objeq ->
+         assert (objeq.failure_trace = None);
+         if List.mem field ignored then
+           (true, objeq)
+          else
+            (false, { objeq with  failure_trace = Some (name, MissingOrig []) }))
+      (fun field val1 val2 objeq ->
+         assert (objeq.failure_trace = None);
+         matchobj name data seen objeq (val1, val2) |> extend_error field)
 
 (** [match_objects_memo matchobj ignored data seen objeq id1 id2]
  * checks whether two objects, refered to by their ids [id1] and [id2],
@@ -118,20 +150,20 @@ let match_objects_raw
  * stating whether the objects are isomorphic, and [objeq'] memoizes
  * matching results.
  *)
-let match_objects_memo matchobj ignored data seen objeq id1 id2 =
+let match_objects_memo (name: string) matchobj ignored data seen objeq id1 id2 =
     if IntIntSet.mem (id1, id2) seen then begin
         (true, objeq)
-    end else if IntIntMap.mem (id1, id2) objeq then begin
-        (IntIntMap.find (id1, id2) objeq, objeq)
+    end else if IntIntMap.mem (id1, id2) objeq.objeq_cache then begin
+        (IntIntMap.find (id1, id2) objeq.objeq_cache, objeq)
     end else begin
         let m1 = find_object_facts id1 data.facts1 data.pt1
         and m2 = find_object_facts id2 data.facts2 data.pt2
-        and seen' = IntIntSet.add (id1, id2) seen in
-        match
-            match_objects_raw matchobj ignored data seen' (Some objeq) m1 m2 
-        with
-        | Some objeq -> (true, IntIntMap.add (id1, id2) true objeq)
-        | None -> (false, IntIntMap.add (id1, id2) false objeq)
+        and seen' = IntIntSet.add (id1, id2) seen
+        and extend_cache (res, { objeq_cache; failure_trace }) =
+          (res, { objeq_cache =
+             IntIntMap.add (id1, id2) res objeq_cache; failure_trace }) in
+        match_objects_raw name matchobj ignored data seen' objeq m1 m2
+        |> extend_cache 
     end
 
 (** [match_values_raw data seen objeq (v1, v2)] checks
@@ -142,21 +174,22 @@ let match_objects_memo matchobj ignored data seen objeq id1 id2 =
  * using [match_functions_associated], and in the object isomorphism, the
  * [toString] field is ignored. The role of [data], [seen] and [objeq]
  * and the return value as as for ]match_objects_memo]. *)
-let rec match_values_raw data seen objeq = function
+let rec match_values_raw (name: string) data seen objeq = function
     | (o1, o2)
         when (o1 = o2 && is_base o1) ->
             (true, objeq)
     | (OObject id1, OObject id2) ->
-            match_objects_memo match_values_raw [] data seen objeq id1 id2
+            match_objects_memo name match_values_raw [] data seen objeq id1 id2
     | (OOther (ty1, id1), OOther (ty2, id2))
         when ty1 = ty2 ->
-            match_objects_memo match_values_raw [] data seen objeq id1 id2
+            match_objects_memo name match_values_raw [] data seen objeq id1 id2
     | (OFunction (id1, fun1), OFunction (id2, fun2))
         when match_functions_associated data fun1 fun2 ->
-            match_objects_memo match_values_raw ["toString"] data  seen objeq
+            match_objects_memo name match_values_raw ["toString"] data  seen objeq
                  id1 id2
     | (o1, o2) ->
-            (false, objeq)
+            (false, { objeq with failure_trace = Some (name, NonMatching ([], o1, o2) )})
+
 
 (** [match_values rt1 rt2 facts1 facts2 v1 v2 objeq]
  * checks whether the values [v1] and [v2] are isomorphic,
@@ -168,18 +201,20 @@ let rec match_values_raw data seen objeq = function
  * values are isomorphic, and [objeq'] contains the updated matching
  * information.
  *)
-let match_values
+let match_values name
     { funcs=funs1; points_to = pt1 }
     { funcs=funs2; points_to = pt2 }
     facts1 facts2 obj1 obj2 objeq =
-    match_values_raw { funs1; funs2; facts1; facts2; pt1; pt2 }
-        IntIntSet.empty objeq (obj1, obj2)
+    match_values_raw name { funs1; funs2; facts1; facts2; pt1; pt2 }
+        IntIntSet.empty
+        objeq
+        (obj1, obj2)
 
 (** [match_references rt1 rt2 facts1 facts2 r1 r2 objeq]
  * checks whether the versioned references [r1] and [r2] point to
  * isomporphic objects. *)
-let match_refs rt1 rt2 facts1 facts2 r1 r2 objeq =
-    match_values rt1 rt2 facts1 facts2
+let match_refs name rt1 rt2 facts1 facts2 r1 r2 objeq =
+    match_values name rt1 rt2 facts1 facts2
         (VersionReferenceMap.find r1 rt1.points_to)
         (VersionReferenceMap.find r2 rt2.points_to)
         objeq

@@ -67,7 +67,7 @@ let dummy_rt = {
 	funcs;
 	objs;
 	trace = [];
-	globals = StringMap.empty |> StringMap.add "a" {id = 0; obj = StringMap.empty; proto = StringMap.empty };
+	globals = StringMap.empty |> StringMap.add "a" {id = OObject 0; obj = StringMap.empty; proto = StringMap.empty };
 	globals_are_properties = false;
 	points_to
 }
@@ -88,7 +88,7 @@ let add_init = VersionReferenceSet.add
 let state1 = {
 	rt1 = dummy_rt;
 	rt2 = dummy_rt;
-	objeq = IntIntMap.empty;
+	objeq = { objeq_cache = IntIntMap.empty; failure_trace = None };
 	initialisation_data =
 		VersionReferenceSet.empty
 		|> add_init ref3;
@@ -395,7 +395,7 @@ let matching_state1 = {
 	rt2 = dummy_rt;
 	facts1 = state1_facts;
 	facts2 = state1_facts;
-	objeq = IntIntMap.empty;
+	objeq = { objeq_cache = IntIntMap.empty; failure_trace = None };
 	initialisation_data = VersionReferenceSet.empty;
   toString_data = []
 }

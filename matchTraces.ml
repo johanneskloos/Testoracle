@@ -50,7 +50,7 @@ type matching_state = {
     rt2: rich_tracefile;
     facts1: local_facts;
     facts2: local_facts;
-    objeq: bool IntIntMap.t;
+    objeq: objeq;
     initialisation_data: VersionReferenceSet.t;
     toString_data: jsval list
 }
@@ -62,91 +62,60 @@ let match_source { rt1; rt2; facts1; facts2; objeq } src1 src2 =
     match src1, src2 with
     | Argument i1, Argument i2 -> (i1 = i2, objeq)
     | With r1, With r2 ->
-        MatchObjects.match_refs rt1 rt2 facts1 facts2 r1 r2 objeq
+        MatchObjects.match_refs "source" rt1 rt2 facts1 facts2 r1 r2 objeq
     | _ -> (false, objeq)
 
+let (&&&) (cond, objeq) check =
+  if cond then check objeq else (false, objeq)
+let (&&+) (cond, objeq) check =
+  (cond && check, objeq)
+let (!!) objeq = (true, objeq)
+    
 (**
 * Check if two operations match. This does not take
 * any stack state into account; it purely matches the arguments.
 *)
 let match_operations matching_state op1 op2 =
     let { rt1; rt2; facts1; facts2; objeq } = matching_state in
-    let check = MatchObjects.match_values rt1 rt2 facts1 facts2
-    and check_ref = MatchObjects.match_refs rt1 rt2 facts1 facts2 in
-    match op1, op2 with
-    | RFunPre { f = f1; base = base1; args = args1; call_type = ct1 },
-    RFunPre { f = f2; base = base2; args = args2; call_type = ct2 } ->
-        let (eqf, objeq) = check f1 f2 objeq in
-        let (eqbase, objeq) = check base1 base2 objeq in
-        let (eqargs, objeq) = check args1 args2 objeq in
-        (eqf && eqbase && eqargs && ct1 = ct2, objeq)
-    | RFunPost { f = f1; base = base1; args = args1; result = res1 },
-    RFunPost { f = f2; base = base2; args = args2; result = res2 } ->
-        let (eqf, objeq) = check f1 f2 objeq in
-        let (eqbase, objeq) = check base1 base2 objeq in
-        let (eqargs, objeq) = check args1 args2 objeq in
-        let (eqres, objeq) = check res1 res2 objeq in
-        (eqf && eqbase && eqargs && eqres, objeq)
-    | RLiteral { value = val1; hasGetterSetter = hgs1 },
-    RLiteral { value = val2; hasGetterSetter = hgs2 } ->
-        let (eqval, objeq) = check val1 val2 objeq in
-        (eqval && hgs1 = hgs2, objeq)
-    | RLocal { name = name1; ref = ref1 },
-    RLocal { name = name2; ref = ref2 } ->
-        let (eqref, objeq) = check_ref ref1 ref2 objeq in
-        (eqref && name1 = name2, objeq)
-    | RAlias { name = name1; ref = ref1; source = src1 },
-    RAlias { name = name2; ref = ref2; source = src2 } ->
-        let (eqsrc, objeq) = match_source matching_state src1 src2 in
-        let (eqref, objeq) = check_ref ref1 ref2 objeq in
-        (name1 = name2 && eqsrc && eqref, objeq)
-    | RRead { ref = ref1; value = val1 },
-    RRead { ref = ref2; value = val2 } ->
-        let (eqref, objeq) = check_ref ref1 ref2 objeq in
-        let (eqval, objeq) = check val1 val2 objeq in
-        (eqref && eqval, objeq)
-    | RWrite { ref = ref1; oldref = oref1; value = val1; success = succ1 },
-    RWrite { ref = ref2; oldref = oref2; value = val2; success = succ2 } ->
-        let (eqref, objeq) = check_ref ref1 ref2 objeq in
-        let (eqval, objeq) = check val1 val2 objeq in
-        let (eqoref, objeq) = check_ref oref1 oref2 objeq in
-        (eqref && eqval && eqoref && succ1 = succ2, objeq)
-    | RForIn val1, RForIn val2 -> check val1 val2 objeq
-    | RReturn val1, RReturn val2 -> check val1 val2 objeq
-    | RThrow val1, RThrow val2 -> check val1 val2 objeq
-    | RWith val1, RWith val2 -> check val1 val2 objeq
-    | RFunEnter { f = f1; this = this1; args = args1 },
-    RFunEnter { f = f2; this = this2; args = args2 } ->
-        let (eqf, objeq) = check f1 f2 objeq in
-        let (eqthis, objeq) = check this1 this2 objeq in
-        let (eqargs, objeq) = check args1 args2 objeq in
-        (eqf && eqthis && eqargs, objeq)
-    | RFunExit { ret = ret1; exc = exc1 },
-    RFunExit { ret = ret2; exc = exc2 } ->
-        let (eqret, objeq) = check ret1 ret2 objeq in
-        let (eqexc, objeq) = check exc1 exc2 objeq in
-        (eqret && eqexc, objeq)
-    | RScriptEnter, RScriptEnter -> (true, objeq)
-    | RScriptExit, RScriptExit -> (true, objeq)
-    | RScriptExc val1, RScriptExc val2 -> check val1 val2 objeq
-    | RBinary { op = op1; left = left1; right = right1; result = result1 },
-    RBinary { op = op2; left = left2; right = right2; result = result2 } ->
-        let (eqleft, objeq) = check left1 left2 objeq in
-        let (eqright, objeq) = check right1 right2 objeq in
-        let (eqresult, objeq) = check result1 result2 objeq in
-        (eqleft && eqright && eqresult && op1 = op2, objeq)
-    | RUnary { op = op1; arg = arg1; result = result1 },
-    RUnary { op = op2; arg = arg2; result = result2 } ->
-        let (eqarg, objeq) = check arg1 arg2 objeq in
-        let (eqresult, objeq) = check result1 result2 objeq in
-        (eqarg && eqresult && op1 = op2, objeq)
-    | REndExpression, REndExpression -> (true, objeq)
-    | RConditional val1, RConditional val2 -> check val1 val2 objeq
-    | _, _ -> (false, objeq)
+    let check name = MatchObjects.match_values name rt1 rt2 facts1 facts2
+    and check_ref name = MatchObjects.match_refs name rt1 rt2 facts1 facts2
+    and check_eq name x1 x2 objeq =
+       if x1 = x2 then (true, objeq) else (false, { objeq with failure_trace = Some (name, Other name) }) in
+    begin match op1, op2 with
+    | RFunPre { f = f1; base = base1; args = args1; call_type = ct1 }, RFunPre { f = f2; base = base2; args = args2; call_type = ct2 } ->
+      !!objeq &&& check "f" f1 f2 &&& check "base" base1 base2 &&& check "args" args1 args2 &&& check_eq "call type" ct1 ct2
+    | RFunPost { f = f1; base = base1; args = args1; result = res1 }, RFunPost { f = f2; base = base2; args = args2; result = res2 } ->
+      !!objeq &&& check "f" f1 f2 &&& check "base" base1 base2 &&& check "args" args1 args2 &&& check "res" res1 res2
+    | RLiteral { value = val1; hasGetterSetter = hgs1 }, RLiteral { value = val2; hasGetterSetter = hgs2 } ->
+      !!objeq &&& check "val" val1 val2 &&& check_eq "hgs" hgs1 hgs2
+    | RLocal { name = name1; ref = ref1 }, RLocal { name = name2; ref = ref2 } ->
+      !!objeq &&& check_ref "ref" ref1 ref2 &&& check_eq "name" name1 name2
+    | RAlias { name = name1; ref = ref1; source = src1 }, RAlias { name = name2; ref = ref2; source = src2 } ->
+      match_source matching_state src1 src2 &&& check_ref "ref" ref1 ref2 &&& check_eq "name" name1 name2 
+    | RRead { ref = ref1; value = val1 }, RRead { ref = ref2; value = val2 } ->
+      !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2
+    | RWrite { ref = ref1; oldref = oref1; value = val1; success = succ1 }, RWrite { ref = ref2; oldref = oref2; value = val2; success = succ2 } ->
+      !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2 &&& check_ref "oref" oref1 oref2
+    | RForIn val1, RForIn val2 -> !! objeq &&& check "val" val1 val2
+    | RReturn val1, RReturn val2 -> !!objeq &&& check "val" val1 val2
+    | RThrow val1, RThrow val2 -> !!objeq &&& check "val" val1 val2
+    | RWith val1, RWith val2 -> !!objeq &&& check "val" val1 val2
+    | RFunEnter { f = f1; this = this1; args = args1 }, RFunEnter { f = f2; this = this2; args = args2 } ->
+      !!objeq &&& check "f" f1 f2 &&& check "this" this1 this2 &&& check "args" args1 args2
+    | RFunExit { ret = ret1; exc = exc1 }, RFunExit { ret = ret2; exc = exc2 } ->
+      !!objeq &&& check "ret" ret1 ret2 &&& check "ext" exc1 exc2
+    | RScriptEnter, RScriptEnter -> !!objeq
+    | RScriptExit, RScriptExit -> !!objeq
+    | RScriptExc val1, RScriptExc val2 -> !!objeq &&& check "val" val1 val2
+    | RBinary { op = op1; left = left1; right = right1; result = result1 }, RBinary { op = op2; left = left2; right = right2; result = result2 } ->
+      !!objeq &&& check "left" left1 left2 &&& check "right" right1 right2 &&& check "result" result1 result2 &&& check_eq "op" op1 op2
+    | RUnary { op = op1; arg = arg1; result = result1 }, RUnary { op = op2; arg = arg2; result = result2 } ->
+      !!objeq &&& check "arg" arg1 arg2 &&& check "result" result1 result2 &&& check_eq "op" op1 op2
+    | REndExpression, REndExpression -> !!objeq
+    | RConditional val1, RConditional val2 -> !!objeq &&& check "val" val1 val2
+    | _, _ -> (false, { objeq with failure_trace = Some ("operation", Other "diffent ops") })
+    end
 
-let match_operations matching_state op1 op2 =
-  try match_operations matching_state op1 op2 with Not_found -> failwith "match_operations failed"
-  
 (**
 * Predicates that check whether a function can be used in a specific
 * context.
@@ -252,7 +221,7 @@ let is_matching_toString_call matching_data op1 op2 =
       RFunPre { f = f2; base = this2 } ->
         let { rt1; rt2; facts1; facts2; objeq; toString_data } = matching_data in
         begin match
-            MatchObjects.match_values rt1 rt2 facts1 facts2 this1 this2 objeq
+            MatchObjects.match_values "this" rt1 rt2 facts1 facts2 this1 this2 objeq
             with
             | (false, _) -> false
             | (true, _) ->  List.mem f1 toString_data
@@ -317,8 +286,84 @@ type match_operation =
 (**
 * A helper for candidate generators.
 *)
-let add_objeq op objeq cands =
-    (cands, if is_write op then IntIntMap.empty else objeq)
+let add_objeq op { objeq_cache } cands =
+    (cands, { objeq_cache = if is_write op then IntIntMap.empty else objeq_cache; failure_trace = None } )
+
+(** Trace-generating rule set matcher. *)
+type condition =
+  | MatchSides
+  | MayMatchSimple
+  | MatchCallInt
+  | MatchCallExt
+  | MatchCallToString
+  | MatchCallWrap
+  | MayInit
+  | IsToplevel
+  | IsNotFunction
+  | IsExit
+  | IsCallInt
+  | IsUnobservable
+  | MayInsertInWrapSimple
+  
+let rules_toplevel =
+  [
+    ([MatchSides; MayMatchSimple; IsToplevel], MatchSimple);
+    ([MatchSides; MatchCallInt], MatchPush Regular);
+    ([MatchSides; MatchCallExt], MatchPush External);
+    ([MatchCallToString], MatchPush ToString);
+    ([MatchSides; MatchCallWrap], MatchPush Wrapper);
+    ([MayInit; IsToplevel; IsNotFunction], Initialization)
+    ]
+
+let rules_regular =
+  [
+    ([MatchSides; MayMatchSimple], MatchSimple);
+    ([MatchSides; MatchCallInt], MatchPush Regular);
+    ([MatchSides; MatchCallExt], MatchPush External);
+    ([MatchCallToString], MatchPush ToString);
+    ([MatchSides; MatchCallWrap], MatchPush Wrapper);
+    ([MatchSides; IsExit], MatchPop)
+    ]
+
+let rules_wrap =
+  [
+    ([IsCallInt], WrapperPush Regular);
+    ([IsCallInt], WrapperPush Wrapper);
+    ([IsExit], WrapperPop);
+    ([MayInsertInWrapSimple], WrapperSimple)
+    ]
+
+let rules_toString =
+  [
+    ([IsCallInt], WrapperPush ToString);
+    ([IsExit], WrapperPop);
+    ([IsUnobservable], WrapperSimple)
+    ]
+
+let rules_external =
+  [ ([MatchSides; IsExit], MatchPop) ]
+
+let interpret_rules rules matching_state op1 op2 =
+  let (match12, objeq) = match_operations matching_state op1 op2 in 
+  let interpret_cond = function
+    | MatchSides -> match12
+    | MayMatchSimple -> may_insert_in_matching_simple op2
+    | MatchCallInt -> is_matching_internal_call matching_state op1 op2
+    | MatchCallExt -> is_matching_external_call matching_state op1 op2
+    | MatchCallToString -> is_matching_toString_call matching_state op1 op2
+    | MatchCallWrap -> may_be_wrapper_entry matching_state op1 op2
+    | MayInit -> may_insert_in_init matching_state op2
+    | IsToplevel -> is_toplevel op2
+    | IsNotFunction -> is_not_function op2
+    | IsExit -> is_post_exit op2
+    | IsCallInt -> is_internal_call matching_state.rt2 op2
+    | IsUnobservable -> is_unobservable op2
+    | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2 in
+  rules
+  |> List.map (fun (cond, res) -> (List.partition interpret_cond cond |> snd, res))
+  |> List.partition (fun (cond, _) -> cond = [])
+  |> fun (matches, nonmatches) ->
+    (matches |> List.map snd |> add_objeq op2 objeq, nonmatches)
 
 (**
 * The first half of the trace matcher: The candidate generators.
@@ -366,13 +411,24 @@ let external_candidates matching_state op1 op2 =
 * The operating states, and the general candidate generator. *)
 type state = InToplevel | InRegular | InWrap | InToString | InExternal
 
+(*
 let build_candidates matching_state op1 op2 = function
     | InToplevel -> toplevel_candidates matching_state op1 op2
     | InRegular -> regular_candidates matching_state op1 op2
     | InWrap -> wrap_candidates matching_state op1 op2
     | InToString -> toString_candidates matching_state op1 op2
     | InExternal -> external_candidates matching_state op1 op2
-
+*)
+let build_candidates matching_state op1 op2 state =
+  let find_rules = function
+    | InToplevel -> rules_toplevel
+    | InRegular -> rules_regular
+    | InWrap -> rules_wrap
+    | InToString -> rules_toString
+    | InExternal -> rules_external
+  in
+  interpret_rules (find_rules state) matching_state op1 op2
+  
 (**
 * The entries of the matching certificate.
 *
@@ -504,7 +560,8 @@ let adapt_matching_state op op1 op2 matching_state =
 type matching_anti_tree_node = {
   op1: rich_operation;
   op2: rich_operation;
-  stack: mode list
+  stack: mode list;
+  failure_trace: (condition list * match_operation) list * (string * MatchObjects.obj_match_failure) option 
   }
 type matching_anti_tree =
   | Node of matching_anti_tree_node * (match_operation * matching_anti_tree) list
@@ -532,14 +589,15 @@ let rec matching_engine matching_state trace1 trace2 stack =
     match trace1, trace2 with
     | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
         let matching_state' = { matching_state with facts1; facts2 } in
-        let (ops, objeq) =
+        let ((ops, objeq), failure_details) =
             build_candidates matching_state' op1 op2 (get_state stack) in
         begin match apply_first_working
             { matching_state' with objeq }
             op1 op2 trace1 trace2 stack ops
         with
           | A1Success tr -> Success tr
-          | A1Failure l -> Failure (Node ({ op1; op2; stack}, List.map2 (fun op mat -> (op, mat)) ops l))
+          | A1Failure l -> Failure (Node ({ op1; op2; stack; failure_trace = (failure_details, objeq.failure_trace) },
+             List.map2 (fun op mat -> (op, mat)) ops l))
         end
     | _ :: _, [] ->
        Failure (EndFailure trace1)
@@ -576,9 +634,7 @@ let match_traces rt1 rt2 =
         { rt1; rt2;
             facts1 = empty_local_facts;
             facts2 = empty_local_facts;
-            objeq = IntIntMap.empty;
+            objeq = { objeq_cache = IntIntMap.empty; failure_trace = None };
             initialisation_data = VersionReferenceSet.empty;
             toString_data = []
         } rt1.trace rt2.trace []
-
-let match_traces rt1 rt2 = Printexc.print (match_traces rt1) rt2
