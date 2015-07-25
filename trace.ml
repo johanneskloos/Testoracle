@@ -70,7 +70,7 @@ type local_funcspec = { instrumented: string; uninstrumented: string }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
 type global_desc = {
-  id: int;
+  id: jsval;
   obj: objectspec;
   proto: objectspec
   }
@@ -215,22 +215,17 @@ let parse_objects json =
 let parse_trace json =
   json |> convert_each parse_operation
 let parse_global_desc json =
-  Format.eprintf "Entering parse_global_desc@.";
-  let id = json |> member "id" |> member "id" |> to_int in
-  Format.eprintf "Parsed id@.";
+  let id = json |> member "id" |> parse_jsval in
   let obj = json |> member "obj_data" |> parse_objectspec in
-  Format.eprintf "Parsed obj@.";
   let proto = begin match json |> member "proto_data" with
     |  `Null -> Misc.StringMap.empty
     | data -> parse_objectspec data end in
   { id; obj; proto}
-  |> fun x -> Format.eprintf "leaving parse_global_desc@."; x
+
 let parse_globals json: globals =
   let module Extra = Misc.MapExtra(Misc.StringMap) in
-  Format.eprintf "entering parse_globals@.";
   json |> to_assoc |> Extra.of_list |>
   Misc.StringMap.map parse_global_desc
-  |> fun x -> Format.eprintf "leaving parse_globals@."; x
   
 let parse_tracefile source =
   let json = from_channel source in
@@ -370,7 +365,7 @@ let dump_trace trace =
     `List (trace |> List.map dump_operation)
 let dump_global_desc { id; obj; proto }: json =
   `Assoc [
-     ("id", `Int id);
+     ("id", dump_jsval id);
      ("obj_data", dump_objectspec obj);
      ("proto_data", dump_objectspec proto) ]
 let dump_globals globals: json =
@@ -524,7 +519,7 @@ let pp_functions pp arr =
   Array.iteri (fun i s -> fprintf pp "%i ↦ %a;@ " i pp_funcspec s) arr;
   pp_close_box pp ()
 let pp_global_spec pp { id; obj; proto } =
-  fprintf pp "%d, object=%a, proto=%a" id pp_objectspec obj pp_objectspec proto
+  fprintf pp "%a, object=%a, proto=%a" pp_jsval id pp_objectspec obj pp_objectspec proto
 let pp_globals pp spec =
   pp_open_hovbox pp 0;
   pp_print_string pp "{";

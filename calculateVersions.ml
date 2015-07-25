@@ -169,12 +169,27 @@ let collect_versions_step objects globals_are_properties state facts op =
         last_update = res.last_update },
       res )
 
-let collect_versions objects globals_are_properties tr =
+let globals_refs globals_are_properties globals =
+    let reference_of_global = reference_of_name globals_are_properties StringMap.empty true in
+    Misc.StringMap.fold (fun var { id; obj; proto } refs ->
+                let id = get_object id in
+                refs
+                |> ReferenceMap.add (reference_of_global var) 0
+                |> StringMap.fold (fun name _ -> ReferenceMap.add (reference_of_fieldref (id, name)) 0) obj
+                |> if StringMap.mem "prototype" obj then
+                    let protoid = get_object (StringMap.find "prototype" obj).value in
+                    StringMap.fold (fun name _ -> ReferenceMap.add (reference_of_fieldref (protoid, name)) 0) proto
+                else fun x -> x)
+        globals ReferenceMap.empty
+
+let collect_versions objects globals_are_properties globals tr =
+  let init_refs = globals_refs globals_are_properties globals in
     let res =
         trace_enrich (collect_versions_step objects globals_are_properties)
         { save_stack = [];
-          versions_bound = ReferenceMap.empty;
-          aliases = StringMap.empty; versions_current = ReferenceMap.empty;
+          versions_bound = init_refs;
+          aliases = StringMap.empty;
+          versions_current = init_refs;
           last_update = None
         }
         tr
@@ -184,5 +199,5 @@ let collect_versions objects globals_are_properties tr =
     end; res
 
 let calculate_versions (funs, objs, trace, globals, globals_are_properties) =
-    (funs, objs, collect_versions objs globals_are_properties trace,
+    (funs, objs, collect_versions objs globals_are_properties globals trace,
      globals, globals_are_properties)

@@ -169,7 +169,7 @@ type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
 (** Description of a global object. *)
 type global_desc = {
-  id: int;
+  id: jsval;
   obj: objectspec;
   proto: objectspec
   }
