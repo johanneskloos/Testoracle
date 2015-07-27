@@ -21,7 +21,7 @@ let extend_pm pm tr1 tr2 op =
         (pm @ [Wrap (List.hd tr2)], tr1, List.tl tr2)
     | MatchSimple | MatchPush _ | MatchPop ->
         (pm @ [Pair (List.hd tr1, List.hd tr2)], List.tl tr1, List.tl tr2)
-    | Initialization ->
+    | Initialization | InitializationPush _ | InitializationPop ->
         (pm @ [Init (List.hd tr2)], tr1, List.tl tr2)
 
 (** Output of debugging data *)
@@ -164,7 +164,8 @@ let dump_stack chan stack =
                 | Regular -> Printf.fprintf chan "R"
                 | Wrapper -> Printf.fprintf chan "W"
                 | External -> Printf.fprintf chan "E"
-                | ToString -> Printf.fprintf chan "S")
+                | ToString -> Printf.fprintf chan "S"
+                | Init -> Printf.fprintf chan "I")
             stack
 
 let dump_match_type chan = let open Printf in function
@@ -183,6 +184,7 @@ let dump_mode chan = let open Printf in function
   | Wrapper -> fprintf chan "wrapper"
   | External -> fprintf chan "external"
   | ToString -> fprintf chan "toString"
+  | Init -> fprintf chan "init"
 
 
 let dump_mop chan = let open Printf in function
@@ -193,6 +195,8 @@ let dump_mop chan = let open Printf in function
   | WrapperPop -> fprintf chan "wrap and pop"
   | WrapperPush m -> fprintf chan "wrap and push '%a'" dump_mode m
   | Initialization -> fprintf chan "initialize"
+  | InitializationPush m -> fprintf chan "initialize and push '%a'" dump_mode m
+  | InitializationPop -> fprintf chan "initialize and pop"
 
 let dump_path chan = let open Printf in function
   | [] -> fprintf chan "(top)"

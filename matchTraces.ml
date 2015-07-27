@@ -265,7 +265,7 @@ let is_not_function = function
 * on the right.
 *)
 (** The mode to switch to, on a push. *)
-type mode = Wrapper | Regular | External | ToString
+type mode = Wrapper | Regular | External | ToString | Init
 type match_operation =
     (* Both operations match, no stack change *)
     | MatchSimple
@@ -275,6 +275,10 @@ type match_operation =
     | MatchPop
     (* The second operation may be initialization code. *)
     | Initialization
+    (* The second operation may be a call inside initialization code. *)
+    | InitializationPush of mode
+    (* The second operation may be a pop inside initialization code. *)
+    | InitializationPop
     (* The second operation may be wrapper code, no stack change. *)
     | WrapperSimple
     (* The second operation may be wrapper code, push required. *)
@@ -311,7 +315,8 @@ let rules_toplevel =
     ([MatchSides; MatchCallExt], MatchPush External);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
-    ([MayInit; IsToplevel; IsNotFunction], Initialization)
+    ([MayInit; IsToplevel; IsNotFunction], Initialization);
+    ([IsCallInt], InitializationPush Init)
     ]
 
 let rules_regular =
@@ -413,26 +418,27 @@ let external_candidates matching_state op1 op2 =
 
 (**
 * The operating states, and the general candidate generator. *)
-type state = InToplevel | InRegular | InWrap | InToString | InExternal
+type state = InToplevel | InRegular | InWrap | InToString | InExternal | InInit
 
 (*
 let build_candidates matching_state op1 op2 = function
-    | InToplevel -> toplevel_candidates matching_state op1 op2
-    | InRegular -> regular_candidates matching_state op1 op2
-    | InWrap -> wrap_candidates matching_state op1 op2
-    | InToString -> toString_candidates matching_state op1 op2
-    | InExternal -> external_candidates matching_state op1 op2
+| InToplevel -> toplevel_candidates matching_state op1 op2
+| InRegular -> regular_candidates matching_state op1 op2
+| InWrap -> wrap_candidates matching_state op1 op2
+| InToString -> toString_candidates matching_state op1 op2
+| InExternal -> external_candidates matching_state op1 op2
 *)
 let build_candidates matching_state op1 op2 state =
-  let find_rules = function
-    | InToplevel -> rules_toplevel
-    | InRegular -> rules_regular
-    | InWrap -> rules_wrap
-    | InToString -> rules_toString
-    | InExternal -> rules_external
-  in
-  interpret_rules (find_rules state) matching_state op1 op2
-  
+    let find_rules = function
+        | InToplevel -> rules_toplevel
+        | InRegular -> rules_regular
+        | InWrap -> rules_wrap
+        | InToString -> rules_toString
+        | InExternal -> rules_external
+        | InInit -> rules_init
+    in
+    interpret_rules (find_rules state) matching_state op1 op2
+
 (**
 * The entries of the matching certificate.
 *
@@ -447,21 +453,24 @@ type match_type =
 
 (** Pretty-printers for matching state and match operations *)
 let pp_matching_state pp { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data } =
-  Format.fprintf pp "..."
+    Format.fprintf pp "..."
 let pp_print_mode pp = function
-  | Regular -> Format.pp_print_string pp "regular"
-  | Wrapper -> Format.pp_print_string pp "wrap"
-  | External -> Format.pp_print_string pp "external"
-  | ToString ->  Format.pp_print_string pp "toString"
-  
+    | Regular -> Format.pp_print_string pp "regular"
+    | Wrapper -> Format.pp_print_string pp "wrap"
+    | External -> Format.pp_print_string pp "external"
+    | ToString -> Format.pp_print_string pp "toString"
+    | Init -> Format.pp_print_string pp "init"
+
 let pp_match_operation pp = function
-  | Initialization -> Format.pp_print_string pp "init"
-  | WrapperSimple -> Format.pp_print_string pp "wrap"
-  | WrapperPop -> Format.pp_print_string pp "wrap, pop"
-  | WrapperPush m -> Format.fprintf pp "wrap, push %a" pp_print_mode m
-  | MatchSimple -> Format.pp_print_string pp "match"
-  | MatchPop -> Format.pp_print_string pp "match, pop"
-  | MatchPush m -> Format.fprintf pp "match, push %a" pp_print_mode m 
+    | Initialization -> Format.pp_print_string pp "init"
+    | WrapperSimple -> Format.pp_print_string pp "wrap"
+    | WrapperPop -> Format.pp_print_string pp "wrap, pop"
+    | WrapperPush m -> Format.fprintf pp "wrap, push %a" pp_print_mode m
+    | MatchSimple -> Format.pp_print_string pp "match"
+    | MatchPop -> Format.pp_print_string pp "match, pop"
+    | MatchPush m -> Format.fprintf pp "match, push %a" pp_print_mode m
+    | InitializationPush m -> Format.fprintf pp "init, push %a" pp_print_mode m
+    | InitializationPop -> Format.pp_print_string pp "init, pop"
 
 (**
 * Helpers for the matching engine.
@@ -473,10 +482,11 @@ let get_state = function
     | Regular :: _ -> InRegular
     | External :: _ -> InExternal
     | ToString :: _ -> InToString
+    | Init :: _ -> InInit
     | [] -> InToplevel
 
 (**
-* Special-case handling for a trace ending in initialisation code.
+* Special - case handling for a trace ending in initialisation code.
 * This is legal, but probably not very useful, except in the degenerate
 * case of empty code.
 *)
@@ -503,9 +513,9 @@ let adapt_first op op1 facts1 trace1 =
 * applies the required stack manipulation for [op]. *)
 let adapt_stack op stack =
     match op with
-    | MatchPush mode | WrapperPush mode -> mode :: stack
-    | MatchPop | WrapperPop -> List.tl stack
-    | _ -> stack
+    | MatchPush mode | WrapperPush mode | InitializationPush mode -> mode :: stack
+    | MatchPop | WrapperPop | InitializationPop -> List.tl stack
+    | MatchSimple | WrapperSimple | Initialization -> stack
 
 (** [extend_matching op op1 op2 matching]
 * extends the given matching according to [op]. *)
