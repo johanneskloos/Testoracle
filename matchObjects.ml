@@ -178,6 +178,8 @@ let rec match_values_raw (name: string) data seen objeq = function
     | (o1, o2)
         when (o1 = o2 && is_base o1) ->
             (true, objeq)
+    | (OObject 0, OObject 0) ->
+      (true, objeq) (* HACK HACK HACK *)
     | (OObject id1, OObject id2) ->
             match_objects_memo name match_values_raw [] data seen objeq id1 id2
     | (OOther (ty1, id1), OOther (ty2, id2))
