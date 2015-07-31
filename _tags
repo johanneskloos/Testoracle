@@ -11,3 +11,5 @@
 <*_unit.byte>: package(kaputt), package(yojson), package(str), package(csv)
 <*_unit.d.byte>: package(kaputt), package(yojson), package(str), package(csv)
 <oracleDebug.ml>: package(unix)
+<certifier.ml>: package(cohttp), package(cow), package(cow.syntax), syntax(camlp4o), package(lwt), package(batteries)
+<certifier.*>:package(cohttp), package(cow), package(cow.syntax), syntax(camlp4o), package(lwt), package(batteries), package(lwt.unix), package(cohttp.lwt), package(ocamlgraph), package(yojson), package(bolt)

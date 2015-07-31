@@ -6,3 +6,4 @@ test_calculations.native
 pptrace.native
 pprichtrace.native
 ppcleantrace.native
+certifier.native
