@@ -349,7 +349,7 @@ let rules_external =
 
 let rules_init =
     [ ([MayInit], Initialization);
-    ([MatchCallInt], InitializationPush Init);
+    ([IsCallInt], InitializationPush Init);
     ([IsExit], InitializationPop) ]
 
 let interpret_rules rules matching_state op1 op2 =
