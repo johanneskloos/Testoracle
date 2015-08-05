@@ -13,9 +13,6 @@ type reference
 (** Maps on references. *)
 module ReferenceMap: Map.S with type key = reference
 
-(** The reference comparator. *)
-val reference_compare: reference -> reference -> int
-
 (** Pretty printers. *)
 val pp_fieldref: Format.formatter -> fieldref -> unit
 val pp_reference: Format.formatter -> reference -> unit

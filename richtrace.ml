@@ -191,7 +191,7 @@ let enrich_step globals_are_properties objs (op, data) =
   | CScriptExc exc -> [RScriptExc exc]
   | CBinary { op; left; right; result } -> [RBinary { op; left; right; result }]
   | CUnary { op; arg; result } -> [RUnary { op; arg; result }]
-  | CEndExpression _ -> [REndExpression]
+  | CEndExpression -> [REndExpression]
   | CConditional value -> [RConditional value] in
     List.map (fun op -> (op, data)) res
 

@@ -86,8 +86,8 @@ module Notations = struct
   let ($?) o d = Option.get d o
   let (>|?) o f = Option.map f o
   let (>=?) o f = Option.bind f o
-  let (>|*) l f = List.map f l
-  let (>=*) l f = List.map f l |> List.flatten
+  let (>|* ) l f = List.map f l
+  let (>=* ) l f = List.map f l |> List.flatten
   let (<+>) f g = pmap f g
   let (<++>) t f = bmap f t
   let (<+->) t f = map12 f t
@@ -99,7 +99,7 @@ module Notations = struct
   let (<-+-->) t f = map24 t f
   let (<--+->) t f = map34 t f
   let (<---+>) t f = map44 t f
-  let (?*) = hd_err
+  let (?* ) = hd_err
   let (>>) x f = f x; x
 end;;
 
