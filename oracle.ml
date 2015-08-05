@@ -2,12 +2,10 @@ open Trace
 open Richtrace
 open MatchTraces
 open Arg
-open OracleDebug
 
 let debug = ref false
 let default_orig_trace = ".orig.trace"
 let default_xfrm_trace = ".xfrm.trace"
-let certificate = ref None
 
 let (>>) x f = f x; x
 
@@ -27,8 +25,6 @@ let parse_args () =
   let names = ref [] in
   let args = [
     ("-D", Set debug, "Debugging mode");
-    ("-t", String (fun b -> trace_base := Some b), "Trace output base");
-    ("-c", String (fun c -> certificate := Some c), "Certificate file")
     ]
    and usage_msg =
      "Test oracle for Javascript trace equivalence. Usage:\n\
@@ -43,18 +39,10 @@ let parse_args () =
       (path_orig, (Filename.chop_suffix path_orig default_orig_trace) ^ default_xfrm_trace)
     | _ -> usage args usage_msg; exit 2
  
-let serialize_result rt1 rt2 matchinfo =
-   match !certificate with
-    | None -> ()
-    | Some name -> Marshalling.marshal name (rt1, rt2, matchinfo)
-
-
 let calculate_matching path_orig path_xfrm =
   let rt1 = rich_tracefile_from_path path_orig
   and rt2 = rich_tracefile_from_path path_xfrm in
   match_traces rt1 rt2
-    >> dump_result rt1 rt2
-    >> serialize_result rt1 rt2
 
 
 let main () =
