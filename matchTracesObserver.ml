@@ -51,10 +51,14 @@ let log_orig_consumed_failed trace stack =
 let read filename =
   let chan = open_in_bin filename in
   let rec read_entries seen =
-    try
-      let len = input_binary_int chan in
-      let mdata = Bytes.create len in
-      really_input chan mdata 0 len;
-      read_entries ((Marshal.from_bytes mdata 0: record) :: seen)
-    with End_of_file -> List.rev seen
-  in let entries = read_entries [] in close_in chan; entries    
+    match
+        begin try
+          let len = input_binary_int chan in
+          let mdata = Bytes.create len in
+          really_input chan mdata 0 len;
+          Some mdata
+        with End_of_file -> None end
+      with
+        | Some mdata -> read_entries ((Marshal.from_bytes mdata 0: record) :: seen)
+        | None -> List.rev seen
+  in let entries = read_entries [] in close_in chan; entries
