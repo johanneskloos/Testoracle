@@ -11,13 +11,6 @@ let open_observer name =
   close_observer();
   observer := Some (open_out_bin name)
 
-let rNode = 0
-let rEdge = 1
-let rFailure = 2
-let rXfrmConsumed = 3
-let rOrigConsumedOk = 4
-let rOrigConsumedFailure = 5
-
 let node_id = ref 0
 let with_chan f =
   match !observer with Some chan -> f chan | None -> ()
