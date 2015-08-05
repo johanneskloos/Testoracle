@@ -20,15 +20,7 @@ open MatchTypes
 * on the right.
 *)
 
-(** Pretty-printers. *)
-val pp_matching_state :
-  Format.formatter -> MatchOperations.matching_state -> unit
-val pp_print_mode : Format.formatter -> mode -> unit
-val pp_match_operation : Format.formatter -> match_operation -> unit
-
-(*
-*
-* Get the operating state by examining the stack. *)
+(** Get the operating state by examining the stack. *)
 
 val get_state : mode list -> state
 

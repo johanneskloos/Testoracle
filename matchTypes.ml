@@ -53,6 +53,21 @@ type match_type =
   | Wrap of rich_operation
   | Init of rich_operation
 
-(** Pretty-printers *)
-val pp_print_mode: Format.formatter -> mode -> unit
-val pp_match_operation: Format.formatter -> match_operation -> unit
+(** Pretty-printers for matching state and match operations *)
+let pp_print_mode pp = function
+    | Regular -> Format.pp_print_string pp "regular"
+    | Wrapper -> Format.pp_print_string pp "wrap"
+    | External -> Format.pp_print_string pp "external"
+    | ToString -> Format.pp_print_string pp "toString"
+    | Init -> Format.pp_print_string pp "init"
+
+let pp_match_operation pp = function
+    | Initialization -> Format.pp_print_string pp "init"
+    | WrapperSimple -> Format.pp_print_string pp "wrap"
+    | WrapperPop -> Format.pp_print_string pp "wrap, pop"
+    | WrapperPush m -> Format.fprintf pp "wrap, push %a" pp_print_mode m
+    | MatchSimple -> Format.pp_print_string pp "match"
+    | MatchPop -> Format.pp_print_string pp "match, pop"
+    | MatchPush m -> Format.fprintf pp "match, push %a" pp_print_mode m
+    | InitializationPush m -> Format.fprintf pp "init, push %a" pp_print_mode m
+    | InitializationPop -> Format.pp_print_string pp "init, pop"
