@@ -4,6 +4,7 @@ open Cohttp_lwt_unix
 open Trace
 open Richtrace
 open MatchTraces
+open MatchTypes
 open Cleantrace
 open Reference
 open Graph
@@ -90,7 +91,7 @@ let output_trace tr =
   let rowwrap x = <:html< <tr><td>$x$</td></tr> >> in
   <:html<
   <table class="trace">
-  $list:List.map (fun (x, _) -> x |> output_op |> rowwrap) tr$
+  $list:List.map (fun x -> x |> output_op |> rowwrap) tr$
   </table>
   >>
 
@@ -153,37 +154,8 @@ let shared_css = (CSS, <:css<
           bottom: 0;
         }
 >> |> Cow.Css.to_string)
-
-(** Part 2: Handling of successful matches. *)
-type success_data = match_type list
-
-let success_main_page base sd =
-  <:html<
-  <html>
-    <head>
-      <title>Successful match for $str:base$</title>
-      <link href="stylesheet.css" rel="stylesheet"/>
-    </head>
-    <body>
-      <h1>Match for $str:base$</h1>
-      <p>Matching was succesful. Certificate:</p>
-      <table class="trace">
-        <tr>
-          <th class="original">Original trace</th>
-          <th class="modified">Modified trace</th>
-          <th class="classification">Classification</th>
-        </tr>
-        $list:List.map match_entry sd$
-      </table>
-    </body>
-  </html>
-  >> 
-
-let success_create_data _ _ ml = ml
-let success_multiplex base data _ =
-  (HTML, success_main_page base data |> Cow.Html.to_string)
  
-(** Part 3: Handling of failed matches. *)
+(** Part 3: Trace output. *)
 module IntSig = struct
   type t = int
   let compare: t -> t -> int = compare
@@ -195,35 +167,43 @@ module MatchOp = struct
   let compare: t -> t -> int = compare
   let default: t = MatchSimple
 end;;
-module FailureTree = Graph.Persistent.Digraph.ConcreteLabeled(IntSig)(MatchOp);;
-module FailureNodes = Map.Make(IntSig);;
+module TraceTree = Graph.Persistent.Digraph.ConcreteLabeled(IntSig)(MatchOp);;
+module TraceNodes = Map.Make(IntSig);;
 
-type failure_node =
-    FinalNodeData of matching_anti_tree_node
-  | NodeData of matching_anti_tree_node
-  | EndFailureData of rich_trace
-  | InitTailFailureData of rich_trace * mode list
+type trace_inner_node_data = {
+  op1: rich_operation;
+  op2: rich_operation;
+  stack: mode list;
+  trace_trace: ((condition * MatchOperations.mismatch) list * match_operation) list
+  }
 
-type failure_node_data = { partial_match: (int * mode list * match_type) list; node_class: failure_node }
-type failure_data = { tree: FailureTree.t; nodes: failure_node_data FailureNodes.t }
+type trace_node =
+    FinalNodeData of trace_inner_node_data
+  | NodeData of trace_inner_node_data
+  | EndtraceData of rich_operation list
+  | InitTailtraceData of rich_operation list * mode list
+  | SuccessNode
+
+type trace_data = { tree: TraceTree.t; nodes: trace_node TraceNodes.t }
   
-let failure_main_page base fd =
+let trace_main_page base fd =
   <:html< <html><head><title>Not implemented</title></head><body>Not implemented</body></html> >>
 
-let failure_treedata { tree }: Yojson.Basic.json =
+let trace_treedata { tree }: Yojson.Basic.json =
   let open Yojson.Basic in
   let out_label = Misc.to_string pp_match_operation in 
   let out_edge edge: json =
-    `Assoc [ ("op", `String (FailureTree.E.label edge |> out_label)); ("node", `Int (FailureTree.E.dst edge)) ] in
+    `Assoc [ ("op", `String (TraceTree.E.label edge |> out_label)); ("node", `Int (TraceTree.E.dst edge)) ] in
   let out_succ_edges v: string * json =
-    (string_of_int v, `List (FailureTree.fold_succ_e (fun edge lout -> out_edge edge :: lout) tree v [])) in
-  `Assoc (FailureTree.fold_vertex (fun vertex l -> out_succ_edges vertex :: l) tree [])
+    (string_of_int v, `List (TraceTree.fold_succ_e (fun edge lout -> out_edge edge :: lout) tree v [])) in
+  `Assoc (TraceTree.fold_vertex (fun vertex l -> out_succ_edges vertex :: l) tree [])
 
-let failure_details_summary = function
+let trace_details_summary = function
   | FinalNodeData _ -> <:html< <strong>No extensions at inner node available!</strong> >>
   | NodeData _ -> <:html< Regular inner node >>
-  | EndFailureData _ -> <:html< <strong>Transformed trace has ended before original trace was exhausted!</strong> >>
-  | InitTailFailureData _ -> <:html< <strong>Tail of transformed code cannot be classified as init code!</strong> >>
+  | EndtraceData _ -> <:html< <strong>Transformed trace has ended before original trace was exhausted!</strong> >>
+  | InitTailtraceData _ -> <:html< <strong>Tail of transformed code cannot be classified as init code!</strong> >>
+  | SuccessNode -> <:html< <strong>Match successful</strong> >>
 
 let output_mode m = <:html< $str:Misc.to_string pp_print_mode m$>>
  
@@ -238,79 +218,135 @@ let output_matchop = function
     | InitializationPush m -> <:html< Init and push $output_mode m$>>
     | InitializationPop -> <:html< Init and pop >>
 
-let failure_details_reasons { op1; op2; stack; failure_trace= (high, low) } =
-  let open MatchObjects in
+let trace_details_reasons { op1; op2; stack; trace_trace } =
+  let open MatchObjects in let open MatchTypes in let open MatchOperations in
   let output_path = function
     | path0 :: path -> List.fold_left (fun x y -> x ^ "," ^ y) path0 path
     | [] -> "the top"
   and output_cond = function
-    | MatchSides -> <:html<$output_op op1$ and $output_op op2$ don't match (check below for possible object mismatches)>>
-    | MayMatchSimple -> <:html<$output_op op2$ not admissible for a simple match (probably a call or return)>>
-    | MatchCallInt -> <:html<$output_op op1$ and $output_op op2$  not matching internal calls (TODO give more details when possible)>>
-    | MatchCallExt -> <:html<$output_op op1$ and $output_op op2$ not matching external calls (TODO give more details when possible)>>
-    | MatchCallToString -> <:html<$output_op op1$ and $output_op op2$ not matching toString calls (TODO give more details when possible)>>
-    | MatchCallWrap -> <:html<$output_op op2$ cannot possible be a wrapper call (TODO give more details)>>
+    | MatchSides -> <:html<$output_op op1$ and $output_op op2$ don't match>>
+    | MayMatchSimple -> <:html<$output_op op2$ not admissible for a simple match>>
+    | MatchCallInt -> <:html<$output_op op1$ and $output_op op2$  not matching internal calls>>
+    | MatchCallExt -> <:html<$output_op op1$ and $output_op op2$ not matching external calls>>
+    | MatchCallToString -> <:html<$output_op op1$ and $output_op op2$ not matching toString calls>>
+    | MatchCallWrap -> <:html<$output_op op2$ cannot possible be a wrapper call>>
     | MayInit -> <:html<$output_op op2$ may not be inserted in simple init code>>
     | IsToplevel -> <:html<$output_op op2$ may not occur at the top level>>
     | IsNotFunction -> <:html<$output_op op2$ is not a call or return>>
     | IsExit -> <:html<$output_op op2$ is not a return>>
     | IsCallInt -> <:html<$output_op op2$ is not an internal call>>
     | IsUnobservable -> <:html<$output_op op2$ is an observable action>>
-    | MayInsertInWrapSimple -> <:html<$output_op op2$ may not occur in simple wrapper code>>
-     in
-  let output_failcond (conds, op) =
-    <:html<
-      <dt>$output_matchop op$</dt>
-      <dd>$list:List.map output_cond conds$</dd>
-    >>
-  and output_obj_match_failure = function
+    | MayInsertInWrapSimple -> <:html<$output_op op2$ may not occur in simple wrapper code>> in
+  let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
       <:html<At $str:output_path path$, $output_val val1$ does not match $output_val val2$>>
     | MissingOrig path -> <:html< Missing field at $str:output_path path$ in the set of objects for the original trace. >>
     | MissingXfrm path -> <:html< Missing field at $str:output_path path$ in the set of objects for the transformed trace. >>
     | Other reason -> <:html< $str:reason$ >> in
-  let output_high = function
-    | [] -> <:html< No failed conditions? >>
-    | high -> <:html< <h3>Conditions that failed</h3> <dl>$list:List.map output_failcond high$</dl> >>
-  and output_low = function
-    | None -> <:html< >>
-    | Some (reason, match_failure) ->
-      <:html<
-        <h2>Object match failure</h2>
-        <p>Where: $str:reason$</p>
-        <p>Reason: $output_obj_match_failure match_failure$</p>
-      >>
-  in
+  let output_reason = function
+    | DifferentType -> <:html<Different types>>
+    | DifferentObjects (where, failure) ->
+      <:html<Objects in $str:where$ don't match: $output_obj_match_trace failure$>>
+    | DifferentArguments -> <:html<Referencing different arguments>>
+    | DifferentValues name -> <:html<Values for $str:name$ differ>>
+    | DifferentOperations -> <:html<Comparing incomparable events>>
+    | OtherOperation -> <:html<Event of a non-appropriate type>>
+    | NotToString -> <:html<Not a call to toString>>
+    | NotInitData -> <:html<Variable does not contain init data>>
+    | NotSimpleMatchable -> <:html<Cannot be matched by simple matching>>
+    | NotWrapCode -> <:html<Cannot occur in wrapper code>>
+    | NotToStringCode -> <:html<Cannot occur in toString code>>
+    | ExternalCall -> <:html<The call is external>> 
+    | InternalCall -> <:html<The call is internal>>
+    | NotLiterallyEqual -> <:html<The function bodies are not literally equal>> 
+    | LiterallyEqual -> <:html<The function bodies are literally equal>>
+    | NotToplevel -> <:html<Not top level code>>
+    | NotFunction -> <:html<Not a function entry>>
+    | NotExit -> <:html<Not a function exit>>
+    | Observable -> <:html<Event is observable>>
+    | NotAtToplevel -> <:html<Not at top level>>
+    | NotFunctionUpdate -> <:html<Not a function update>>
+    | NotInitCode -> <:html<Not init code>> in
+  let output_cond (cond, reason) =
+    <:html<$output_cond cond$: $output_reason reason$>> in
+  let output_nonempty = function
+    | [] -> <:html<Non-empty list???>>
+    | [x] -> <:html<$x$>>
+    | l -> let l' = List.map (fun x -> <:html< <li>$x$</li> >>) l in
+      <:html< <ul> $list:l'$ </ul> >> in
+  let output_trace_entry (conds, op) =
+    <:html<
+      <dt>$output_matchop op$</dt>
+      <dd>$output_nonempty (List.map output_cond conds)$</dd>
+    >> in
   <:html<
      <p>Operations being matched: $output_op op1$ versus $output_op op2$</p>
      <p>Current stack: $output_stack stack$</p>
-     $output_high high$
-     $output_low low$
+     <p>Failed matching rules:</p>
+     <dl>
+     $list:List.map output_trace_entry trace_trace$
+     </dl>
     >>
 
-let failure_details_cases self tree idx =
+(* ((condition * MatchOperations.mismatch) list * match_operation) *)
+
+let trace_details_cases self tree idx =
   let output_follower e =
     <:html<
-      <li><a href="$str:self [("operation", "details"); ("index", string_of_int (FailureTree.E.dst e))]$">$output_matchop (FailureTree.E.label e)$</a></li>
+      <li><a href="$str:self [("operation", "details"); ("index", string_of_int (TraceTree.E.dst e))]$">$output_matchop (TraceTree.E.label e)$</a></li>
     >>
   in function
   | FinalNodeData data ->
-    <:html< <h2>Reasons why no more matching is possible:</h2>$failure_details_reasons data$ >>
+    <:html< <h2>Reasons why no more matching is possible:</h2>$trace_details_reasons data$ >>
   | NodeData data ->
     <:html< <h2>Follower nodes</h2>
-      <ul>$list:FailureTree.fold_succ_e (fun e l -> output_follower e :: l) tree idx []$</ul> 
-      <h2>Reasons why other matchings have been ruled out:</h2>$failure_details_reasons data$ >>
-  | EndFailureData tr ->
+      <ul>$list:TraceTree.fold_succ_e (fun e l -> output_follower e :: l) tree idx []$</ul> 
+      <h2>Reasons why other matchings have been ruled out:</h2>$trace_details_reasons data$ >>
+  | EndtraceData tr ->
     <:html< <h2>Leftover trace</h2>$output_trace tr$>>
-  |  InitTailFailureData (tr, st) ->
+  |  InitTailtraceData (tr, st) ->
     <:html<
       <h2>Leftover trace</h2>$output_trace tr$
       <h2>Stack</h2>$output_stack st$
     >>
-    
-let failure_details self base { tree; nodes } idx =
-  let { partial_match; node_class } = FailureNodes.find idx nodes
+  | SuccessNode ->
+    <:html< Match successful! >>
+
+let collect_trace idx tree nodes =
+  let rec collect_inner_node idx trace op =
+    match TraceNodes.find idx nodes with
+      | NodeData { op1; op2; stack } ->
+        let matching = begin match op with
+          | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2
+          | Initialization | InitializationPush _ | InitializationPop -> Init op2
+          | MatchSimple | MatchPush _ | MatchPop -> Pair (op1, op2)
+        end in collect_edge idx ((idx, stack, matching) :: trace)
+      | _ -> failwith "Bad tree structure"
+  and collect_edge idx trace =
+    match TraceTree.pred_e tree idx with
+      | [] -> trace
+      | [e] -> collect_inner_node (TraceTree.E.src e) trace (TraceTree.E.label e)
+      | _ -> failwith "Bad tree structure"
+  in collect_edge idx []
+
+let trace_details self base { tree; nodes } idx =
+  let node_class = TraceNodes.find idx nodes
   and link i = self [("operation", "details"); ("index", string_of_int i)] in
+  let output_matchop = function
+    | Pair(op1, op2) ->
+      <:html< <td>$output_op op1$</td><td>$output_op op2$</td><td></td> >>
+    | Init op ->
+      <:html< <td></td><td>$output_op op$</td><td>Init</td> >>
+    | Wrap op ->
+      <:html< <td></td><td>$output_op op$</td><td>Wrap</td> >> in
+  let build_partial_trace idx =
+    collect_trace idx tree nodes
+    |> List.map (fun (idx, stack, matchop) -> 
+      <:html< <tr>
+        <td><a href="$str:link idx$">$int:idx$</a></td>
+        <td>$output_stack stack$</td>
+        $output_matchop matchop$
+        </tr> >>) in
   <:html<
   <html>
     <head>
@@ -319,7 +355,7 @@ let failure_details self base { tree; nodes } idx =
     </head>
     <body>
       <h1>Details for $str:base$, node $int:idx$</h1>
-      <p>Executive summary: $failure_details_summary node_class$</p>
+      <p>Executive summary: $trace_details_summary node_class$</p>
       <h2>Partial matching</h2>
       <table class="partial_trace">
         <tr>
@@ -329,9 +365,9 @@ let failure_details self base { tree; nodes } idx =
           <th class="modified">Modified trace</th>
           <th class="classification">Classification</th>
         </tr>
-        $list:List.map (match_entry_ext link) partial_match$
+        $list:build_partial_trace idx$
       </table>
-      $failure_details_cases self tree idx node_class$
+      $trace_details_cases self tree idx node_class$
     </body>
   </html> >>
 
@@ -351,60 +387,55 @@ let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
     | Initialization | InitializationPush _ | InitializationPop ->
         (pm @ [idx, stack', Init op2], stack', tr1, tr2)
 
-let failure_create_data (tr1: rich_trace) (tr2: rich_trace) data =
-    let id = ref 0 in
-    let rec flatten_mat partial_match stack (tr1: rich_trace) (tr2: rich_trace) { tree; nodes } =
-        let here = !id in
-        let tree = FailureTree.add_vertex tree here in incr id;
-        function
-        | Node (dat, []) ->
-            { tree;
-                nodes = FailureNodes.add here { partial_match; node_class = FinalNodeData dat } nodes }
-        | Node (dat, sub) ->
-            { tree;
-                nodes = FailureNodes.add here { partial_match; node_class = NodeData dat } nodes }
-            |> flatten_edges here partial_match stack tr1 tr2 sub
-        | EndFailure tr ->
-            { tree;
-                nodes = FailureNodes.add here { partial_match; node_class = EndFailureData tr } nodes }
-        | InitTailFailure (tr, st) ->
-            { tree;
-                nodes = FailureNodes.add here { partial_match; node_class = InitTailFailureData(tr, st) } nodes }
-    and flatten_edges parent partial_match stack (tr1: rich_trace) (tr2: rich_trace) sub data =
-        match sub with
-        | (op, mat):: rest ->
-            let (partial_match', stack', tr1', tr2') = extend_pm !id stack partial_match tr1 tr2 op in
-            data
-            |> fun { tree; nodes } -> {
-                    tree = FailureTree.add_edge_e tree (FailureTree.E.create parent op !id);
-                    nodes
-                }
-            |> fun data -> flatten_mat partial_match' stack' tr1' tr2' data mat
-            |> flatten_edges parent partial_match stack tr1 tr2 rest
-        | [] -> data
-    in flatten_mat [] [] tr1 tr2 { tree = FailureTree.empty; nodes = FailureNodes.empty } data
-
-let failure_multiplex self base data query =
+let trace_multiplex self base data query =
   match query "operation" with
-    | Some "treedata" -> (JSON, failure_treedata data |> Yojson.Basic.to_string)
+    | Some "treedata" -> (JSON, trace_treedata data |> Yojson.Basic.to_string)
     | Some "details" ->
         begin match query "index" with
-          | Some idx -> (HTML, failure_details self base data (int_of_string idx) |> Cow.Html.to_string)
+          | Some idx -> (HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
           | None -> raise (Invalid_argument "Needs exactly one index")
         end
-    | None ->  (HTML, failure_main_page base data |> Cow.Html.to_string)
+    | None ->  (HTML, trace_main_page base data |> Cow.Html.to_string)
     | _ -> raise (Invalid_argument "Unknown operation given")
 
+let extract_data data =
+  List.fold_left (fun { tree; nodes } -> function
+      | MatchTracesObserver.RNode (id, op1, op2, stack) ->
+        { tree = TraceTree.add_vertex tree id;
+          nodes = TraceNodes.add id (FinalNodeData { op1; op2; stack; trace_trace = [] }) nodes }
+      | MatchTracesObserver.REdge (src, tgt, op) ->
+        { tree = TraceTree.add_edge_e tree (TraceTree.E.create src op tgt);
+          nodes =
+            let data = match TraceNodes.find src nodes with
+              | FinalNodeData data ->  NodeData data
+              | NodeData data ->  NodeData data
+              | _ -> failwith "Inconsistent trace tree"
+            in TraceNodes.add src data nodes }
+      | MatchTracesObserver.RFailure (id, fail) ->
+        { tree;
+          nodes =
+            let data = match TraceNodes.find id nodes with
+              | FinalNodeData ({ trace_trace = [] } as node_class) ->
+                  FinalNodeData { node_class with trace_trace = fail }
+              | NodeData ({ trace_trace = [] } as node_class) ->
+                  NodeData { node_class with trace_trace = fail }
+              | _ -> failwith "Inconsistent trace tree"
+            in TraceNodes.add id data nodes }
+      | MatchTracesObserver.ROrigConsumedOk (id, trace, stack) ->
+        { tree; nodes = TraceNodes.add id (SuccessNode) nodes }
+      | MatchTracesObserver.ROrigConsumedFailure (id, trace ,stack) ->
+        { tree; nodes = TraceNodes.add id (InitTailtraceData(trace, stack)) nodes }
+      | MatchTracesObserver.RXfrmConsumed (id, trace) ->
+        { tree; nodes = TraceNodes.add id (EndtraceData trace) nodes })
+      { tree = TraceTree.empty; nodes = TraceNodes.empty } data
+                    
+          
 (** Part 4: The server. *)
-type server_data = SuccessData of success_data | FailureData of failure_data
-
 let read_result key =
   Format.eprintf "Data not cached, read from serialized form...@.";
-  let (trorig, trxfrm, data) = Marshalling.unmarshal ("." ^ key ^ ".cert") in
+  let data = MatchTracesObserver.read ("." ^ key ^ ".cert") in
   Format.eprintf "Data unserialized.@.";
-  match data with
-    | Success data -> Format.eprintf "Transforming success data...@."; SuccessData (success_create_data trorig.trace trxfrm.trace data)
-    | Failure data -> Format.eprintf "Transforming failure data...@."; FailureData (failure_create_data trorig.trace trxfrm.trace data)
+  extract_data data
 
 
 let server_callback cache conn req body =
@@ -418,9 +449,8 @@ let server_callback cache conn req body =
         match path with
         | "/stylesheet.css" -> shared_css
         | _ ->
-            match cache path with
-            | SuccessData data -> Format.eprintf "Read success case@."; success_multiplex path data query
-            | FailureData data -> Format.eprintf "Read failure case@."; failure_multiplex self path data query
+            let data = cache path in
+            trace_multiplex self path data query
     end |> begin function
         | (HTML, body) -> Format.eprintf "Returning HTML@."; ("text/html", body)
         | (JSON, body) -> Format.eprintf "Returning JSON@."; ("application/json", body)
