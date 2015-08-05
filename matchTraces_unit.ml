@@ -1,5 +1,5 @@
 open Trace
-open MatchTraces
+open MatchOperations
 open Richtrace
 open Kaputt
 open Abbreviations
@@ -75,6 +75,7 @@ let state1_facts = {
 	last_arguments = Some 42;
 	last_parameters = Some 37;
 	last_update = Some ref2;
+  this = 0;
 	versions = ReferenceMap.empty
     |> ReferenceMap.add (fst ref1) 0
     |> ReferenceMap.add (fst ref3) 5
@@ -88,7 +89,7 @@ let add_init = VersionReferenceSet.add
 let state1 = {
 	rt1 = dummy_rt;
 	rt2 = dummy_rt;
-	objeq = { objeq_cache = IntIntMap.empty; failure_trace = None };
+	objeq = IntIntMap.empty;
 	initialisation_data =
 		VersionReferenceSet.empty
 		|> add_init ref3;
@@ -338,6 +339,7 @@ let trace_init =
 		RScriptExit
 		]
 
+(*
 let can_be_added_as_initialisation_tests =
 	[Test.make_simple_test ~title:"can_be_added_as_initialisation: trace and stack ok"
 		(fun () -> Assert.is_true ~msg:"all ok"
@@ -816,3 +818,4 @@ let () =
 			tests_pid @ tests_adapt_matching_state @
       test_adapt_matching_state_toString :: candidate_tests
 		);;
+*)

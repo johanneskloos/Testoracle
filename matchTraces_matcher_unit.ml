@@ -1,5 +1,6 @@
 open Trace
 open MatchTraces
+open MatchTypes
 open Richtrace
 open Kaputt
 open Abbreviations
@@ -43,14 +44,7 @@ let tm1 = [ rfp_1; rfe_1; rfx; rfo_1; ree2; run; ree3 ]
 let tu2 = [ rfp_0; rfe_0; run; rfx; rfo_0; rse ]
 let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2; rse ]
 
-let facts_empty = {
-    last_arguments = None;
-    last_parameters = None;
-    last_update = None;
-    aliases = StringMap.empty;
-    versions = ReferenceMap.empty
-}
-let enrich = List.map (fun x -> (x, facts_empty))
+let enrich = List.map (fun x -> (x, empty_local_facts))
 
 let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"
@@ -145,23 +139,23 @@ let pp_match pp = function
 let match_print_trace tr =
   to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
 let match_print tr1 tr2 = function
-  | Success tr -> match_print_trace tr
-  | Failure mat -> OracleDebug.trace_base := Some "dump"; OracleDebug.dump_result tr1 tr2 (Failure mat); "see dump"   
+  | Some tr -> match_print_trace tr
+  | None -> "failed"   
   
 let match_equal tr1 tr2 exp = Assert.make_equal (=) (match_print tr1 tr2) exp (match_traces tr1 tr2)
   
 let test_11 =
   Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 1"
     (fun () ->
-      match_equal rtu1 rtm1 (Success match1))
+      match_equal rtu1 rtm1 (Some match1))
 let test_22 =
   Test.make_simple_test ~title:"Comparing traces unmod. 2 and mod. 2"
     (fun () ->
-      match_equal rtu2 rtm2 (Success match2))
+      match_equal rtu2 rtm2 (Some match2))
 let test_12 =
   Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 2"
     (fun () -> 
-      Assert.equal_bool false (match match_traces rtu1 rtm2 with Success _ -> true | Failure _ -> false))
+      Assert.equal_bool false (match match_traces rtu1 rtm2 with Some _ -> true | None -> false))
 
 let () =
   Printexc.record_backtrace true;

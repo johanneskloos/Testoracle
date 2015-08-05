@@ -91,49 +91,47 @@ let pp_objeq =
 
 let objeq_to_string = to_string pp_objeq
         
-let objeq_option_to_string = function
-    | None -> "None"
-    | Some objeq -> objeq_to_string objeq
+let same_objeq
+   (res1, { objeq_cache = cache1; failure_trace = trace1 })
+   (res2, { objeq_cache = cache2; failure_trace = trace2 }) =
+    Assert.equal_bool res1 res2;
+    Assert.make_equal (=) objeq_to_string cache1 cache2;
+    Assert.make_equal (=) (fun _ -> "???") trace1 trace2
 
-let same_objeq_option =
-    Assert.make_equal (=) objeq_option_to_string
-
-let equal_objeq =
-    Assert.make_equal (IntIntMap.equal (=)) objeq_to_string
-
-let equal_objeq_option =
-    Assert.make_equal (fun exp got ->
-        match exp, got with
-        | None, None -> true
-        | Some exp, Some got -> IntIntMap.equal (=) exp got
-        | _ -> false)
-        objeq_option_to_string
+let equal_objeq
+   (res1, { objeq_cache = cache1; failure_trace = trace1 })
+   (res2, { objeq_cache = cache2; failure_trace = trace2 }) =
+    Assert.equal_bool res1 res2;
+    Assert.make_equal (IntIntMap.equal (=)) objeq_to_string cache1 cache2;
+    Assert.make_equal (=) (fun _ -> "???") trace1 trace2
 
 let gen_test_match_objects_raw_positive (msg, m1, m2, ignore) =
     Test.make_simple_test ~title:msg (fun () ->
         let dummy_seen = IntIntSet.add (47, 11) IntIntSet.empty
-        and dummy_objeq = IntIntMap.add (24, 601) true IntIntMap.empty in
-        let mock_match data seen objeq _ =
+        and dummy_objeq_data = IntIntMap.add (24, 601) true IntIntMap.empty in
+        let dummy_objeq = { objeq_cache = dummy_objeq_data; failure_trace = None } in
+        let mock_match _ data seen objeq _ =
             Assert.same fundata data;
             Assert.same dummy_seen seen;
             Assert.same dummy_objeq objeq;
             (true, objeq) in
-        match_objects_raw mock_match ignore fundata dummy_seen
-            (Some dummy_objeq) m1 m2
-        |> same_objeq_option (Some dummy_objeq))
+        match_objects_raw "mock" mock_match ignore fundata dummy_seen
+            dummy_objeq m1 m2
+        |> same_objeq (true, dummy_objeq))
 
 let gen_test_match_objects_raw_negative (msg, m1, m2, ignore) =
     Test.make_simple_test ~title:msg (fun () ->
         let dummy_seen = IntIntSet.add (47, 11) IntIntSet.empty
-        and dummy_objeq = IntIntMap.add (24, 601) true IntIntMap.empty in
-        let mock_match data seen objeq _ =
+        and dummy_objeq_data = IntIntMap.add (24, 601) true IntIntMap.empty in
+        let dummy_objeq = { objeq_cache = dummy_objeq_data; failure_trace = None } in
+        let mock_match _ data seen objeq _ =
             Assert.same fundata data;
             Assert.same dummy_seen seen;
             Assert.same dummy_objeq objeq;
             (true, objeq) in
-        match_objects_raw mock_match ignore fundata dummy_seen
-            (Some dummy_objeq) m1 m2
-        |> same_objeq_option None)
+        match_objects_raw "mock" mock_match ignore fundata dummy_seen
+            dummy_objeq m1 m2
+        |> same_objeq (false, dummy_objeq))
 
 let tests_match_objects_raw_positive =
     List.map gen_test_match_objects_raw_positive tests_mor_positive
@@ -144,35 +142,35 @@ let tests_match_objects_raw_negative =
 let test_match_objects_raw_targeted_objeq_update =
     Test.make_simple_test ~title:"Testing targeted objeq updates"
         (fun () ->
-            let mock_match data _ objeq (val1, _) =
+            let mock_match data _ _ { objeq_cache = objeq } (val1, _) =
                 Assert.make_equal (=) (to_string Trace.pp_jsval)
                         (ONumberInt 0) val1;
-                (true, IntIntMap.add (0, 0) true objeq) in
-            match_objects_raw mock_match ["ign"] fundata IntIntSet.empty
-                    (Some (IntIntMap.add (1,1) true IntIntMap.empty)) obj1 obj2
-            |> equal_objeq_option
-                (Some (IntIntMap.add (0, 0) true
-                    (IntIntMap.add (1,1) true IntIntMap.empty))))
+                (true, { objeq_cache = IntIntMap.add (0, 0) true objeq; failure_trace = None }) in
+            match_objects_raw "mock" mock_match ["ign"] fundata IntIntSet.empty
+                    { objeq_cache = IntIntMap.add (1,1) true IntIntMap.empty; failure_trace = None } obj1 obj2
+            |> equal_objeq
+                (true, { objeq_cache = IntIntMap.add (0, 0) true
+                    (IntIntMap.add (1,1) true IntIntMap.empty); failure_trace = None}) )
 
 let test_match_objects_objmatch_fails =
     Test.make_simple_test ~title:"Testing failing objmatch"
         (fun () ->
-            let mock_match _ _ objeq _ = (false, objeq) in
-            match_objects_raw mock_match [] fundata IntIntSet.empty
-                (Some IntIntMap.empty) obj1 obj1 
-            |> equal_objeq_option None)
+            let mock_match _ _ _ objeq _ = (false, objeq) in
+            match_objects_raw "mock" mock_match [] fundata IntIntSet.empty
+                { objeq_cache = IntIntMap.empty; failure_trace = None } obj1 obj1 
+            |> equal_objeq (false, { objeq_cache = IntIntMap.empty; failure_trace = None }))
 
 let test_match_objects_objmatch_fails_on_ignored =
     Test.make_simple_test ~title:"Testing failing objmatch for onsided"
         (fun () ->
-            let mock_match _ _ objeq (val1, val2) =
+            let mock_match _ _ _ objeq (val1, val2) =
                 (not (val1 = ONumberInt 1 || val2 = ONumberInt 1), objeq) in
-            match_objects_raw mock_match ["ign"] fundata IntIntSet.empty
-                (Some IntIntMap.empty) obj1 obj2
-            |> equal_objeq_option (Some IntIntMap.empty);
-            match_objects_raw mock_match ["ign"] fundata IntIntSet.empty
-                (Some IntIntMap.empty) obj2 obj1
-            |> equal_objeq_option (Some IntIntMap.empty))
+            match_objects_raw "mock" mock_match ["ign"] fundata IntIntSet.empty
+                { objeq_cache = IntIntMap.empty; failure_trace = None } obj1 obj2
+            |> equal_objeq (true, { objeq_cache = IntIntMap.empty; failure_trace = None });
+            match_objects_raw "mock" mock_match ["ign"] fundata IntIntSet.empty
+                { objeq_cache = IntIntMap.empty; failure_trace = None } obj2 obj1
+            |> equal_objeq (true, { objeq_cache = IntIntMap.empty; failure_trace = None }))
 
 (** Test the memoization.
  * We do not retest all the matching properties from above,
@@ -231,33 +229,32 @@ let int_int_set_to_string =
 let test_match_objects_memo_unmemoized_success =
     let mock_seen = IntIntSet.empty
     and objeq = IntIntMap.add (17,18) true IntIntMap.empty in
-    let mock_matchobj data seen objeq (v1, v2) =
+    let mock_matchobj _ data seen { objeq_cache = objeq } (v1, v2) =
         Assert.make_equal IntIntSet.equal int_int_set_to_string (IntIntSet.add (1,1) mock_seen) seen;
         Assert.same ~msg:"same data" data memodata;
         Assert.equal (ONumberInt 0) v1;
         Assert.equal (ONumberInt 0) v2;
-        (true, IntIntMap.add (1,1) true objeq) in
+        (true, { objeq_cache = IntIntMap.add (1,1) true objeq; failure_trace = None }) in
     Test.make_simple_test
         ~title:"Testing memoized objmatch, unmemoized success"
         (fun () ->
-            let (res, objeq') = match_objects_memo mock_matchobj ["ign"]
-                memodata mock_seen objeq 1 1 in
-            Assert.is_true res;
-            equal_objeq (IntIntMap.add (1,1) true objeq) objeq')
+            let objeq' = match_objects_memo "mock" mock_matchobj ["ign"]
+                memodata mock_seen { objeq_cache = objeq; failure_trace = None } 1 1 in
+            equal_objeq  (true, { objeq_cache = IntIntMap.add (1,1) true objeq; failure_trace = None }) objeq')
 
 let test_match_objects_memo_unmemoized_failure =
     let mock_seen = IntIntSet.empty
     and objeq = IntIntMap.add (17,18) true IntIntMap.empty in
-    let mock_matchobj data seen objeq (v1, v2) =
+    let mock_matchobj _ data seen { objeq_cache = objeq } (v1, v2) =
         Assert.make_equal IntIntSet.equal int_int_set_to_string (IntIntSet.add (1,2) mock_seen) seen;
         Assert.same data memodata;
         Assert.equal (ONumberInt 0) v1;
         Assert.equal (ONumberInt 0) v2;
-        (true, IntIntMap.add (1,1) true objeq) in
+        (true, { objeq_cache =  IntIntMap.add (1,1) true objeq; failure_trace = None }) in
     Test.make_simple_test
         ~title:"Testing memoized objmatch, unmemoized failure"
         (fun () ->
-            let (res, objeq') = match_objects_memo mock_matchobj []
+            let (res, objeq') = match_objects_memo "memo" mock_matchobj []
                 memodata mock_seen objeq 1 2 in
             Assert.is_false res;
             equal_objeq (IntIntMap.add (1,2) false objeq) objeq')
