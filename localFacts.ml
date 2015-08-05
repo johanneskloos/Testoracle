@@ -8,6 +8,7 @@ type local_facts = {
     last_arguments: int option;
     last_parameters: int option;
     last_update: versioned_reference option;
+    this: int;
     versions: int ReferenceMap.t;
     aliases: (int * string) StringMap.t
 }
@@ -54,6 +55,7 @@ let empty_local_facts = {
     last_arguments = None;
     last_parameters = None;
     last_update = None;
+    this = 0;
     versions = ReferenceMap.empty;
     aliases = StringMap.empty
 }
@@ -78,19 +80,25 @@ let trace_fold (f: 'acc -> 'data -> clean_operation -> 'acc):
   List.fold_left (fun acc (operation, data) -> f acc data operation)
 
 let collect_arguments_and_parameters_step 
-        (last_arguments, last_parameters) facts op =
+        (last_arguments, last_parameters, last_this) facts op =
     let (arguments, parameters) = match op with
     | CFunPre { args } -> (args::last_arguments, last_parameters)
     | CFunPost _ -> (List.tl last_arguments, last_parameters)
     | CFunEnter { args } -> (last_arguments, args::last_parameters)
     | CFunExit _ -> (last_arguments, List.tl last_parameters)
     | _ -> (last_arguments, last_parameters)
+    and this = match op with
+      | CFunPre { base; call_type = Method } -> base :: last_this
+      | CFunPre { base } -> assert (base = OObject 0); base :: last_this
+      | CFunPost _ -> List.tl last_this
+      | _ -> last_this
     in ({ facts with
         last_arguments = hd_err arguments >|? get_object;
-        last_parameters = hd_err parameters >|? get_object },
-        (arguments, parameters))
+        last_parameters = hd_err parameters >|? get_object;
+        this = List.hd this |> get_object },
+        (arguments, parameters, this))
 let collect_arguments_and_parameters tr =
-    trace_enrich collect_arguments_and_parameters_step ([], []) tr
+    trace_enrich collect_arguments_and_parameters_step ([], [], [OObject 0]) tr
 
 let calculate_arguments_and_parameters
     (funs, objs, trace, globals, globals_are_properties) =

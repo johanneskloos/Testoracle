@@ -12,6 +12,8 @@ type local_facts = {
     last_parameters: int option;
     (** The last reference that was modified. *)
     last_update: versioned_reference option;
+    (** The current value of this. *)
+    this: int;
     (** The current version of all known references. *)
     versions: int ReferenceMap.t;
     (** All currently-existing aliases. *)

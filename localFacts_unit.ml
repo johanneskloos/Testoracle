@@ -3,6 +3,7 @@ open Kaputt;;
 open Abbreviations;;
 open Trace;;
 open Cleantrace;;
+open Reference
 
 let print_trace tr =
     Trace.pp_trace Format.str_formatter tr;

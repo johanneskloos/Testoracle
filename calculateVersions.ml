@@ -146,9 +146,8 @@ let collect_versions_step objects globals_are_properties state facts op =
     | CDeclare { name; declaration_type = ArgumentBinding i } ->
             provide_argument_alias (save_version state name) name facts i
     | CDeclare { name } ->
-            provide_write objects
-                (reference_of_local_name name)
-                (save_version state name)
+            save_version state name |> 
+            provide_write objects  (reference_of_local_name name)
     | CGetField { base; offset } ->
             provide_read (reference_of_field base offset) state
     | CPutField { base; offset } ->
@@ -158,7 +157,9 @@ let collect_versions_step objects globals_are_properties state facts op =
     | CWrite { name; isGlobal } ->
             provide_write objects (nameref isGlobal name) state
     | CFunEnter { args } ->
-            provide_object objects (push state) args
+            provide_object objects (push state) args |>
+            fun state -> save_version state "this" |> 
+            provide_write objects (reference_of_local_name "this")
     | CFunExit _ ->
             pop state
     | _ ->
@@ -169,8 +170,10 @@ let collect_versions_step objects globals_are_properties state facts op =
         last_update = res.last_update },
       res )
 
-let globals_refs globals_are_properties globals =
+let initial_refs globals_are_properties globals =
     let reference_of_global = reference_of_name globals_are_properties StringMap.empty true in
+    ReferenceMap.empty |>
+    ReferenceMap.add (reference_of_local_name "this") 0 |>
     Misc.StringMap.fold (fun var { id; obj; proto } refs ->
                 let id = get_object id in
                 refs
@@ -180,10 +183,10 @@ let globals_refs globals_are_properties globals =
                     let protoid = get_object (StringMap.find "prototype" obj).value in
                     StringMap.fold (fun name _ -> ReferenceMap.add (reference_of_fieldref (protoid, name)) 0) proto
                 else fun x -> x)
-        globals ReferenceMap.empty
+        globals
 
 let collect_versions objects globals_are_properties globals tr =
-  let init_refs = globals_refs globals_are_properties globals in
+  let init_refs = initial_refs globals_are_properties globals in
     let res =
         trace_enrich (collect_versions_step objects globals_are_properties)
         { save_stack = [];

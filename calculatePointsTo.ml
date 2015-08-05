@@ -56,7 +56,8 @@ let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (sta
     | CWrite { name; value; isGlobal } ->
             add_write facts state (reference_of_variable globals_are_properties facts isGlobal name) value
     | CFunEnter { args } ->
-            add_known_new_object objects facts state args
+            add_known_new_object objects facts state args |>
+            fun state -> add_write facts state (reference_of_local_name "this") (OObject facts.this)
     | _ -> state
 
 let globals_points_to globals_are_properties globals =
@@ -77,6 +78,7 @@ let globals_points_to globals_are_properties globals =
 
 let collect_pointsto globals_are_properties globals objects =
     VersionReferenceMap.empty |>
+    VersionReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0) |>
     globals_points_to globals_are_properties globals |>
     trace_fold (collect_pointsto_step globals_are_properties objects)
 let calculate_pointsto (funs, objs, trace, globs, gap) = collect_pointsto gap globs objs trace
