@@ -25,6 +25,7 @@ let parse_args () =
   let names = ref [] in
   let args = [
     ("-D", Set debug, "Debugging mode");
+    ("-t", String (MatchTracesObserver.open_observer), "Trace file")
     ]
    and usage_msg =
      "Test oracle for Javascript trace equivalence. Usage:\n\
@@ -48,7 +49,7 @@ let calculate_matching path_orig path_xfrm =
 let main () =
   let (path_orig, path_xfrm) = parse_args() in
   match calculate_matching path_orig path_xfrm with
-    | Success _ -> print_endline "OK"; exit 0
-    | Failure _ -> print_endline "FAIL"; exit 1;;
+    | Some _ -> print_endline "OK"; MatchTracesObserver.close_observer (); exit 0
+    | None -> print_endline "FAIL"; MatchTracesObserver.close_observer (); exit 1;;
 
 main ()
