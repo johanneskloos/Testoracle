@@ -62,5 +62,50 @@ let test_trace_collect =
             Assert.equal ~prn:(Misc.to_string pp_clean_trace) (List.map fst new_trace) sample_trace;
             Assert.equal (List.map snd new_trace) [(42, 10); (52, 51); (103, 23)])
 
+
+let test_reference_of_variable_1 =
+  Test.make_simple_test ~title:"reference to global, globals as vars"
+    (fun () ->
+      let ref = reference_of_variable false empty_local_facts true "x" in
+      Assert.equal
+         ~prn:(Misc.to_string (FormatHelper.pp_print_option Format.pp_print_string))
+        (Some "x") (get_name ref);
+      Assert.is_true ~msg:"Should be global" (is_global ref))
+let test_reference_of_variable_2 =
+  Test.make_simple_test ~title:"reference to global, globals as props"
+    (fun () ->
+      let ref = reference_of_variable true empty_local_facts true "x" in
+      Assert.equal
+         ~prn:(Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Format.pp_print_int Format.pp_print_string)))
+        (Some (0, "x")) (get_fieldref ref))
+let test_reference_of_variable_3 =
+  Test.make_simple_test ~title:"reference to local, no alias"
+    (fun () ->
+      let ref = reference_of_variable false empty_local_facts false "x" in
+      Assert.equal
+         ~prn:(Misc.to_string (FormatHelper.pp_print_option Format.pp_print_string))
+        (Some "x") (get_name ref);
+      Assert.is_false ~msg:"Should be global" (is_global ref))
+let test_reference_of_variable_4 =
+  Test.make_simple_test ~title:"reference to local, no alias"
+    (fun () ->
+      let ref = reference_of_variable false { empty_local_facts with aliases = Misc.StringMap.add "x" (0, "x") Misc.StringMap.empty } false "x" in
+      Assert.equal
+         ~prn:(Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Format.pp_print_int Format.pp_print_string)))
+        (Some (0, "x")) (get_fieldref ref))
+
+let test_make_versioned =
+  Test.make_simple_test ~title: "make_versioned"
+    (fun () ->
+      let ref = reference_of_variable false empty_local_facts true "x" in 
+      let facts = { empty_local_facts with versions = ReferenceMap.add ref 17 ReferenceMap.empty } in
+      Assert.equal ~prn:(Misc.to_string Reference.pp_versioned_reference)
+        (ref, 17) (make_versioned facts ref))
+
+
 let () = Test.run_tests [test_get_object1; test_get_object2; test_get_object3;
-        test_get_object4; test_trace_initialize; test_trace_fold; test_trace_collect ]
+        test_get_object4; test_trace_initialize; test_trace_fold; test_trace_collect;
+        test_reference_of_variable_1; test_reference_of_variable_2;
+        test_reference_of_variable_3; test_reference_of_variable_4;
+        test_make_versioned
+        ]
