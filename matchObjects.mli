@@ -31,7 +31,6 @@ val match_functions : data -> int -> int -> bool
  * if do not have proof that they are not behaviourally equivalent. *)
 val match_functions_associated : data -> int -> int -> bool
 
-type cmpname = string
 type recursive_matcher =
     data ->
     Misc.IntIntSet.t ->

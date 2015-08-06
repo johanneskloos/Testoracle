@@ -4,7 +4,7 @@ open Trace
 open Misc
 open Richtrace
 open Reference
-
+open MatchTypes
 
 type obj_match_failure =
   | NonMatching of string list * jsval * jsval

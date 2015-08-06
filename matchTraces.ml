@@ -21,7 +21,7 @@ let rules_toplevel =
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
     ([MayInit; IsToplevel; IsNotFunction], Initialization);
-    ([IsCallInt], InitializationPush Init)
+    ([IsCallInt (* TODO add "local function" check *)], InitializationPush Init)
     ]
 
 let rules_regular =
@@ -172,11 +172,31 @@ let adapt_matching_state op op1 op2 matching_state =
         | _ -> perpetuate_initialisation_data matching_state op2
     end |> detect_toString op1
 
-(** Heuristics to rule out hopeless matchings *)
+(** Merge back results that need to be propagated. *)
+let merge
+  { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data }
+  { nonequivalent_functions; known_blocked } =
+  { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data; nonequivalent_functions; known_blocked }
 
+let mark_blocked ({ known_blocked } as matching_state) trace1 trace2 stack =
+  let key = (List.length trace1, List.length trace2) in
+  let known_blocked_here =
+    if IntIntMap.mem key known_blocked then IntIntMap.find key known_blocked else [] in
+  let known_blocked_new =
+    if List.mem stack known_blocked_here then known_blocked_here else stack :: known_blocked_here in
+  { matching_state with known_blocked = IntIntMap.add key known_blocked_new known_blocked }
+
+let is_blocked { known_blocked } trace1 trace2 stack =
+  let key = (List.length trace1, List.length trace2) in
+  if IntIntMap.mem key known_blocked then List.mem stack (IntIntMap.find key known_blocked) else false
+  
 (** The matching engine itself. *)
 let rec matching_engine matching_state trace1 trace2 stack =
-    match trace1, trace2 with
+    (* Short-circuit matching if we have shown this case to be blocked. *)
+    if is_blocked matching_state trace1 trace2 stack then begin
+      MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
+      (None, matching_state)
+    end else match trace1, trace2 with
     | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
         let id = MatchTracesObserver.log_node op1 op2 stack in
         let matching_state' = { matching_state with facts1; facts2 } in
@@ -201,17 +221,19 @@ and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
       (None, matching_state)
     | op :: ops ->
         MatchTracesObserver.log_edge parent op;
-        match
-        matching_engine
-            (adapt_matching_state op op1 op2 matching_state)
-            (adapt_first op op1 matching_state.facts1 trace1)
-            trace2
-            (adapt_stack op stack)
-        with
-        | (Some matching, matching_state') ->
-            (Some (extend_matching op op1 op2 matching), matching_state)
-        | (None, matching_state') ->
-            apply_first_working parent matching_state' op1 op2 trace1 trace2 stack ops
+        let matching_state_adapted = adapt_matching_state op op1 op2 matching_state
+        and trace1_adapted = adapt_first op op1 matching_state.facts1 trace1
+        and stack_adapted = adapt_stack op stack in
+        let (result, matching_state') =
+                  matching_engine matching_state_adapted
+                   trace1_adapted trace2 stack_adapted in
+        let matching_state_merged = merge matching_state matching_state' in match result with
+        | Some matching ->
+            (Some (extend_matching op op1 op2 matching), matching_state_merged)
+        | None ->
+            apply_first_working parent
+              (mark_blocked matching_state_merged trace1_adapted trace2 stack_adapted)
+              op1 op2 trace1 trace2 stack ops
 
 let match_traces rt1 rt2 =
     matching_engine
@@ -221,6 +243,7 @@ let match_traces rt1 rt2 =
             objeq = IntIntMap.empty;
             initialisation_data = VersionReferenceSet.empty;
             toString_data = [];
-            nonequivalent_functions = Misc.IntIntSet.empty
+            nonequivalent_functions = Misc.IntIntSet.empty;
+            known_blocked = Misc.IntIntMap.empty
         } rt1.trace rt2.trace []
         |> fst

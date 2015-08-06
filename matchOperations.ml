@@ -4,6 +4,7 @@ open Reference
 open LocalFacts
 open Misc
 open MatchObjects
+open MatchTypes
 
 (**
 * Basic predicates.
@@ -53,7 +54,8 @@ type matching_state = {
     objeq: objeq;
     initialisation_data: VersionReferenceSet.t;
     toString_data: jsval list;
-    nonequivalent_functions: IntIntSet.t
+    nonequivalent_functions: IntIntSet.t;
+    known_blocked: match_mode list list IntIntMap.t
 }
 
 

@@ -183,6 +183,7 @@ type trace_node =
   | EndtraceData of rich_operation list
   | InitTailtraceData of rich_operation list * match_mode list
   | SuccessNode
+  | BlockedData of int * int * match_mode list
 
 type trace_data = { tree: TraceTree.t; nodes: trace_node TraceNodes.t }
   
@@ -204,6 +205,7 @@ let trace_details_summary = function
   | EndtraceData _ -> <:html< <strong>Transformed trace has ended before original trace was exhausted!</strong> >>
   | InitTailtraceData _ -> <:html< <strong>Tail of transformed code cannot be classified as init code!</strong> >>
   | SuccessNode -> <:html< <strong>Match successful</strong> >>
+  | BlockedData _ -> <:html< <strong>Shared block</strong> >> 
 
 let output_mode m = <:html< $str:Misc.to_string pp_match_mode m$>>
  
@@ -311,6 +313,8 @@ let trace_details_cases self tree idx =
     >>
   | SuccessNode ->
     <:html< Match successful! >>
+  | BlockedData (len1, len2, stack) ->
+    <:html< Blocked: A suffix pair of lengths $int:len1$, $int:len2$ is known not to match for stack $output_stack stack$>> 
 
 let collect_trace idx tree nodes =
   let rec collect_inner_node idx trace op =
@@ -426,7 +430,9 @@ let extract_data data =
       | MatchTracesObserver.ROrigConsumedFailure (id, trace ,stack) ->
         { tree; nodes = TraceNodes.add id (InitTailtraceData(trace, stack)) nodes }
       | MatchTracesObserver.RXfrmConsumed (id, trace) ->
-        { tree; nodes = TraceNodes.add id (EndtraceData trace) nodes })
+        { tree; nodes = TraceNodes.add id (EndtraceData trace) nodes }
+      | MatchTracesObserver.RBlockedShared (id, len1, len2, stack) ->
+        { tree; nodes = TraceNodes.add id (BlockedData (len1, len2, stack)) nodes })
       { tree = TraceTree.empty; nodes = TraceNodes.empty } data
                     
           

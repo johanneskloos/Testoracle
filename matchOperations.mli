@@ -1,4 +1,5 @@
 open Richtrace
+open MatchTypes
 
 val is_unobservable : rich_operation -> bool
 val is_toplevel : rich_operation -> bool
@@ -15,7 +16,8 @@ type matching_state = {
   objeq : MatchObjects.objeq;
   initialisation_data : Reference.VersionReferenceSet.t;
   toString_data : Trace.jsval list;
-  nonequivalent_functions: Misc.IntIntSet.t
+  nonequivalent_functions: Misc.IntIntSet.t;
+  known_blocked: match_mode list list Misc.IntIntMap.t
 }
 type mismatch =
   | DifferentType

@@ -23,6 +23,7 @@ type record =
   | RXfrmConsumed of int * rich_operation list
   | ROrigConsumedOk of int * rich_operation list * match_mode list
   | ROrigConsumedFailure of int * rich_operation list * match_mode list
+  | RBlockedShared of int * int * int * match_mode list
 
 let write_record (data: record) chan =
   let sdata = Marshal.to_bytes data [] in
@@ -46,7 +47,9 @@ let log_orig_consumed_ok trace stack =
 let log_orig_consumed_failed trace stack =
   let node = next_node () in
   with_chan (write_record (ROrigConsumedFailure (node, trace, stack)))
-
+let log_blocked_shared len1 len2 stack =
+  let node = next_node () in
+  with_chan (write_record (RBlockedShared (node, len1, len2, stack)))
 
 let read filename =
   let chan = open_in_bin filename in
