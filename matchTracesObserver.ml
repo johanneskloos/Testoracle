@@ -17,25 +17,25 @@ let with_chan f =
 let next_node () = let res = !node_id in incr node_id; res
 
 type record =
-  | RNode of int * rich_operation * rich_operation * mode list
+  | RNode of int * rich_operation * rich_operation * match_mode list
   | REdge of int * int * match_operation
-  | RFailure of int * ((condition * MatchOperations.mismatch) list * match_operation) list
+  | RFailure of int * ((match_condition * MatchOperations.mismatch) list * match_operation) list
   | RXfrmConsumed of int * rich_operation list
-  | ROrigConsumedOk of int * rich_operation list * mode list
-  | ROrigConsumedFailure of int * rich_operation list * mode list
+  | ROrigConsumedOk of int * rich_operation list * match_mode list
+  | ROrigConsumedFailure of int * rich_operation list * match_mode list
 
 let write_record (data: record) chan =
   let sdata = Marshal.to_bytes data [] in
   output_binary_int chan (Bytes.length sdata);
   output_bytes chan sdata
 
-let log_node (op1: rich_operation) (op2: rich_operation) (stack: mode list) =
+let log_node (op1: rich_operation) (op2: rich_operation) (stack: match_mode list) =
   let res = next_node () in
   with_chan (write_record (RNode (res, op1, op2, stack)));
   res
 let log_edge (parent: int) (op: match_operation) =
   with_chan (write_record (REdge (parent, !node_id, op)))
-let log_failure (id: int) (info: ((condition * MatchOperations.mismatch) list * match_operation) list) =
+let log_failure (id: int) (info: ((match_condition * MatchOperations.mismatch) list * match_operation) list) =
   with_chan (write_record (RFailure (id, info)))
 let log_xfrm_consumed tr =
   let node = next_node () in

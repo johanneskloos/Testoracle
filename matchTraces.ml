@@ -57,7 +57,7 @@ let rules_init =
     ([IsCallInt], InitializationPush Init);
     ([IsExit], InitializationPop) ]
 
-let interpret_rules (rules: (condition list * match_operation) list) matching_state op1 op2 =
+let interpret_rules (rules: (match_condition list * match_operation) list) matching_state op1 op2 =
     let (objeq, match12) = match_operations matching_state op1 op2 in
     let interpret_cond = function
         | MatchSides -> match12

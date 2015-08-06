@@ -1,23 +1,23 @@
 open Richtrace
 (** The mode to switch to, on a push. *)
-type mode = Wrapper | Regular | External | ToString | Init
+type match_mode = Wrapper | Regular | External | ToString | Init
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
  * get matched, and how the state stack is modified. *)
 type match_operation =
     MatchSimple
-  | MatchPush of mode
+  | MatchPush of match_mode
   | MatchPop
   | Initialization
-  | InitializationPush of mode
+  | InitializationPush of match_mode
   | InitializationPop
   | WrapperSimple
-  | WrapperPush of mode
+  | WrapperPush of match_mode
   | WrapperPop
 
 (** Next come the match conditions. *)
-type condition =
+type match_condition =
     MatchSides
   | MayMatchSimple
   | MatchCallInt
@@ -33,7 +33,7 @@ type condition =
   | MayInsertInWrapSimple
 
 (** Description of the current state of matching. *)
-type state =
+type match_state =
     InToplevel
   | InRegular
   | InWrap
@@ -48,11 +48,11 @@ type state =
 * relationship. All other operations get classified as either wrapper
 * or initialisation.
 *)
-type match_type =
+type event_match =
     Pair of rich_operation * rich_operation
   | Wrap of rich_operation
   | Init of rich_operation
 
 (** Pretty-printers *)
-val pp_print_mode: Format.formatter -> mode -> unit
+val pp_match_mode: Format.formatter -> match_mode -> unit
 val pp_match_operation: Format.formatter -> match_operation -> unit

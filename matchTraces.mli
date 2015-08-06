@@ -20,29 +20,29 @@ open MatchTypes
 * on the right.
 *)
 
-(** Get the operating state by examining the stack. *)
+(** Get the operating match_state by examining the stack. *)
 
-val get_state : mode list -> state
+val get_state : match_mode list -> match_state
 
 val add_objeq :
   rich_operation ->
   MatchObjects.objeq -> 'a -> 'a * MatchObjects.objeq
 
 val interpret_rules :
-  (condition list * match_operation) list ->
+  (match_condition list * match_operation) list ->
   MatchOperations.matching_state ->
   rich_operation ->
   rich_operation ->
   (match_operation list * MatchObjects.objeq) *
-  ((condition * MatchOperations.mismatch) list * match_operation) list
+  ((match_condition * MatchOperations.mismatch) list * match_operation) list
 
 val build_candidates :
   MatchOperations.matching_state ->
   rich_operation ->
   rich_operation ->
-  state ->
+  match_state ->
   (match_operation list * MatchObjects.objeq) *
-  ((condition * MatchOperations.mismatch) list * match_operation) list
+  ((match_condition * MatchOperations.mismatch) list * match_operation) list
   
 
 (**
@@ -53,7 +53,7 @@ val build_candidates :
 val can_be_added_as_initialisation :
   MatchOperations.matching_state ->
   (rich_operation * LocalFacts.local_facts) list ->
-  mode list -> MatchOperations.mismatch option
+  match_mode list -> MatchOperations.mismatch option
 
 (**
 * Effects of the matching operations on various bits of state.
@@ -67,14 +67,14 @@ val adapt_first :
 
 (** [adapt_stack op stack]
 * applies the required stack manipulation for [op]. *)
-val adapt_stack : match_operation -> mode list -> mode list
+val adapt_stack : match_operation -> match_mode list -> match_mode list
 
 (** [extend_matching op op1 op2 matching]
 * extends the given matching according to [op]. *)
 val extend_matching :
   match_operation ->
   rich_operation ->
-  rich_operation -> match_type list -> match_type list
+  rich_operation -> event_match list -> event_match list
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
@@ -108,7 +108,8 @@ val adapt_matching_state :
 * generator when there is an operation to match on both sides. *)
 val matching_engine :
   MatchOperations.matching_state ->
-  rich_trace -> rich_trace -> mode list -> match_type list option
+  rich_trace -> rich_trace -> match_mode list ->
+  event_match list option * MatchOperations.matching_state
 val apply_first_working :
   int ->
   MatchOperations.matching_state ->
@@ -116,7 +117,8 @@ val apply_first_working :
   rich_operation ->
   rich_trace ->
   rich_trace ->
-  mode list -> match_operation list -> match_type list option
+  match_mode list -> match_operation list ->
+  event_match list option * MatchOperations.matching_state
 (** The main entry point for trace matching. *)
 val match_traces :
-  rich_tracefile -> rich_tracefile -> match_type list option
+  rich_tracefile -> rich_tracefile -> event_match list option

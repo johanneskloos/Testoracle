@@ -353,7 +353,7 @@ let can_be_added_as_initialisation_tests =
 		(fun () -> Assert.is_false ~msg:"all ok"
 						(can_be_added_as_initialisation state1 trace_init [Regular]))]
 
-type stack_delta = Keep | Pop | Push of mode
+type stack_delta = Keep | Pop | Push of match_mode
 type classification = CInit | CWrap | CPair
 
 let make_test_adapt_first_stack_and_extend_matching =

@@ -173,15 +173,15 @@ module TraceNodes = Map.Make(IntSig);;
 type trace_inner_node_data = {
   op1: rich_operation;
   op2: rich_operation;
-  stack: mode list;
-  trace_trace: ((condition * MatchOperations.mismatch) list * match_operation) list
+  stack: match_mode list;
+  trace_trace: ((match_condition * MatchOperations.mismatch) list * match_operation) list
   }
 
 type trace_node =
     FinalNodeData of trace_inner_node_data
   | NodeData of trace_inner_node_data
   | EndtraceData of rich_operation list
-  | InitTailtraceData of rich_operation list * mode list
+  | InitTailtraceData of rich_operation list * match_mode list
   | SuccessNode
 
 type trace_data = { tree: TraceTree.t; nodes: trace_node TraceNodes.t }
@@ -205,7 +205,7 @@ let trace_details_summary = function
   | InitTailtraceData _ -> <:html< <strong>Tail of transformed code cannot be classified as init code!</strong> >>
   | SuccessNode -> <:html< <strong>Match successful</strong> >>
 
-let output_mode m = <:html< $str:Misc.to_string pp_print_mode m$>>
+let output_mode m = <:html< $str:Misc.to_string pp_match_mode m$>>
  
 let output_matchop = function
     | MatchSimple -> <:html< Simple match>>
@@ -288,7 +288,7 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
      </dl>
     >>
 
-(* ((condition * MatchOperations.mismatch) list * match_operation) *)
+(* ((match_condition * MatchOperations.mismatch) list * match_operation) *)
 
 let trace_details_cases self tree idx =
   let output_follower e =
