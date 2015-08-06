@@ -186,19 +186,19 @@ let rec matching_engine matching_state trace1 trace2 stack =
         apply_first_working id { matching_state' with objeq } op1 op2 trace1 trace2 stack ops
     | _ :: _, [] ->
         MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
-        None
+        (None, matching_state)
     | [], trace2 ->
         match can_be_added_as_initialisation matching_state trace2 stack with
             | None ->
               MatchTracesObserver.log_orig_consumed_ok (List.map fst trace2) stack;
-              Some (List.map (fun (op, _) -> Init op) trace2)
+              (Some (List.map (fun (op, _) -> Init op) trace2), matching_state)
             | Some err ->
               MatchTracesObserver.log_orig_consumed_failed (List.map fst trace2) stack;
-              None
+              (None, matching_state)
 and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
     function
     | [] ->
-      None
+      (None, matching_state)
     | op :: ops ->
         MatchTracesObserver.log_edge parent op;
         match
@@ -208,10 +208,10 @@ and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
             trace2
             (adapt_stack op stack)
         with
-        | Some matching ->
-            Some (extend_matching op op1 op2 matching)
-        | None ->
-            apply_first_working parent matching_state op1 op2 trace1 trace2 stack ops
+        | (Some matching, matching_state') ->
+            (Some (extend_matching op op1 op2 matching), matching_state)
+        | (None, matching_state') ->
+            apply_first_working parent matching_state' op1 op2 trace1 trace2 stack ops
 
 let match_traces rt1 rt2 =
     matching_engine
@@ -220,5 +220,7 @@ let match_traces rt1 rt2 =
             facts2 = empty_local_facts;
             objeq = IntIntMap.empty;
             initialisation_data = VersionReferenceSet.empty;
-            toString_data = []
+            toString_data = [];
+            nonequivalent_functions = Misc.IntIntSet.empty
         } rt1.trace rt2.trace []
+        |> fst

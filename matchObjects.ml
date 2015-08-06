@@ -26,7 +26,8 @@ type data = {
     facts1: local_facts;
     facts2: local_facts;
     pt1: points_to_map;
-    pt2: points_to_map
+    pt2: points_to_map;
+    noneq: IntIntSet.t
 }
 
 type cmpname = string
@@ -73,9 +74,9 @@ let match_functions { funs1; funs2 } fun1 fun2 =
 
 (** Associated matching of functions. This gives a coarse
  * over-approximation. *)
-let match_functions_associated {funs1; funs2} fun1 fun2 =
+let match_functions_associated {funs1; funs2; noneq} fun1 fun2 =
     match funs1.(fun1), funs2.(fun2) with
-    | (Local _, Local _) -> true
+    | (Local _, Local _) -> not (IntIntSet.mem (fun1, fun2) noneq) 
     | (External id1, External id2) -> id1 = id2
     | _ -> false
 
@@ -156,10 +157,10 @@ let rec match_values_raw data seen objeq = function
 let match_values name
     { funcs = funs1; points_to = pt1 }
     { funcs = funs2; points_to = pt2 }
-    facts1 facts2 obj1 obj2 objeq:
+    facts1 facts2 noneq obj1 obj2 objeq:
     objeq * named_failure_trace =
     match
-    match_values_raw { funs1; funs2; facts1; facts2; pt1; pt2 }
+    match_values_raw { funs1; funs2; facts1; facts2; pt1; pt2; noneq }
         IntIntSet.empty
         objeq
         (obj1, obj2)
@@ -167,8 +168,8 @@ let match_values name
     | (objeq, Some err) -> (objeq, Some (name, err))
     | (objeq, None) -> (objeq, None)
 
-let match_refs name rt1 rt2 facts1 facts2 r1 r2 objeq =
-    match_values name rt1 rt2 facts1 facts2
+let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
+    match_values name rt1 rt2 facts1 facts2 noneq
         (VersionReferenceMap.find r1 rt1.points_to)
         (VersionReferenceMap.find r2 rt2.points_to)
         objeq

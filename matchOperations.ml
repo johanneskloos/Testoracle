@@ -52,7 +52,8 @@ type matching_state = {
     facts2: local_facts;
     objeq: objeq;
     initialisation_data: VersionReferenceSet.t;
-    toString_data: jsval list
+    toString_data: jsval list;
+    nonequivalent_functions: IntIntSet.t
 }
 
 
@@ -87,14 +88,16 @@ type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
 type call_comparator = matching_state -> rich_operation -> rich_operation -> mismatch option
 
-let match_source { rt1; rt2; facts1; facts2; objeq } src1 src2 =
+let match_source { rt1; rt2; facts1; facts2; objeq; nonequivalent_functions } src1 src2 =
     match src1, src2 with
     | Argument i1, Argument i2 -> (objeq, (if i1 = i2 then None else Some DifferentArguments))
     | With r1, With r2 ->
-        begin match MatchObjects.match_refs "source" rt1 rt2 facts1 facts2 r1 r2 objeq with
+        begin match
+          MatchObjects.match_refs "source" rt1 rt2 facts1 facts2 nonequivalent_functions r1 r2 objeq
+        with
           | (objeq, None) -> (objeq, None)
           | (objeq, Some (which, reason)) -> (objeq, Some (DifferentObjects (which, reason)))
-          end
+        end
     | _ -> (objeq, Some DifferentType)
 
 let (&&&) (objeq, cond) check =
@@ -119,9 +122,11 @@ let wrap_reason = function
 * any stack state into account; it purely matches the arguments.
 *)
 let match_operations matching_state op1 op2 =
-    let { rt1; rt2; facts1; facts2; objeq } = matching_state in
-    let check name v1 v2 oe = MatchObjects.match_values name rt1 rt2 facts1 facts2 v1 v2 oe |> wrap_reason
-    and check_ref name r1 r2 oe = MatchObjects.match_refs name rt1 rt2 facts1 facts2 r1 r2 oe |> wrap_reason
+    let { rt1; rt2; facts1; facts2; objeq; nonequivalent_functions } = matching_state in
+    let check name v1 v2 oe =
+      MatchObjects.match_values name rt1 rt2 facts1 facts2 nonequivalent_functions v1 v2 oe |> wrap_reason
+    and check_ref name r1 r2 oe =
+      MatchObjects.match_refs name rt1 rt2 facts1 facts2 nonequivalent_functions r1 r2 oe |> wrap_reason
     and check_eq name x1 x2 objeq =
         if x1 = x2 then (objeq, None) else (objeq, Some (DifferentValues name)) in
     begin match op1, op2 with
@@ -215,8 +220,8 @@ let convert
     {
         rt1 ={ funcs = funs1; points_to = pt1 };
         rt2 ={ funcs = funs2; points_to = pt2 };
-        facts1; facts2
-    } = { funs1; funs2; pt1; pt2; facts1; facts2 }
+        facts1; facts2; nonequivalent_functions = noneq
+    } = { funs1; funs2; pt1; pt2; facts1; facts2; noneq }
 
 let is_internal_call_impl { funcs } f =
     try
@@ -275,9 +280,9 @@ let is_matching_toString_call matching_data op1 op2 =
     match op1, op2 with
     | RFunPre { f = f1; base = this1 },
     RFunPre { f = f2; base = this2 } ->
-        let { rt1; rt2; facts1; facts2; objeq; toString_data } = matching_data in
+        let { rt1; rt2; facts1; facts2; objeq; toString_data; nonequivalent_functions } = matching_data in
         begin match
-            MatchObjects.match_values "this" rt1 rt2 facts1 facts2 this1 this2 objeq
+            MatchObjects.match_values "this" rt1 rt2 facts1 facts2 nonequivalent_functions this1 this2 objeq
             with
             | (_, Some (name, failure)) -> Some (DifferentObjects (name, failure))
             | (_, None) -> if List.mem f1 toString_data then None else Some NotToString

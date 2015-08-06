@@ -22,6 +22,7 @@ type data = {
   facts2 : local_facts;
   pt1 : points_to_map;
   pt2 : points_to_map;
+  noneq: Misc.IntIntSet.t;
 }
 (** Strict matching of functions. Two functions match strictly
  * if they have the same implementation. *)
@@ -113,6 +114,7 @@ val match_values :
   Richtrace.rich_tracefile ->
   LocalFacts.local_facts ->
   LocalFacts.local_facts ->
+  Misc.IntIntSet.t ->
   Trace.jsval -> Trace.jsval -> objeq -> objeq * named_failure_trace
   
 (** [match_references rt1 rt2 facts1 facts2 r1 r2 objeq]
@@ -124,5 +126,6 @@ val match_refs :
   Richtrace.rich_tracefile ->
   LocalFacts.local_facts ->
   LocalFacts.local_facts ->
+  Misc.IntIntSet.t ->
   Reference.VersionReferenceMap.key ->
   Reference.VersionReferenceMap.key -> objeq -> objeq * named_failure_trace

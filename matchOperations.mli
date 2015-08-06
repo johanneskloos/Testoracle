@@ -15,6 +15,7 @@ type matching_state = {
   objeq : MatchObjects.objeq;
   initialisation_data : Reference.VersionReferenceSet.t;
   toString_data : Trace.jsval list;
+  nonequivalent_functions: Misc.IntIntSet.t
 }
 type mismatch =
   | DifferentType
