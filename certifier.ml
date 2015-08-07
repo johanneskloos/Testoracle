@@ -187,8 +187,11 @@ type trace_node =
 
 type trace_data = { tree: TraceTree.t; nodes: trace_node TraceNodes.t }
   
-let trace_main_page base fd =
-  <:html< <html><head><title>Not implemented</title></head><body>Not implemented</body></html> >>
+let trace_main_page self base fd =
+  <:html< <html><head><title>Trace for $str:base$</title></head>
+  <body>
+    <a href="$str:self [("operation", "details"); ("index", "0")]$">Start here</a>
+  </body></html> >>
 
 let trace_treedata { tree }: Yojson.Basic.json =
   let open Yojson.Basic in
@@ -399,7 +402,7 @@ let trace_multiplex self base data query =
           | Some idx -> (HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
           | None -> raise (Invalid_argument "Needs exactly one index")
         end
-    | None ->  (HTML, trace_main_page base data |> Cow.Html.to_string)
+    | None ->  (HTML, trace_main_page self base data |> Cow.Html.to_string)
     | _ -> raise (Invalid_argument "Unknown operation given")
 
 let extract_data data =
@@ -443,20 +446,52 @@ let read_result key =
   Format.eprintf "Data unserialized.@.";
   extract_data data
 
+let get_certs () =
+  let rec getdir handle list =
+    try
+      getdir handle (Unix.readdir handle :: list)
+    with End_of_file ->
+      Unix.closedir handle; list
+  in
+  getdir (Unix.opendir ".") []
+  |> List.filter (fun name -> Filename.check_suffix name ".cert")
+  |> List.map (fun name -> Filename.chop_suffix name ".cert")  
 
+let list_certs self =
+    let link_cert name =
+      <:html< <a href="$str:self name$">$str:name$</a><br/> >>
+    in
+    (HTML, <:html<
+    <html><head><title>List of certificates</title></head>
+    <body>$list:List.map link_cert (get_certs ())$</body></html> >> |> Cow.Html.to_string)
+    
+let good_path = Str.regexp "^/[^/]*$"
+let bad_path path =
+  (HTML, <:html<
+  <html>
+    <head><title>Invalid request</title></head>
+    <body>
+    Request for invalid reqsource $str:path$
+    </body>
+  </html>
+  >> |> Cow.Html.to_string)
+  
 let server_callback cache conn req body =
     Format.eprintf "Received request@.";
     let uri = req |> Request.uri in
     let path = Uri.path uri
     and query key = Uri.get_query_param uri key
-    and self query' = Uri.with_query' uri query' |> Uri.to_string in
+    and self query' = Uri.with_query' uri query' |> Uri.to_string
+    and page base = Uri.with_path uri base |> Uri.to_string in
     Format.eprintf "Parsed request, getting data from cache...@.";
     begin
         match path with
         | "/stylesheet.css" -> shared_css
-        | _ ->
+        | "" | "/" -> list_certs page
+        | _ when Str.string_match good_path path 0 ->
             let data = cache path in
             trace_multiplex self path data query
+        | _ -> bad_path path
     end |> begin function
         | (HTML, body) -> Format.eprintf "Returning HTML@."; ("text/html", body)
         | (JSON, body) -> Format.eprintf "Returning JSON@."; ("application/json", body)
