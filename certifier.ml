@@ -441,9 +441,7 @@ let extract_data data =
           
 (** Part 4: The server. *)
 let read_result key =
-  Format.eprintf "Data not cached, read from serialized form...@.";
   let data = MatchTracesObserver.read ("." ^ key ^ ".cert") in
-  Format.eprintf "Data unserialized.@.";
   extract_data data
 
 let get_certs () =
@@ -478,13 +476,12 @@ let bad_path path =
   >> |> Cow.Html.to_string)
   
 let server_callback cache conn req body =
-    Format.eprintf "Received request@.";
     let uri = req |> Request.uri in
+    Format.eprintf "Handling %s@." (Uri.to_string uri);
     let path = Uri.path uri
     and query key = Uri.get_query_param uri key
     and self query' = Uri.with_query' uri query' |> Uri.to_string
     and page base = Uri.with_path uri base |> Uri.to_string in
-    Format.eprintf "Parsed request, getting data from cache...@.";
     begin
         match path with
         | "/stylesheet.css" -> shared_css
