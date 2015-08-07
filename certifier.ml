@@ -467,7 +467,7 @@ let generate_treesvg filename data =
   Buffer.contents buf
 
 let trace_treesvg base data =
-  let filename = base ^ ".svg" in
+  let filename = "."^ base ^ ".svg" in
   if not (Sys.file_exists filename) then
      generate_treesvg filename data
   else
