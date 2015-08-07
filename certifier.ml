@@ -394,9 +394,91 @@ let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
     | Initialization | InitializationPush _ | InitializationPop ->
         (pm @ [idx, stack', Init op2], stack', tr1, tr2)
 
+let write_dot chan { tree; nodes } =
+  let open Format in
+  let fmt = formatter_of_out_channel chan in
+  pp_open_vbox fmt 2;
+  pp_print_string fmt "digraph searchtree {";
+  pp_print_cut fmt ();
+  TraceTree.iter_vertex (fun v ->
+    match TraceNodes.find v nodes with
+      | FinalNodeData _ ->
+        fprintf fmt
+          "v%d [label=\"%d\",shape=rectangle,fillstyle=filled,fillcolor=red]@ "
+          v v
+      | NodeData _ ->
+        fprintf fmt "v%d [label=\"%d\",shape=ellipse]" v v
+      | EndtraceData _ ->
+        fprintf fmt
+          "v%d [label=\"%d\",shape=rectangle,fillstyle=filled,fillcolor=yellow]@ "
+          v v
+      | InitTailtraceData _ ->
+        fprintf fmt
+          "v%d [label=\"%d\",shape=rectangle,fillstyle=filled,fillcolor=orange]@ "
+          v v
+      | SuccessNode ->
+        fprintf fmt
+          "v%d [label=\"%d\",shape=ellipse,fillstyle=filled,fillcolor=green]@ "
+          v v
+      | BlockedData(l1, l2, _) ->
+        fprintf fmt
+          "v%d [label=\"%d: %d,%d\",shape=rectangle,fillstyle=filled,fillcolor=blue]@ "
+          v v l1 l2) tree;
+  let pp_short_mode pp = function
+    | Regular -> pp_print_string pp "R"
+    | Wrapper -> pp_print_string pp "W"
+    | External -> pp_print_string pp "E"
+    | ToString -> pp_print_string pp "T"
+    | Init -> pp_print_string pp "I" in
+  let pp_short_op pp = function
+    | WrapperSimple -> pp_print_string pp "W"
+    | WrapperPush m -> fprintf pp "W, push %a" pp_short_mode m
+    | WrapperPop -> pp_print_string pp "W, pop"
+    | Initialization -> pp_print_string pp "I"
+    | InitializationPush m -> fprintf pp "I, push %a" pp_short_mode m
+    | InitializationPop -> pp_print_string pp "I, pop"
+    | MatchSimple -> pp_print_string pp "M"
+    | MatchPush m -> fprintf pp "M, push %a" pp_short_mode m
+    | MatchPop -> pp_print_string pp "M, pop" in
+    TraceTree.iter_edges_e (fun e ->
+    let (src, dst, op) = (TraceTree.E.src e, TraceTree.E.dst e, TraceTree.E.label e) in
+    fprintf fmt "%d -> %d [label=\"%a\"]@ " src dst pp_short_op op) tree;
+  pp_close_box fmt ();
+  pp_print_string fmt "}";
+  Format.pp_print_flush fmt ()
+  
+let generate_treesvg filename data =
+  let open Format in
+  let outchan = open_out filename
+  and (dot_in, dot_out) = Unix.open_process "/usr/bin/dot -T svg" in
+  write_dot dot_out data;
+  flush dot_out;
+  let buf = Buffer.create 1048576 in
+  let rec copy () =
+    try
+      let line = input_line dot_in in
+      output_string outchan line;
+      Buffer.add_string buf line;
+      copy ()
+    with End_of_file -> () in
+  copy ();
+  Unix.close_process (dot_in, dot_out);
+  close_out outchan;
+  Buffer.contents buf
+
+let trace_treesvg base data =
+  let filename = base ^ ".svg" in
+  if not (Sys.file_exists filename) then
+     generate_treesvg filename data
+  else
+    let chan = open_in filename in
+    let svg = really_input_string chan (in_channel_length chan) in
+    close_in chan; svg
+    
 let trace_multiplex self base data query =
   match query "operation" with
     | Some "treedata" -> (JSON, trace_treedata data |> Yojson.Basic.to_string)
+    | Some "treesvg" -> (SVG, trace_treesvg base data)
     | Some "details" ->
         begin match query "index" with
           | Some idx -> (HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
