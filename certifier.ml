@@ -105,7 +105,7 @@ let output_stack st =
   let output_mode x = <:html< $str:mode_to_string x$ >> in
    <:html<$list:List.map output_mode st$>>
 
-type output_type = HTML | JSON | CSS
+type output_type = HTML | JSON | CSS | SVG
 
 let error_page e base query =
   <:html<
@@ -491,9 +491,10 @@ let server_callback cache conn req body =
             trace_multiplex self path data query
         | _ -> bad_path path
     end |> begin function
-        | (HTML, body) -> Format.eprintf "Returning HTML@."; ("text/html", body)
-        | (JSON, body) -> Format.eprintf "Returning JSON@."; ("application/json", body)
-        | (CSS, body) -> Format.eprintf "Returning CSS@."; ("text/css", body)
+        | (HTML, body) -> ("text/html", body)
+        | (JSON, body) -> ("application/json", body)
+        | (CSS, body) -> ("text/css", body)
+        | (SVG, body) -> ("image/svg+xml", body)
     end |> fun (ctype, body) ->
         Server.respond_string ~status:`OK ~headers: (Header.init_with "Content-type" ctype) ~body ()
 
