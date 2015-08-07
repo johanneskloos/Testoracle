@@ -456,7 +456,8 @@ let get_certs () =
   getdir (Unix.opendir ".") []
   |> List.filter (fun name -> Filename.check_suffix name ".cert")
   |> List.map (fun name -> Filename.chop_suffix name ".cert")  
-
+  |> List.sort String.compare
+  
 let list_certs self =
     let link_cert name =
       <:html< <a href="$str:self name$">$str:name$</a><br/> >>
