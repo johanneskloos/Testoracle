@@ -55,9 +55,9 @@ let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (sta
             add_read facts state (reference_of_variable globals_are_properties facts isGlobal name) value
     | CWrite { name; value; isGlobal } ->
             add_write facts state (reference_of_variable globals_are_properties facts isGlobal name) value
-    | CFunEnter { args } ->
+    | CFunEnter { args; this } ->
             add_known_new_object objects facts state args |>
-            fun state -> add_write facts state (reference_of_local_name "this") (OObject facts.this)
+            fun state -> add_write facts state (reference_of_local_name "this") this
     | _ -> state
 
 let globals_points_to globals_are_properties globals =
