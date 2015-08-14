@@ -153,11 +153,16 @@ let enrich_step globals_are_properties objs (op, data) =
   | CLiteral { value; hasGetterSetter } -> [RLiteral {value; hasGetterSetter}]
   | CForIn value -> [RForIn value]
   | CDeclare { name; declaration_type = ArgumentBinding idx } ->
+    if Misc.StringMap.mem name data.aliases then
       [RAlias { name;
                 ref=Misc.StringMap.find name data.aliases
                     |> reference_of_fieldref
                     |> make_versioned data;
                 source = Argument idx }]
+     else
+          let ref = reference_of_local_name name |> make_versioned data in
+          [RLocal { name; ref };
+           RWrite { ref; oldref=ref; value=OUndefined; success=true} ]
   | CDeclare { name; value } ->
           let ref = reference_of_local_name name |> make_versioned data in
           [RLocal { name; ref };
