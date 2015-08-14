@@ -169,7 +169,9 @@ let match_values name
     | (objeq, None) -> (objeq, None)
 
 let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
+  try
     match_values name rt1 rt2 facts1 facts2 noneq
         (VersionReferenceMap.find r1 rt1.points_to)
         (VersionReferenceMap.find r2 rt2.points_to)
         objeq
+  with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found 

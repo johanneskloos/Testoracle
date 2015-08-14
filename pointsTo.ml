@@ -17,7 +17,12 @@ let find_object_facts id ver pt =
         | Some (id', fld) when id = id' -> ((ref, ver), fld) :: acc
         | _ -> acc) ver.versions [] in
     List.fold_left (fun acc (vref, fld) ->
-        StringMap.add fld (VersionReferenceMap.find vref pt) acc)
+        if VersionReferenceMap.mem vref pt then
+          StringMap.add fld (VersionReferenceMap.find vref pt) acc
+        else begin
+          Format.eprintf "vret not found in points-to: %a@." pp_versioned_reference vref;
+          raise Not_found
+        end)
         StringMap.empty vrefs
 
 

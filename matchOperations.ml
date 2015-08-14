@@ -180,11 +180,12 @@ let is_instrumentation_write { initialisation_data } = function
 
 let is_function_update { rt2 } = function
     | RWrite { ref } ->
-        begin match VersionReferenceMap.find ref rt2.points_to with
+        begin try match VersionReferenceMap.find ref rt2.points_to with
             | OFunction _ ->
                None
             | _ ->
                Some NotFunctionUpdate
+            with Not_found -> Format.eprintf "%a not found in is_function_update@." pp_reference; raise Not_found 
         end
     | _ ->
       Some OtherOperation
