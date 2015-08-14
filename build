@@ -1,0 +1,2 @@
+#! /bin/sh
+exec ocamlbuild -use-ocamlfind testoracle.otarget
