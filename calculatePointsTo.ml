@@ -38,14 +38,17 @@ let add_literal (objects: objects) (facts: local_facts) (state: points_to_map) (
             objects.(id) state
     | _ -> state
 
+let is_alias { aliases } name = StringMap.mem name aliases
+
 let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (state: points_to_map) (facts: local_facts): clean_operation -> points_to_map = function
     | CFunPre { args } ->
             add_known_new_object objects facts state args
     | CLiteral { value } ->
             add_literal objects facts state value
-    | CDeclare { declaration_type = ArgumentBinding _ } ->
+    | CDeclare { name; declaration_type = ArgumentBinding _ } when is_alias facts name ->
             state
     | CDeclare { name; value } ->
+            (* Note that this also catches ArgumentBinding cases where the name is not an alias. *)      
             add_write facts state (reference_of_local_name name) value
     | CGetField { base; offset; value } ->
             add_read facts state (reference_of_field base offset) value
