@@ -187,10 +187,63 @@ type trace_node =
 
 type trace_data = { tree: TraceTree.t; nodes: trace_node TraceNodes.t }
   
-let trace_main_page self base fd =
+let trace_main_page_trace self rtrace =
+  let rec map_with_commas fmt = function
+    | [] -> <:html< (empty)>>
+    | [x] -> fmt x
+    | x::l -> <:html<$fmt x$, $map_with_commas fmt l$>>
+  and fmt_node_link node =
+    let node' = string_of_int node in
+    <:html< <a href="$str:self [("operation", "details"); ("index", node')]$">node'</a> >> in
+  let fmt_node (ev, nodes) =
+    <:html<
+     <tr><td>$output_op ev$</td><td>$map_with_commas fmt_node_link nodes$</td></tr>
+    >> in
+  <:html<
+  <table>
+  <tr><th>Event</th><th>Encountered in</th></tr>
+  $list:List.map fmt_node rtrace$
+  </table> >>
+
+let tree_visitor which fop { tree; nodes } =
+  let rec find_follower_nodes v =
+    TraceTree.fold_succ_e (fun e next ->
+      let v' = TraceTree.E.dst e in
+      if fop (TraceTree.E.label e) then
+        v' :: next
+      else
+        find_follower_nodes v' @ next)
+      tree v [] in
+  let find_ops =
+    List.fold_left (fun (maybe1, maybe2) v -> match TraceNodes.find v nodes with
+      | FinalNodeData { op1; op2 } -> (Some op1, Some op2)
+      | NodeData { op1; op2 } -> (Some op1, Some op2)
+      | EndtraceData (op1 :: _) -> (Some op1, maybe2)
+      | InitTailtraceData (op2 :: _, _) -> (maybe1, Some op2)
+      | _ -> (maybe1, maybe2)) (None, None) in 
+  let rec bfs layer =
+    match which (find_ops layer) with
+      | Some op ->
+        let layer' = List.map find_follower_nodes layer |> List.flatten in
+        (op, layer) :: bfs layer'
+      | None -> []
+  in bfs [0]
+        
+let reconstruct_first data =
+  tree_visitor fst
+   (function MatchSimple | MatchPush _ | MatchPop -> true | _ -> false)
+   data
+let reconstruct_second data = tree_visitor snd (fun _ -> true) data
+
+let trace_main_page self base data =
   <:html< <html><head><title>Trace for $str:base$</title></head>
   <body>
-    <a href="$str:self [("operation", "details"); ("index", "0")]$">Start here</a>
+  <a href="#trace2">To second trace</a>
+  <h1><a id="trace1">Original trace</a></h1>
+  $trace_main_page_trace self (reconstruct_first data)$
+  <a href="#trace1">To first trace</a>
+  <h1><a id="trace2">Modified trace</a></h1>
+  $trace_main_page_trace self (reconstruct_second data)$  
   </body></html> >>
 
 let trace_treedata { tree }: Yojson.Basic.json =
