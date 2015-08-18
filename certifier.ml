@@ -194,10 +194,10 @@ let trace_main_page_trace self rtrace =
     | x::l -> <:html<$fmt x$, $map_with_commas fmt l$>>
   and fmt_node_link node =
     let node' = string_of_int node in
-    <:html< <a href="$str:self [("operation", "details"); ("index", node')]$">node'</a> >> in
+    <:html< <a href="$str:self [("operation", "details"); ("index", node')]$">$str:node'$</a> >> in
   let fmt_node (ev, nodes) =
     <:html<
-     <tr><td>$output_op ev$</td><td>$map_with_commas fmt_node_link nodes$</td></tr>
+     <tr><td>$output_op ev$</td><td>$map_with_commas fmt_node_link (List.rev nodes)$</td></tr>
     >> in
   <:html<
   <table>
