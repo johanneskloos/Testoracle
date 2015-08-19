@@ -5,6 +5,7 @@ open Misc
 open Richtrace
 open Reference
 open MatchTypes
+open CamomileLibraryDefault.Camomile
 
 type obj_match_failure =
   | NonMatching of string list * jsval * jsval
@@ -42,6 +43,28 @@ let function_body_split s =
             Some (Str.string_after s (String.index s '('))
     with Not_found -> None
 
+type whitespace_state = Initial | Pending | NotPending
+let whitespace_set = let open UCharInfo in load_property_set `White_Space;;
+
+let compress_whitespace str =
+  let buf = UTF8.Buf.create (UTF8.length str)
+  and state = ref Initial in
+  for i = 0 to UTF8.length str do
+    let c = UTF8.get str i in
+    if USet.mem c whitespace_set then
+      match !state with
+        | Initial -> ()
+        | _ -> state := Pending
+    else
+      begin match !state with
+        | Pending ->
+          UTF8.Buf.add_string buf " " 
+        | _ ->
+          UTF8.Buf.add_char buf c
+       end; state := NotPending      
+  done;
+  UTF8.Buf.contents buf
+  
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
     match (funs1.(fun1), funs2.(fun2)) with
@@ -63,7 +86,7 @@ let match_functions { funs1; funs2 } fun1 fun2 =
     begin
         match function_body_split u1, function_body_split u2 with
           | Some body1, Some body2 ->
-               body1 = body2
+               compress_whitespace body1 = compress_whitespace body2
           | None, None ->
             i1 = i2
           | _ ->
