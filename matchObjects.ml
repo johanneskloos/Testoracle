@@ -9,8 +9,8 @@ open CamomileLibraryDefault.Camomile
 
 type obj_match_failure =
   | NonMatching of string list * jsval * jsval
-  | MissingOrig of string list
-  | MissingXfrm of string list
+  | MissingOrig of string * string list
+  | MissingXfrm of string * string list
   | Other of string
   
 type failure_trace = obj_match_failure option
@@ -123,8 +123,8 @@ let match_objects_raw
     and extend_error field (objeq_cache, failure_trace) =
       let failure_trace = match failure_trace with
       | Some (NonMatching (trace, v1, v2)) -> Some (NonMatching (field :: trace, v1, v2))
-      | Some (MissingOrig tr) -> Some (MissingOrig (field :: tr))
-      | Some (MissingXfrm tr) -> Some (MissingXfrm (field :: tr))
+      | Some (MissingOrig (fld, tr)) -> Some (MissingOrig (fld, field :: tr))
+      | Some (MissingXfrm (fld, tr)) -> Some (MissingXfrm (fld, field :: tr))
       | _ -> failure_trace in
       (objeq_cache, failure_trace) in
     fold
@@ -133,13 +133,13 @@ let match_objects_raw
          if List.mem field ignored then
            (objeq_cache, None)
           else
-            (objeq_cache, Some (MissingXfrm [])))
+            (objeq_cache, Some (MissingXfrm (field, []))))
       (fun field (objeq_cache, failure_trace) ->
          assert (failure_trace = None);
          if List.mem field ignored then
            (objeq_cache, None)
           else
-            (objeq_cache, Some (MissingOrig [])))
+            (objeq_cache, Some (MissingOrig (field, []))))
       (fun field val1 val2 (objeq, failure_trace) ->
          assert (failure_trace = None);
          matchobj data seen objeq (val1, val2) |> extend_error field)

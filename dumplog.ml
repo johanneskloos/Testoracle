@@ -39,8 +39,8 @@ let pp_path pp = function
 let pp_obj_match_failure pp = function
     NonMatching (path, val1, val2) -> fprintf pp "at %a, %a differs from %a"
     pp_path path pp_jsval val1 pp_jsval val2
-  | MissingOrig path -> fprintf pp "%a missing in orig" pp_path path
-  | MissingXfrm path -> fprintf pp "%a missing in xfrm" pp_path path
+  | MissingOrig (fld, path) -> fprintf pp "%s at %a missing in orig" fld pp_path path
+  | MissingXfrm (fld, path) -> fprintf pp "%s at %a missing in xfrm" fld pp_path path
   | Other reason -> pp_print_string pp reason
 
 let pp_reason pp = let str = pp_print_string pp in function

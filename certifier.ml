@@ -298,8 +298,8 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
       <:html<At $str:output_path path$, $output_val val1$ does not match $output_val val2$>>
-    | MissingOrig path -> <:html< Missing field at $str:output_path path$ in the set of objects for the original trace. >>
-    | MissingXfrm path -> <:html< Missing field at $str:output_path path$ in the set of objects for the transformed trace. >>
+    | MissingOrig (fld, path) -> <:html< Missing field $str:fld$ at $str:output_path path$ in the set of objects for the original trace. >>
+    | MissingXfrm (fld, path) -> <:html< Missing field $str:fld$ at $str:output_path path$ in the set of objects for the transformed trace. >>
     | Other reason -> <:html< $str:reason$ >> in
   let output_reason = function
     | DifferentType -> <:html<Different types>>

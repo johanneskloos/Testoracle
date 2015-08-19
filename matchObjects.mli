@@ -4,8 +4,8 @@ open PointsTo
 
 type obj_match_failure =
     NonMatching of string list * jsval * jsval
-  | MissingOrig of string list
-  | MissingXfrm of string list
+  | MissingOrig of string * string list
+  | MissingXfrm of string * string list
   | Other of string
 
 type failure_trace = obj_match_failure option
