@@ -49,7 +49,7 @@ let whitespace_set = let open UCharInfo in load_property_set `White_Space;;
 let compress_whitespace str =
   let buf = UTF8.Buf.create (UTF8.length str)
   and state = ref Initial in
-  for i = 0 to UTF8.length str do
+  for i = 0 to UTF8.length str - 1 do
     let c = UTF8.get str i in
     if USet.mem c whitespace_set then
       match !state with
