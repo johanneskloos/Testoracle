@@ -186,18 +186,22 @@ type trace_node =
   | BlockedData of int * int * match_mode list
 
 type trace_data = { tree: TraceTree.t; nodes: trace_node TraceNodes.t }
-  
+
+let rec map_with_commas fmt = function
+  | [] -> <:html< (empty)>>
+  | [x] -> fmt x
+  | x::l -> <:html<$fmt x$, $map_with_commas fmt l$>>
+
+let fmt_node_link self node =
+  let node' = string_of_int node in
+  <:html< <a href="$str:self [("operation", "details"); ("index", node')]$">$str:node'$</a> >>
+
+let fmt_node_link_list self nodes = map_with_commas (fmt_node_link self) nodes
+
 let trace_main_page_trace self rtrace =
-  let rec map_with_commas fmt = function
-    | [] -> <:html< (empty)>>
-    | [x] -> fmt x
-    | x::l -> <:html<$fmt x$, $map_with_commas fmt l$>>
-  and fmt_node_link node =
-    let node' = string_of_int node in
-    <:html< <a href="$str:self [("operation", "details"); ("index", node')]$">$str:node'$</a> >> in
   let fmt_node (ev, nodes) =
     <:html<
-     <tr><td>$output_op ev$</td><td>$map_with_commas fmt_node_link (List.rev nodes)$</td></tr>
+     <tr><td>$output_op ev$</td><td>$fmt_node_link_list self (List.rev nodes)$</td></tr>
     >> in
   <:html<
   <table>
@@ -236,16 +240,12 @@ let reconstruct_first data =
 let reconstruct_second data = tree_visitor snd (fun _ -> true) data
 
 let trace_main_page_leaves self { nodes } =
-  let leaves = TraceNodes.fold (fun v data leaves ->
-    match data with
-      | NodeData _ -> leaves
-      | _ -> v :: leaves)
-      nodes [] in
-   match leaves with
-    | [] -> <:html< No leaves??? >>
-    | v::vs ->
-      List.fold_left (fun html v -> <:html<$int:v$, $html$>>) <:html<$int:v$>> vs
-      
+  TraceNodes.bindings nodes |>
+  List.filter (function (_, NodeData _) -> false | _ -> true) |>
+  List.map fst |>
+  List.sort compare |>
+  fmt_node_link_list self
+        
 let trace_main_page self base data =
   <:html< <html><head><title>Trace for $str:base$</title></head>
   <body>
