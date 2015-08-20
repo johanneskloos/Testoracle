@@ -12,7 +12,8 @@ let pp_print_stack pp =
     | Wrapper -> pp_print_char pp 'W'
     | External -> pp_print_char pp 'E'
     | ToString -> pp_print_char pp 'T'
-    | Init -> pp_print_char pp 'I')
+    | Init -> pp_print_char pp 'I'
+    | RegularEnter -> pp_print_char pp 'r')
 
 let pp_cond pp cond = pp_print_string pp (match cond with
     MatchSides -> "match operations"
@@ -25,9 +26,11 @@ let pp_cond pp cond = pp_print_string pp (match cond with
   | IsToplevel -> "is a legal top-level event"
   | IsNotFunction -> "is not an event about function entry and exit"
   | IsExit -> "is a function exit"
+  | IsPostExit -> "is a function post-exit"
   | IsCallInt -> "is a call to an internal function"
   | IsUnobservable -> "is an unobservable event"
-  | MayInsertInWrapSimple -> "may be inserted in simple wrapper code")
+  | MayInsertInWrapSimple -> "may be inserted in simple wrapper code"
+  | IsEnter -> "is a function entry")
 
 let pp_path pp = function
   | [] ->
@@ -67,6 +70,7 @@ let pp_reason pp = let str = pp_print_string pp in function
   | NotExit -> str "not a function exit"
   | Observable -> str "event is observable"
   | NotAtToplevel -> str "not at toplevel"
+  | NotEnter -> str "not a function entry"
   
 let pp_failed pp (failed_cons, op) =
   fprintf pp "@[<v 2>%a failed because the following conditions don't hold:@ %a@]@ "

@@ -1,6 +1,6 @@
 open Richtrace
 (** The mode to switch to, on a push. *)
-type match_mode = Wrapper | Regular | External | ToString | Init
+type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -8,6 +8,7 @@ type match_mode = Wrapper | Regular | External | ToString | Init
 type match_operation =
     MatchSimple
   | MatchPush of match_mode
+  | MatchReplace of match_mode
   | MatchPop
   | Initialization
   | InitializationPush of match_mode
@@ -28,6 +29,8 @@ type match_condition =
   | IsToplevel
   | IsNotFunction
   | IsExit
+  | IsPostExit
+  | IsEnter
   | IsCallInt
   | IsUnobservable
   | MayInsertInWrapSimple
@@ -36,6 +39,7 @@ type match_condition =
 type match_state =
     InToplevel
   | InRegular
+  | InRegularEnter
   | InWrap
   | InToString
   | InExternal

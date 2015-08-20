@@ -7,6 +7,7 @@ val is_throw : rich_operation -> bool
 val is_write : rich_operation -> bool
 val is_exit : rich_operation -> bool
 val is_post_exit : rich_operation -> bool
+val is_enter : rich_operation -> bool
 
 type matching_state = {
   rt1 : rich_tracefile;
@@ -42,6 +43,7 @@ type mismatch =
   | NotExit
   | Observable
   | NotAtToplevel
+  | NotEnter
 
 val explain: mismatch -> bool -> mismatch option
 

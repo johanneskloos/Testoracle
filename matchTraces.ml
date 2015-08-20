@@ -16,7 +16,7 @@ let add_objeq op objeq cands =
 let rules_toplevel =
     [
     ([MatchSides; MayMatchSimple; IsToplevel], MatchSimple);
-    ([MatchSides; MatchCallInt], MatchPush Regular);
+    ([MatchSides; MatchCallInt], MatchPush RegularEnter);
     ([MatchSides; MatchCallExt], MatchPush External);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
@@ -27,16 +27,22 @@ let rules_toplevel =
 let rules_regular =
     [
     ([MatchSides; MayMatchSimple], MatchSimple);
-    ([MatchSides; MatchCallInt], MatchPush Regular);
+    ([MatchSides; MatchCallInt], MatchPush RegularEnter);
     ([MatchSides; MatchCallExt], MatchPush External);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
     ([MatchSides; IsExit], MatchPop)
     ]
 
+let rules_regular_enter =
+  [
+    ([MatchSides; IsEnter], MatchReplace Regular);
+    ([MatchSides; IsPostExit], MatchPop)
+  ]
+  
 let rules_wrap =
     [
-    ([IsCallInt], WrapperPush Regular);
+    ([IsCallInt], WrapperPush RegularEnter);
     ([IsCallInt], WrapperPush Wrapper);
     ([IsExit], WrapperPop);
     ([MayInsertInWrapSimple], WrapperSimple)
@@ -69,7 +75,9 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | MayInit -> may_insert_in_init matching_state op2
         | IsToplevel -> is_toplevel op2 |> explain NotToplevel
         | IsNotFunction -> is_not_function op2 |> explain NotFunction
-        | IsExit -> (*is_post_exit*) is_exit op2 |> explain NotExit
+        | IsExit -> is_exit op2 |> explain NotExit
+        | IsPostExit -> is_post_exit op2 |> explain NotExit
+        | IsEnter -> is_enter op2 |> explain NotEnter
         | IsCallInt -> is_internal_call matching_state.rt2 op2
         | IsUnobservable -> is_unobservable op2 |> explain Observable
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2 in
@@ -88,6 +96,7 @@ let build_candidates matching_state op1 op2 state =
     let find_rules = function
         | InToplevel -> rules_toplevel
         | InRegular -> rules_regular
+        | InRegularEnter -> rules_regular_enter
         | InWrap -> rules_wrap
         | InToString -> rules_toString
         | InExternal -> rules_external
@@ -101,6 +110,7 @@ let build_candidates matching_state op1 op2 state =
 let get_state = function
     | Wrapper :: _ -> InWrap
     | Regular :: _ -> InRegular
+    | RegularEnter :: _ -> InRegularEnter
     | External :: _ -> InExternal
     | ToString :: _ -> InToString
     | Init :: _ -> InInit
@@ -120,12 +130,13 @@ let adapt_first op op1 facts1 trace1 =
 let adapt_stack op stack =
     match op with
     | MatchPush mode | WrapperPush mode | InitializationPush mode -> mode :: stack
+    | MatchReplace mode -> mode :: List.tl stack
     | MatchPop | WrapperPop | InitializationPop -> List.tl stack
     | MatchSimple | WrapperSimple | Initialization -> stack
 
 let extend_matching op op1 op2 matching =
     match op with
-    | MatchSimple | MatchPush _ | MatchPop -> Pair(op1, op2) :: matching
+    | MatchSimple | MatchPush _ | MatchReplace _ | MatchPop -> Pair(op1, op2) :: matching
     | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2 :: matching
     | Initialization | InitializationPush _ | InitializationPop -> Init op2 :: matching
 

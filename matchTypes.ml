@@ -1,6 +1,6 @@
 open Richtrace
 (** The mode to switch to, on a push. *)
-type match_mode = Wrapper | Regular | External | ToString | Init
+type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -8,6 +8,7 @@ type match_mode = Wrapper | Regular | External | ToString | Init
 type match_operation =
     MatchSimple
   | MatchPush of match_mode
+  | MatchReplace of match_mode
   | MatchPop
   | Initialization
   | InitializationPush of match_mode
@@ -28,6 +29,8 @@ type match_condition =
   | IsToplevel
   | IsNotFunction
   | IsExit
+  | IsPostExit
+  | IsEnter
   | IsCallInt
   | IsUnobservable
   | MayInsertInWrapSimple
@@ -36,6 +39,7 @@ type match_condition =
 type match_state =
     InToplevel
   | InRegular
+  | InRegularEnter
   | InWrap
   | InToString
   | InExternal
@@ -56,6 +60,7 @@ type event_match =
 (** Pretty-printers for matching state and match operations *)
 let pp_match_mode pp = function
     | Regular -> Format.pp_print_string pp "regular"
+    | RegularEnter -> Format.pp_print_string pp "regular-enter"
     | Wrapper -> Format.pp_print_string pp "wrap"
     | External -> Format.pp_print_string pp "external"
     | ToString -> Format.pp_print_string pp "toString"
@@ -69,5 +74,6 @@ let pp_match_operation pp = function
     | MatchSimple -> Format.pp_print_string pp "match"
     | MatchPop -> Format.pp_print_string pp "match, pop"
     | MatchPush m -> Format.fprintf pp "match, push %a" pp_match_mode m
+    | MatchReplace m -> Format.fprintf pp "match, replace %a" pp_match_mode m
     | InitializationPush m -> Format.fprintf pp "init, push %a" pp_match_mode m
     | InitializationPop -> Format.pp_print_string pp "init, pop"

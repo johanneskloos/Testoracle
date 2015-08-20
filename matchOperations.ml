@@ -41,6 +41,7 @@ let is_throw = function
 let is_write = function RWrite _ -> true | _ -> false
 let is_exit = function RFunExit _ -> true | _ -> false
 let is_post_exit = function RFunPost _ -> true | _ -> false
+let is_enter = function RFunEnter _ -> true | _ -> false
 (**
 * Functions dependening on the current matching state.
 *
@@ -85,6 +86,7 @@ type mismatch =
   | NotExit
   | Observable
   | NotAtToplevel
+  | NotEnter
 
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option

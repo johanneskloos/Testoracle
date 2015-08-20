@@ -29,7 +29,6 @@ let output_val = function
   | OFunction(id, fid) -> <:html<fun#$int:id$/$int:fid$>>
   | OOther (ty, id) -> <:html<$str:ty$#$int:id$>>
 
-
 let output_op =
   let output_call_type = function
     | Function -> <:html<function>>
@@ -101,7 +100,8 @@ let output_stack st =
     | Init -> "I"
     | Wrapper -> "W"
     | External -> "E"
-    | ToString -> "T" in
+    | ToString -> "T"
+    | RegularEnter -> "r" in
   let output_mode x = <:html< $str:mode_to_string x$ >> in
    <:html<$list:List.map output_mode st$>>
 
@@ -268,6 +268,7 @@ let output_mode m = <:html< $str:Misc.to_string pp_match_mode m$>>
 let output_matchop = function
     | MatchSimple -> <:html< Simple match>>
     | MatchPush m -> <:html< Match and push $output_mode m$>>
+    | MatchReplace m -> <:html< Match and replace $output_mode m$>>
     | MatchPop -> <:html<Match and pop>>
     | WrapperSimple -> <:html< Simple wrap >>
     | WrapperPush m -> <:html< Wrap and push $output_mode m$>>
@@ -294,7 +295,10 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | IsExit -> <:html<$output_op op2$ is not a return>>
     | IsCallInt -> <:html<$output_op op2$ is not an internal call>>
     | IsUnobservable -> <:html<$output_op op2$ is an observable action>>
-    | MayInsertInWrapSimple -> <:html<$output_op op2$ may not occur in simple wrapper code>> in
+    | MayInsertInWrapSimple -> <:html<$output_op op2$ may not occur in simple wrapper code>>
+    | IsPostExit -> <:html<$output_op op2$ is not a post-exit>>
+    | IsEnter -> <:html<$output_op op2$ is not an entry>>
+     in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
       <:html<At $str:output_path path$, $output_val val1$ does not match $output_val val2$>>
@@ -324,7 +328,8 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | Observable -> <:html<Event is observable>>
     | NotAtToplevel -> <:html<Not at top level>>
     | NotFunctionUpdate -> <:html<Not a function update>>
-    | NotInitCode -> <:html<Not init code>> in
+    | NotInitCode -> <:html<Not init code>>
+    | NotEnter -> <:html<Not a function entry>> in
   let output_cond (cond, reason) =
     <:html<$output_cond cond$: $output_reason reason$>> in
   let output_nonempty = function
@@ -379,7 +384,7 @@ let collect_trace idx tree nodes =
         let matching = begin match op with
           | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2
           | Initialization | InitializationPush _ | InitializationPop -> Init op2
-          | MatchSimple | MatchPush _ | MatchPop -> Pair (op1, op2)
+          | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> Pair (op1, op2)
         end in collect_edge idx ((idx, stack, matching) :: trace)
       | _ -> failwith "Bad tree structure"
   and collect_edge idx trace =
@@ -437,11 +442,12 @@ let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
     let stack' = match op with
       | WrapperPush m | MatchPush m | InitializationPush m -> m :: stack
       | WrapperPop | MatchPop | InitializationPop -> List.tl stack
-      | WrapperSimple | MatchSimple | Initialization -> stack in 
+      | WrapperSimple | MatchSimple | Initialization -> stack
+      | MatchReplace m -> m :: List.tl stack in 
     match op with
     | WrapperSimple | WrapperPush _ | WrapperPop ->
         (pm @ [idx, stack', Wrap op2], stack', tr1, tr2)
-    | MatchSimple | MatchPush _ | MatchPop ->
+    | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ ->
         let (op1, tr1) = split tr1 in
         (pm @ [idx, stack', Pair (op1, op2)], stack', tr1, tr2)
     | Initialization | InitializationPush _ | InitializationPop ->
@@ -479,6 +485,7 @@ let write_dot chan { tree; nodes } =
           v v l1 l2) tree;
   let pp_short_mode pp = function
     | Regular -> pp_print_string pp "R"
+    | RegularEnter -> pp_print_string pp "r"
     | Wrapper -> pp_print_string pp "W"
     | External -> pp_print_string pp "E"
     | ToString -> pp_print_string pp "T"
@@ -492,6 +499,7 @@ let write_dot chan { tree; nodes } =
     | InitializationPop -> pp_print_string pp "I, pop"
     | MatchSimple -> pp_print_string pp "M"
     | MatchPush m -> fprintf pp "M, push %a" pp_short_mode m
+    | MatchReplace m -> fprintf pp "M, replace %a" pp_short_mode m
     | MatchPop -> pp_print_string pp "M, pop" in
     TraceTree.iter_edges_e (fun e ->
     let (src, dst, op) = (TraceTree.E.src e, TraceTree.E.dst e, TraceTree.E.label e) in
@@ -515,7 +523,7 @@ let generate_treesvg filename data =
       copy ()
     with End_of_file -> () in
   copy ();
-  Unix.close_process (dot_in, dot_out);
+  Unix.close_process (dot_in, dot_out) |> ignore;
   close_out outchan;
   Buffer.contents buf
 
