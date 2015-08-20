@@ -235,10 +235,24 @@ let reconstruct_first data =
    data
 let reconstruct_second data = tree_visitor snd (fun _ -> true) data
 
+let trace_main_page_leaves self { nodes } =
+  let leaves = TraceNodes.fold (fun v data leaves ->
+    match data with
+      | NodeData _ -> leaves
+      | _ -> v :: leaves)
+      nodes [] in
+   match leaves with
+    | [] -> <:html< No leaves??? >>
+    | v::vs ->
+      List.fold_left (fun html v -> <:html<$int:v$, $html$>>) <:html<$int:v$>> vs
+      
 let trace_main_page self base data =
   <:html< <html><head><title>Trace for $str:base$</title></head>
   <body>
+  <a href="#trace1">To first trace</a>
   <a href="#trace2">To second trace</a>
+  <h1>Leaves</h1>
+  $trace_main_page_leaves self data$
   <h1><a id="trace1">Original trace</a></h1>
   $trace_main_page_trace self (reconstruct_first data)$
   <a href="#trace1">To first trace</a>
