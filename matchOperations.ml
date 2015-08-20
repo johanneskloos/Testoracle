@@ -19,9 +19,9 @@ let is_unobservable = function
     | RForIn _ | RLocal _ | RAlias _ | RRead _ | RReturn _
     | RWith _ | RScriptEnter | RScriptExit | RScriptExc _ | RBinary _
     | RUnary _ | REndExpression | RConditional _ | RLiteral _
-    | RFunEnter _ | RFunExit _ ->
+    | RFunEnter _ | RFunPost _ ->
         true
-    | RFunPre _ | RWrite _ | RFunPost _ | RThrow _ ->
+    | RFunPre _ | RWrite _ | RFunExit _ | RThrow _ ->
         false
 
 (**
