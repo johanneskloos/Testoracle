@@ -35,12 +35,11 @@ type cmpname = string
 type recursive_matcher =
   data -> Misc.IntIntSet.t -> objeq -> jsval * jsval -> objeq * failure_trace
 
-let function_body_split s =
+let function_body_split = function
+  | None -> None
+  | Some s ->
     try
-        if s = "(unknown)" then
-            None
-        else
-            Some (Str.string_after s (String.index s '('))
+       Some (Str.string_after s (String.index s '('))
     with Not_found -> None
 
 type whitespace_state = Initial | Pending | NotPending

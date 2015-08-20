@@ -160,7 +160,7 @@ type objects = objectspec array
   * describing the function body, containing the uninstrumented code
   * only. The cases can be kept apart in parsing.
   *)
-type local_funcspec = { instrumented : string; uninstrumented : string }
+type local_funcspec = { instrumented : string; uninstrumented : string option }
 (** Description of a Javascript function. It can either be local, with
   * a description as given above, or [External fid], with function
   * identifier [fid]. *)
