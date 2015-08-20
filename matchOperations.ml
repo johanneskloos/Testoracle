@@ -185,7 +185,7 @@ let is_function_update { rt2 } = function
                None
             | _ ->
                Some NotFunctionUpdate
-            with Not_found -> Format.eprintf "%a not found in is_function_update@." pp_reference; raise Not_found 
+            with Not_found -> Format.eprintf "%a not found in is_function_update@." pp_versioned_reference ref; raise Not_found 
         end
     | _ ->
       Some OtherOperation
