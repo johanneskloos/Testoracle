@@ -8,8 +8,8 @@ open MatchOperations
 open MatchTypes
 
 (**
-* A helper for candidate generators.
-*)
+ * A helper for candidate generators.
+ *)
 let add_objeq op objeq cands =
     (cands, if is_write op then IntIntMap.empty else objeq )
 
@@ -124,8 +124,9 @@ let can_be_added_as_initialisation matching_state trace stack =
 
 let adapt_first op op1 facts1 trace1 =
     match op with
-    | MatchSimple | MatchPush _ | MatchPop -> trace1
-    | _ -> (op1, facts1) :: trace1
+    | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> trace1
+    | WrapperPush _ | WrapperPop | WrapperSimple
+		| InitializationPush _ | InitializationPop | Initialization -> (op1, facts1) :: trace1
 
 let adapt_stack op stack =
     match op with
