@@ -306,8 +306,8 @@ let is_matching_toString_call matching_data op1 op2 =
 let may_be_wrapper_entry = is_matching_call false true
 
 (** Check if the event is some kind of function event.
-*
+* Note that RFunPost is fine.
 *)
 let is_not_function = function
-    | RFunPre _ | RFunPost _ | RFunEnter _ | RFunExit _ | RReturn _ -> false
+    | RFunPre _ | RFunEnter _ | RFunExit _ | RReturn _ -> false
     | _ -> true
