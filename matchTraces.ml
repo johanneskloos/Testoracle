@@ -69,7 +69,7 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | MayInit -> may_insert_in_init matching_state op2
         | IsToplevel -> is_toplevel op2 |> explain NotToplevel
         | IsNotFunction -> is_not_function op2 |> explain NotFunction
-        | IsExit -> is_post_exit op2 |> explain NotExit
+        | IsExit -> (*is_post_exit*) is_exit op2 |> explain NotExit
         | IsCallInt -> is_internal_call matching_state.rt2 op2
         | IsUnobservable -> is_unobservable op2 |> explain Observable
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2 in
