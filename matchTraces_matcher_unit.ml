@@ -49,7 +49,7 @@ let enrich = List.map (fun x -> (x, empty_local_facts))
 let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"
 let fun_u = [|
-    Local { instrumented = body1; uninstrumented = body1 }
+    Local { instrumented = body1; uninstrumented = Some body1 }
     |]
 let add_field name value fields =
   StringMap.add name
@@ -74,8 +74,8 @@ let objs_m = [|
 
 let fun_m = [|
     Trace.External 17;
-    Local { instrumented = body1; uninstrumented = body1 };
-    Local { instrumented = body2; uninstrumented = body2 }
+    Local { instrumented = body1; uninstrumented = Some body1 };
+   Local { instrumented = body2; uninstrumented = Some body2 }
     |]
 let rtu1 = {
     funcs = fun_u;

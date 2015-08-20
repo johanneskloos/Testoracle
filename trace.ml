@@ -66,7 +66,7 @@ type fieldspec = {
 }
 type objectspec = fieldspec StringMap.t
 type objects = objectspec array
-type local_funcspec = { instrumented: string; uninstrumented: string }
+type local_funcspec = { instrumented: string; uninstrumented: string option }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
 type global_desc = {
@@ -104,7 +104,7 @@ let parse_funcspec json =
   let instr = json |> member "instrumented" |> to_string in
     if (Str.string_match native_pattern instr 0)
     then External (json |> member "obj" |> to_int)
-    else Local { instrumented=instr; uninstrumented = json |> member "uninstrumented" |> to_string_option |> Misc.Option.get "(unknown)" }
+    else Local { instrumented=instr; uninstrumented = json |> member "uninstrumented" |> to_string_option }
 let parse_fieldspec json =
     let default_to d = function Some x -> x | None -> d
     and fail_none msg = function Some x -> x | None -> failwith (msg ^ "\n" ^ Yojson.Basic.to_string json) in
@@ -249,8 +249,10 @@ let dump_jsval = function
 
 let dump_funcspec = function
     | External id -> `Assoc [ ("instrumented", `String "[native code]"); ("obj", `Int id) ]
-    | Local {instrumented; uninstrumented} ->
+    | Local {instrumented; uninstrumented = Some uninstrumented } ->
             `Assoc [ ("instrumented", `String instrumented); ("uninstrumented", `String uninstrumented) ]
+    | Local {instrumented; uninstrumented = None } ->
+            `Assoc [ ("instrumented", `String instrumented) ]
 let dump_fieldspec { value; writable; get; set; enumerable; configurable }: json =
     let add name x l = match x with Some id -> (name, dump_jsval id) :: l | None -> l in
     `Assoc ([ ("value", dump_jsval value); ("writable", `Bool writable);
@@ -509,8 +511,9 @@ let pp_objects pp arr =
   pp_open_vbox pp 0;
   Array.iteri (fun i s -> fprintf pp "%i ↦ %a;@ " i pp_objectspec s) arr;
   pp_close_box pp ()
-let pp_local_funcspec pp s =
-  fprintf pp "@[<hov>@ uninstrumented code: @[<hov>%s@]@]" s.uninstrumented
+let pp_local_funcspec pp s = match s.uninstrumented with
+  | Some body -> fprintf pp "@[<hov>@ uninstrumented code: @[<hov>%s@]@]" body
+  | None -> fprintf pp "@[<hov>@ instrumented code: @[<hov>%s@]@]" s.instrumented
 let pp_funcspec pp = function
   | Local s -> pp_local_funcspec pp s
   | External id -> fprintf pp "(external code, id=%d)" id
