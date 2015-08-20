@@ -600,8 +600,19 @@ let get_certs () =
   |> List.sort String.compare
   
 let list_certs self =
+	  let print_result name =
+			try
+				let chan = open_in (name ^ ".result") in
+				let res = int_of_string (input_line chan) in
+				close_in chan;
+				match res with
+				| 0 -> <:html<(match)>>
+				| 1 -> <:html<(no match)>>
+				| 2 -> <:html<(failed>>
+				| _ -> <:html<(unknown result $int:res$)>>
+		  with _ -> <:html<(can't read state)>> in
     let link_cert name =
-      <:html< <a href="$str:self name$">$str:name$</a><br/> >>
+      <:html< <a href="$str:self name$">$str:name$</a> $print_result name$<br/> >>
     in
     (HTML, <:html<
     <html><head><title>List of certificates</title></head>
