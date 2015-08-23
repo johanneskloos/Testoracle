@@ -106,9 +106,8 @@ let parse_funcspec json =
     then External (json |> member "obj" |> to_int)
     else Local { instrumented=instr; uninstrumented = json |> member "uninstrumented" |> to_string_option }
 let parse_fieldspec json =
-    let default_to d = function Some x -> x | None -> d
-    and fail_none msg = function Some x -> x | None -> failwith (msg ^ "\n" ^ Yojson.Basic.to_string json) in
-    { value = json |> member "value" |> to_option parse_jsval |> Misc.Option.get OUndefined;
+    let default_to d = function Some x -> x | None -> d in
+    { value = json |> member "value" |> to_option parse_jsval |> default_to OUndefined;
       writable = json |> member "writable" |> to_bool_option |> default_to true;
       enumerable = json |> member "enumerable" |> to_bool_option |> default_to true;
       configurable = json |> member "configurable" |> to_bool_option |> default_to true;
