@@ -63,25 +63,27 @@ let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (sta
             fun state -> add_write facts state (reference_of_local_name "this") this
     | _ -> state
 
-let globals_points_to globals_are_properties globals =
-    let add_pt = VersionReferenceMap.add in
-    let add_pt_for_fields id spec =
-        StringMap.fold (fun field (value: fieldspec) pt ->
-                    add_pt (reference_of_fieldref (id, field), 0) value.value pt) spec in
-    StringMap.fold (fun name { id; obj; proto } pt ->
-                let reference_of_global = reference_of_name globals_are_properties StringMap.empty true
-                and objid = get_object id in
-                add_pt (reference_of_global name, 0) id pt
-                |> add_pt_for_fields objid obj
-                |> if StringMap.mem "prototype" obj then
-                    let protoid = get_object (StringMap.find "prototype" obj).value in
-                    add_pt_for_fields protoid proto else
-                    fun x -> x)
-        globals
+let globals_points_to (objects: Trace.objects) globals_are_properties (globals: Trace.globals) trace pt =
+  let reference_of_global = reference_of_name globals_are_properties StringMap.empty true in
+  match trace with
+  | [] -> failwith "Empty trace"
+  | (_, { versions }) :: _ ->
+    ReferenceMap.fold (fun ref ver pt ->
+      let vref = (ref, ver)
+      and value = match Reference.get_fieldref ref with
+        | Some (obj, field) ->
+          (StringMap.find field objects.(obj)).value
+        | None ->
+          assert (Reference.is_global ref);
+          StringMap.find (Reference.get_name ref |> Misc.Option.some) globals in         
+      VersionReferenceMap.add vref value pt)
+      versions pt
 
-let collect_pointsto globals_are_properties globals objects =
-    VersionReferenceMap.empty |>
-    VersionReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0) |>
-    globals_points_to globals_are_properties globals |>
-    trace_fold (collect_pointsto_step globals_are_properties objects)
+let collect_pointsto (globals_are_properties: bool) (globals: Trace.globals) (objects: Trace.objects) (trace: LocalFacts.facts_trace) =
+    begin
+          VersionReferenceMap.empty |>
+          VersionReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0) |>
+          globals_points_to objects globals_are_properties globals trace |>
+          trace_fold (collect_pointsto_step globals_are_properties objects)
+    end trace
 let calculate_pointsto (funs, objs, trace, globs, gap) = collect_pointsto gap globs objs trace

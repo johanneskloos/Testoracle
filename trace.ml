@@ -69,12 +69,7 @@ type objects = objectspec array
 type local_funcspec = { instrumented: string; uninstrumented: string option }
 type funcspec = Local of local_funcspec | External of int
 type functions = funcspec array
-type global_desc = {
-  id: jsval;
-  obj: objectspec;
-  proto: objectspec
-  }
-type globals = global_desc Misc.StringMap.t
+type globals = jsval Misc.StringMap.t
 type tracefile = functions * objects * trace * globals * bool
 
 open Yojson.Basic;;
@@ -213,18 +208,11 @@ let parse_objects json =
   json |> convert_each parse_objectspec |> Array.of_list
 let parse_trace json =
   json |> convert_each parse_operation
-let parse_global_desc json =
-  let id = json |> member "id" |> parse_jsval in
-  let obj = json |> member "obj_data" |> parse_objectspec in
-  let proto = begin match json |> member "proto_data" with
-    |  `Null -> Misc.StringMap.empty
-    | data -> parse_objectspec data end in
-  { id; obj; proto}
 
 let parse_globals json: globals =
   let module Extra = Misc.MapExtra(Misc.StringMap) in
   json |> to_assoc |> Extra.of_list |>
-  Misc.StringMap.map parse_global_desc
+  Misc.StringMap.map parse_jsval
   
 let parse_tracefile source =
   let json = from_channel source in
@@ -364,11 +352,7 @@ let dump_objects objs =
     `List (objs |> Array.map dump_objectspec |> Array.to_list)
 let dump_trace trace =
     `List (trace |> List.map dump_operation)
-let dump_global_desc { id; obj; proto }: json =
-  `Assoc [
-     ("id", dump_jsval id);
-     ("obj_data", dump_objectspec obj);
-     ("proto_data", dump_objectspec proto) ]
+let dump_global_desc id: json = dump_jsval id
 let dump_globals globals: json =
   `Assoc (globals |> Misc.StringMap.map dump_global_desc |> Misc.StringMap.bindings)
   
@@ -520,8 +504,7 @@ let pp_functions pp arr =
   pp_open_vbox pp 0;
   Array.iteri (fun i s -> fprintf pp "%i ↦ %a;@ " i pp_funcspec s) arr;
   pp_close_box pp ()
-let pp_global_spec pp { id; obj; proto } =
-  fprintf pp "%a, object=%a, proto=%a" pp_jsval id pp_objectspec obj pp_objectspec proto
+let pp_global_spec pp id = pp_jsval pp id
 let pp_globals pp spec =
   pp_open_hovbox pp 0;
   pp_print_string pp "{";
