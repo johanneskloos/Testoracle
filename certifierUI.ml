@@ -367,8 +367,14 @@ let trace_multiplex self base data query =
     | _ -> raise (Invalid_argument "Unknown operation given")
 
 let list_certs self certs =
-    let link_cert name =
-      <:html< <a href="$str:self name$">$str:name$</a><br/> >>
+    let fmt_result = function
+        | Some 0 -> "(match)"
+        | Some 1 -> "(no match)"
+        | Some 2 -> "(failed)"
+        | Some i -> "(unknown result: " ^ string_of_int i ^ ")"
+        | None -> "(can't read state)" in
+    let link_cert (name, result) =
+      <:html< <a href="$str:self name$">$str:name$</a> $str:fmt_result result$<br/> >>
     in
     (HTML, <:html<
     <html><head><title>List of certificates</title></head>

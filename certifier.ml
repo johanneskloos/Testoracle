@@ -23,10 +23,18 @@ let get_certs () =
     with End_of_file ->
       Unix.closedir handle; list
   in
+  let read_status name =
+      try
+          let chan = open_in (name ^ ".result") in
+          let res = int_of_string (input_line chan) in
+          close_in chan;
+          (name, Some res)
+      with _ -> (name, None) in
   getdir (Unix.opendir ".") []
   |> List.filter (fun name -> Filename.check_suffix name ".cert")
   |> List.map (fun name -> Filename.chop_suffix name ".cert")  
-  |> List.sort String.compare
+  |> List.map read_status
+  |> List.sort (fun (n1, _) (n2, _) -> String.compare n1 n2)
   
 let good_path = Str.regexp "^/[^/]*$"
 let bad_path path =
