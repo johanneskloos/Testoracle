@@ -85,5 +85,6 @@ val pp_alias_source : Format.formatter -> alias_source -> unit
 val pp_rich_operation : Format.formatter -> rich_operation -> unit
 val pp_rich_trace : Format.formatter -> rich_trace -> unit
 val pp_rich_tracefile : Format.formatter -> rich_tracefile -> unit
+val dump_facts: bool ref
 (** Transform a trace file to a rich trace file. *)
 val calculate_rich_tracefile : Trace.tracefile -> rich_tracefile

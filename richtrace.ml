@@ -121,7 +121,13 @@ let pp_rich_operation pp = function
     | REndExpression -> pp_print_string pp "(discarding expression result)"
     | RConditional value -> fprintf pp "Conditional yielded %a" pp_jsval value
 
-let pp_rich_operation_with_facts pp (op, _) = pp_rich_operation pp op
+let dump_facts = ref false
+
+let pp_rich_operation_with_facts pp (op, facts) =
+    if !dump_facts then
+      fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op pp_local_facts facts
+    else
+      pp_rich_operation pp op
 let pp_rich_trace pp trace =
     FormatHelper.pp_print_list_lines pp_rich_operation_with_facts pp trace
 
