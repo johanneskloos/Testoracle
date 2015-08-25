@@ -44,6 +44,7 @@ type mismatch =
   | Observable
   | NotAtToplevel
   | NotEnter
+  | FunctionMismatch of MatchObjects.fun_match_failure
 
 val explain: mismatch -> bool -> mismatch option
 
@@ -67,3 +68,4 @@ val is_matching_external_call : call_comparator
 val is_matching_toString_call : matching_state -> Richtrace.rich_operation -> Richtrace.rich_operation -> mismatch option
 val may_be_wrapper_entry : call_comparator
 val is_not_function : rich_operation -> bool
+val is_matching_entry: rich_operation comparator

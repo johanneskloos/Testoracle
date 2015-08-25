@@ -12,7 +12,14 @@ type obj_match_failure =
   | MissingOrig of string * string list
   | MissingXfrm of string * string list
   | Other of string
-  
+
+type fun_match_failure =
+  | DifferentBodies of string * string
+  | DifferentInstrumentedBodies of string * string
+  | InconsistentlyInstrumented
+  | DifferentExternal of int * int
+  | InternalExternal
+
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option 
 type objeq = failure_trace Misc.IntIntMap.t
@@ -66,6 +73,7 @@ let compress_whitespace str =
   
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
+    Format.eprintf "Matching functions %d and %d@." fun1 fun2;
     match (funs1.(fun1), funs2.(fun2)) with
     | (Local { instrumented = i1; uninstrumented = u1 },
     Local { instrumented = i2; uninstrumented = u2 }) ->
@@ -85,14 +93,14 @@ let match_functions { funs1; funs2 } fun1 fun2 =
     begin
         match function_body_split u1, function_body_split u2 with
           | Some body1, Some body2 ->
-               compress_whitespace body1 = compress_whitespace body2
+            if compress_whitespace body1 = compress_whitespace body2 then None else Some (DifferentBodies (body1, body2))
           | None, None ->
-            i1 = i2
+            if i1 = i2 then None else Some (DifferentInstrumentedBodies (i1, i2))
           | _ ->
-            false
+            Some InconsistentlyInstrumented
      end
-    | (External id1, External id2) -> id1 = id2
-    | _ -> false
+    | (External id1, External id2) -> if id1 = id2 then None else Some (DifferentExternal (id1, id2))
+    | _ -> Some InternalExternal
 
 (** Associated matching of functions. This gives a coarse
  * over-approximation. *)
@@ -170,7 +178,9 @@ let rec match_values_raw data seen objeq = function
             match_objects_memo match_values_raw [] data seen objeq id1 id2
     | (OFunction (id1, fun1), OFunction (id2, fun2))
         when match_functions_associated data fun1 fun2 ->
-            match_objects_memo match_values_raw ["toString"] data  seen objeq
+          (* Who thought that having a name property on functions was a good idea?
+             And why do we have toString? *)
+            match_objects_memo match_values_raw ["toString"; "name"] data  seen objeq
                  id1 id2
     | (o1, o2) ->
         (objeq, Some (NonMatching ([], o1, o2) ))

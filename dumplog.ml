@@ -30,7 +30,8 @@ let pp_cond pp cond = pp_print_string pp (match cond with
   | IsCallInt -> "is a call to an internal function"
   | IsUnobservable -> "is an unobservable event"
   | MayInsertInWrapSimple -> "may be inserted in simple wrapper code"
-  | IsEnter -> "is a function entry")
+  | IsEnter -> "is a function entry"
+  | MatchEnter-> "matching function entries")
 
 let pp_path pp = function
   | [] ->
@@ -46,6 +47,16 @@ let pp_obj_match_failure pp = function
   | MissingXfrm (fld, path) -> fprintf pp "%s at %a missing in xfrm" fld pp_path path
   | Other reason -> pp_print_string pp reason
 
+let pp_fun_match_failure pp = function
+  | DifferentBodies (body1, body2) ->
+    fprintf pp "@[<v 4>Function body mismatch:@ %s@ @ %s@ @]" body1 body2
+  | DifferentInstrumentedBodies (body1, body2) ->
+    fprintf pp "@[<v 4>Instrumented function body mismatch:@ %s@ @ %s@ @]" body1 body2
+  | DifferentExternal (id1, id2) ->
+    fprintf pp "External function mismatch: %d vs. %d" id1 id2
+  | InconsistentlyInstrumented -> pp_print_string pp "Instrumented vs. uninstrumented"
+  | InternalExternal -> pp_print_string pp "Internal vs. external"
+  
 let pp_reason pp = let str = pp_print_string pp in function
   | DifferentType -> str "source types differ"
   | DifferentObjects (where, fail) -> fprintf pp "%s doesn't match: %a"
@@ -71,6 +82,7 @@ let pp_reason pp = let str = pp_print_string pp in function
   | Observable -> str "event is observable"
   | NotAtToplevel -> str "not at toplevel"
   | NotEnter -> str "not a function entry"
+  | FunctionMismatch reason -> pp_fun_match_failure pp reason
   
 let pp_failed pp (failed_cons, op) =
   fprintf pp "@[<v 2>%a failed because the following conditions don't hold:@ %a@]@ "

@@ -25,6 +25,7 @@ type match_condition =
   | MatchCallExt
   | MatchCallToString
   | MatchCallWrap
+  | MatchEnter
   | MayInit
   | IsToplevel
   | IsNotFunction

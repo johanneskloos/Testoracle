@@ -87,6 +87,7 @@ type mismatch =
   | Observable
   | NotAtToplevel
   | NotEnter
+  | FunctionMismatch of fun_match_failure
 
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
@@ -152,8 +153,10 @@ let match_operations matching_state op1 op2 =
         | RReturn val1, RReturn val2 -> !!objeq &&& check "val" val1 val2
         | RThrow val1, RThrow val2 -> !!objeq &&& check "val" val1 val2
         | RWith val1, RWith val2 -> !!objeq &&& check "val" val1 val2
+        (*
         | RFunEnter { f = f1; this = this1; args = args1 }, RFunEnter { f = f2; this = this2; args = args2 } ->
             !!objeq &&& check "f" f1 f2 &&& check "this" this1 this2 &&& check "args" args1 args2
+        *)
         | RFunExit { ret = ret1; exc = exc1 }, RFunExit { ret = ret2; exc = exc2 } ->
             !!objeq &&& check "ret" ret1 ret2 &&& check "ext" exc1 exc2
         | RScriptEnter, RScriptEnter -> !!objeq
@@ -250,7 +253,9 @@ let is_matching_call literally_equal local matching_data op1 op2 =
     match op1, op2 with
     | RFunPre { f = OFunction(_, f1) },
     RFunPre { f = OFunction(_, f2) } ->
-        if match_functions (convert matching_data) f1 f2 = literally_equal then
+        let is_matching = match match_functions (convert matching_data) f1 f2 with
+          | Some _ -> false | None -> true in 
+        if is_matching = literally_equal then
           if !?(is_internal_call_impl matching_data.rt1 f1) = local then
             None
           else
@@ -311,3 +316,20 @@ let may_be_wrapper_entry = is_matching_call false true
 let is_not_function = function
     | RFunPre _ | RFunEnter _ | RFunExit _ | RReturn _ -> false
     | _ -> true
+
+let is_matching_entry matching_data op1 op2 =
+  let { rt1; rt2; facts1; facts2; objeq; toString_data; nonequivalent_functions } = matching_data in
+  let match_functions f1 f2 =
+    match match_functions (convert matching_data) f1 f2 with
+      | Some err -> Some (FunctionMismatch err)
+      | None -> None
+  and match_val key obj1 obj2 objeq =
+    match_values key rt1 rt2 facts1 facts2 nonequivalent_functions obj1 obj2 objeq |> wrap_reason in
+  match op1, op2 with
+    | RFunEnter { f=OFunction(_, f1); args=args1; this=this1 },
+      RFunEnter { f=OFunction(_, f2); args=args2; this=this2 } ->
+        !!objeq &&+
+        match_functions  f1 f2 &&&
+        match_val "args" args1 args2 &&&
+        match_val "this" this1 this2
+    | _ -> (objeq, Some  NotEnter)

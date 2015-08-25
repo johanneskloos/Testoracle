@@ -8,6 +8,14 @@ type obj_match_failure =
   | MissingXfrm of string * string list
   | Other of string
 
+type fun_match_failure =
+  | DifferentBodies of string * string
+  | DifferentInstrumentedBodies of string * string
+  | InconsistentlyInstrumented
+  | DifferentExternal of int * int
+  | InternalExternal
+
+
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
 type objeq = failure_trace Misc.IntIntMap.t
@@ -26,7 +34,7 @@ type data = {
 }
 (** Strict matching of functions. Two functions match strictly
  * if they have the same implementation. *)
-val match_functions : data -> int -> int -> bool
+val match_functions : data -> int -> int -> fun_match_failure option
 (** Looser matching of functions. Two functions are associated
  * if do not have proof that they are not behaviourally equivalent. *)
 val match_functions_associated : data -> int -> int -> bool

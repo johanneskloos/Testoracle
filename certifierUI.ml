@@ -237,13 +237,21 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | MayInsertInWrapSimple -> <:html<$output_op op2$ may not occur in simple wrapper code>>
     | IsPostExit -> <:html<$output_op op2$ is not a post-exit>>
     | IsEnter -> <:html<$output_op op2$ is not an entry>>
+    | MatchEnter -> <:html<$output_op op1$ and $output_op op2$ are not matching function entries>>
      in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
       <:html<At $str:output_path path$, $output_val val1$ does not match $output_val val2$>>
     | MissingOrig (fld, path) -> <:html< Missing field $str:fld$ at $str:output_path path$ in the set of objects for the original trace. >>
     | MissingXfrm (fld, path) -> <:html< Missing field $str:fld$ at $str:output_path path$ in the set of objects for the transformed trace. >>
-    | Other reason -> <:html< $str:reason$ >> in
+    | Other reason -> <:html< $str:reason$ >>
+  and output_function_mismatch = function
+    | DifferentBodies (b1, b2) -> <:html<Function mismatch: <blockquote>$str:b1$</blockquote> vs. <blockquote>$str:b2$</blockquote> >>
+    | DifferentInstrumentedBodies (b1, b2) -> <:html<Function mismatch (instrumented bodies): <blockquote>$str:b1$</blockquote> vs. <blockquote>$str:b2$</blockquote> >>
+    | DifferentExternal (id1, id2) -> <:html<External function mismatch: $int:id1$ vs. $int:id2$>>
+    | InconsistentlyInstrumented -> <:html<Instrumented vs. uninstrumented function>>
+    | InternalExternal -> <:html<Internal vs. external function>>
+ in
   let output_reason = function
     | DifferentType -> <:html<Different types>>
     | DifferentObjects (where, failure) ->
@@ -268,7 +276,8 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | NotAtToplevel -> <:html<Not at top level>>
     | NotFunctionUpdate -> <:html<Not a function update>>
     | NotInitCode -> <:html<Not init code>>
-    | NotEnter -> <:html<Not a function entry>> in
+    | NotEnter -> <:html<Not a function entry>>
+    | FunctionMismatch reason -> output_function_mismatch reason in
   let output_cond (cond, reason) =
     <:html<$output_cond cond$: $output_reason reason$>> in
   let output_nonempty = function

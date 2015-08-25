@@ -36,7 +36,7 @@ let rules_regular =
 
 let rules_regular_enter =
   [
-    ([MatchSides; IsEnter], MatchReplace Regular);
+    ([MatchEnter], MatchReplace Regular);
     ([MatchSides; IsPostExit], MatchPop)
   ]
   
@@ -80,7 +80,8 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | IsEnter -> is_enter op2 |> explain NotEnter
         | IsCallInt -> is_internal_call matching_state.rt2 op2
         | IsUnobservable -> is_unobservable op2 |> explain Observable
-        | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2 in
+        | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
+        | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd in
     let interpret_conds conds =
       conds
       |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])
