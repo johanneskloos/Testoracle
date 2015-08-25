@@ -215,6 +215,7 @@ let output_matchop = function
     | Initialization -> <:html< Simple init >>
     | InitializationPush m -> <:html< Init and push $output_mode m$>>
     | InitializationPop -> <:html< Init and pop >>
+		| MatchDroppable -> <:html<Drop RHS>>
 
 let trace_details_reasons { op1; op2; stack; trace_trace } =
   let open MatchObjects in let open MatchTypes in let open MatchOperations in
@@ -238,6 +239,7 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | IsPostExit -> <:html<$output_op op2$ is not a post-exit>>
     | IsEnter -> <:html<$output_op op2$ is not an entry>>
     | MatchEnter -> <:html<$output_op op1$ and $output_op op2$ are not matching function entries>>
+		| UseStrictRHS -> <:html<RHS not "use strict">>
      in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
@@ -277,7 +279,8 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | NotFunctionUpdate -> <:html<Not a function update>>
     | NotInitCode -> <:html<Not init code>>
     | NotEnter -> <:html<Not a function entry>>
-    | FunctionMismatch reason -> output_function_mismatch reason in
+    | FunctionMismatch reason -> output_function_mismatch reason
+		| NotUseStrict -> <:html<Not "use strict">> in
   let output_cond (cond, reason) =
     <:html<$output_cond cond$: $output_reason reason$>> in
   let output_nonempty = function

@@ -31,7 +31,8 @@ let pp_cond pp cond = pp_print_string pp (match cond with
   | IsUnobservable -> "is an unobservable event"
   | MayInsertInWrapSimple -> "may be inserted in simple wrapper code"
   | IsEnter -> "is a function entry"
-  | MatchEnter-> "matching function entries")
+  | MatchEnter-> "matching function entries"
+	| UseStrictRHS -> "\"use strict\" on RHS")
 
 let pp_path pp = function
   | [] ->
@@ -83,6 +84,7 @@ let pp_reason pp = let str = pp_print_string pp in function
   | NotAtToplevel -> str "not at toplevel"
   | NotEnter -> str "not a function entry"
   | FunctionMismatch reason -> pp_fun_match_failure pp reason
+	| NotUseStrict -> str "not \"use strict\""
   
 let pp_failed pp (failed_cons, op) =
   fprintf pp "@[<v 2>%a failed because the following conditions don't hold:@ %a@]@ "

@@ -75,7 +75,7 @@ let collect_trace idx tree nodes =
       | NodeData { op1; op2; stack } ->
         let matching = begin match op with
           | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2
-          | Initialization | InitializationPush _ | InitializationPop -> Init op2
+          | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2
           | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> Pair (op1, op2)
         end in collect_edge idx ((idx, stack, matching) :: trace)
       | _ -> failwith "Bad tree structure"
@@ -92,7 +92,7 @@ let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
     let stack' = match op with
       | WrapperPush m | MatchPush m | InitializationPush m -> m :: stack
       | WrapperPop | MatchPop | InitializationPop -> List.tl stack
-      | WrapperSimple | MatchSimple | Initialization -> stack
+      | WrapperSimple | MatchSimple | Initialization | MatchDroppable -> stack
       | MatchReplace m -> m :: List.tl stack in 
     match op with
     | WrapperSimple | WrapperPush _ | WrapperPop ->
@@ -100,7 +100,7 @@ let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
     | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ ->
         let (op1, tr1) = split tr1 in
         (pm @ [idx, stack', Pair (op1, op2)], stack', tr1, tr2)
-    | Initialization | InitializationPush _ | InitializationPop ->
+    | Initialization | InitializationPush _ | InitializationPop | MatchDroppable ->
         (pm @ [idx, stack', Init op2], stack', tr1, tr2)
 
 let extract_data data =

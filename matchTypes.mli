@@ -10,6 +10,7 @@ type match_operation =
   | MatchPush of match_mode
   | MatchReplace of match_mode
   | MatchPop
+	| MatchDroppable
   | Initialization
   | InitializationPush of match_mode
   | InitializationPop
@@ -35,6 +36,7 @@ type match_condition =
   | IsCallInt
   | IsUnobservable
   | MayInsertInWrapSimple
+	| UseStrictRHS
 
 (** Description of the current state of matching. *)
 type match_state =

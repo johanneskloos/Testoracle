@@ -8,6 +8,7 @@ val is_write : rich_operation -> bool
 val is_exit : rich_operation -> bool
 val is_post_exit : rich_operation -> bool
 val is_enter : rich_operation -> bool
+val is_use_strict : rich_operation -> bool
 
 type matching_state = {
   rt1 : rich_tracefile;
@@ -45,6 +46,7 @@ type mismatch =
   | NotAtToplevel
   | NotEnter
   | FunctionMismatch of MatchObjects.fun_match_failure
+	| NotUseStrict
 
 val explain: mismatch -> bool -> mismatch option
 

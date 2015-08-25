@@ -42,34 +42,52 @@ type cmpname = string
 type recursive_matcher =
   data -> Misc.IntIntSet.t -> objeq -> jsval * jsval -> objeq * failure_trace
 
+let body_regex =
+	let open Pcre in
+	regexp ~study:true ~flags:[`DOTALL; `MULTILINE] "{(.*)}"
+
 let function_body_split = function
-  | None -> None
+  | None ->
+		None
   | Some s ->
-    try
-       Some (Str.string_after s (String.index s '('))
-    with Not_found -> None
+		let open Pcre in
+		try
+			let sstr = exec ~rex:body_regex s in
+			Some (get_substring sstr 1)
+		with Not_found -> None
 
 type whitespace_state = Initial | Pending | NotPending
 let whitespace_set = let open UCharInfo in load_property_set `White_Space;;
 
-let compress_whitespace str =
+let use_strict = Pcre.regexp "\"use strict\"( *;)? *"
+let empty_subst = Pcre.subst ""
+
+let normalize str =
   let buf = UTF8.Buf.create (UTF8.length str)
   and state = ref Initial in
   for i = 0 to UTF8.length str - 1 do
-    let c = UTF8.get str i in
+    let c = UTF8.get str i
+		and add_char c =
+			begin match !state with
+        | Pending ->
+          UTF8.Buf.add_string buf " ";
+					UTF8.Buf.add_char buf c 
+        | _ ->
+          UTF8.Buf.add_char buf c
+       end; state := NotPending in
     if USet.mem c whitespace_set then
       match !state with
         | Initial -> ()
         | _ -> state := Pending
+		else if c = UChar.of_char '\'' then
+			(* Another dumb hack. This time, it's about strings delimiters. Sigh. *)
+			add_char (UChar.of_char '"')
     else
-      begin match !state with
-        | Pending ->
-          UTF8.Buf.add_string buf " " 
-        | _ ->
-          UTF8.Buf.add_char buf c
-       end; state := NotPending      
+			add_char c
   done;
-  UTF8.Buf.contents buf
+  UTF8.Buf.contents buf |>
+	let open Pcre in
+	replace ~rex:use_strict ~itempl:empty_subst 
   
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
@@ -93,7 +111,9 @@ let match_functions { funs1; funs2 } fun1 fun2 =
     begin
         match function_body_split u1, function_body_split u2 with
           | Some body1, Some body2 ->
-            if compress_whitespace body1 = compress_whitespace body2 then None else Some (DifferentBodies (body1, body2))
+						let body1' = normalize body1
+						and body2' = normalize body2 in
+            if body1' = body2' then None else Some (DifferentBodies (body1', body2'))
           | None, None ->
             if i1 = i2 then None else Some (DifferentInstrumentedBodies (i1, i2))
           | _ ->
@@ -169,6 +189,11 @@ let match_objects_memo matchobj ignored data seen objeq id1 id2 =
     end
 
 let rec match_values_raw data seen objeq = function
+	  | (ONumberFloat f1, ONumberFloat f2) ->
+			  begin match classify_float f1, classify_float f2 with
+				| FP_nan, FP_nan -> (objeq, None)
+				| c1, c2 when c1 = c2 && f1 = f2 -> (objeq, None)
+				| _, _ -> (objeq, Some (NonMatching ([], ONumberFloat f1, ONumberFloat f2))) end
     | (o1, o2)
         when (o1 = o2 && is_base o1) ->
             (objeq, None)
@@ -183,7 +208,7 @@ let rec match_values_raw data seen objeq = function
         when match_functions_associated data fun1 fun2 ->
           (* Who thought that having a name property on functions was a good idea?
              And why do we have toString? *)
-            match_objects_memo match_values_raw ["toString"; "name"] data  seen objeq
+            match_objects_memo match_values_raw ["toString"; "name"; "length"] data  seen objeq
                  id1 id2
     | (o1, o2) ->
         (objeq, Some (NonMatching ([], o1, o2) ))

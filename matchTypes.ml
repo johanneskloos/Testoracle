@@ -10,6 +10,7 @@ type match_operation =
   | MatchPush of match_mode
   | MatchReplace of match_mode
   | MatchPop
+	| MatchDroppable
   | Initialization
   | InitializationPush of match_mode
   | InitializationPop
@@ -35,6 +36,9 @@ type match_condition =
   | IsCallInt
   | IsUnobservable
   | MayInsertInWrapSimple
+	| UseStrictRHS
+
+
 
 (** Description of the current state of matching. *)
 type match_state =
@@ -78,3 +82,4 @@ let pp_match_operation pp = function
     | MatchReplace m -> Format.fprintf pp "match, replace %a" pp_match_mode m
     | InitializationPush m -> Format.fprintf pp "init, push %a" pp_match_mode m
     | InitializationPop -> Format.pp_print_string pp "init, pop"
+		| MatchDroppable -> Format.pp_print_string pp "drop RHS"

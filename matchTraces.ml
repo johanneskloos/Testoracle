@@ -31,7 +31,8 @@ let rules_regular =
     ([MatchSides; MatchCallExt], MatchPush External);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
-    ([MatchSides; IsExit], MatchPop)
+    ([MatchSides; IsExit], MatchPop);
+		([UseStrictRHS], MatchDroppable);
     ]
 
 let rules_regular_enter =
@@ -81,7 +82,8 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | IsCallInt -> is_internal_call matching_state.rt2 op2
         | IsUnobservable -> is_unobservable op2 |> explain Observable
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
-        | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd in
+        | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd
+				| UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict in
     let interpret_conds conds =
       conds
       |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])
@@ -126,7 +128,7 @@ let can_be_added_as_initialisation matching_state trace stack =
 let adapt_first op op1 facts1 trace1 =
     match op with
     | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> trace1
-    | WrapperPush _ | WrapperPop | WrapperSimple
+    | WrapperPush _ | WrapperPop | WrapperSimple | MatchDroppable
 		| InitializationPush _ | InitializationPop | Initialization -> (op1, facts1) :: trace1
 
 let adapt_stack op stack =
@@ -134,13 +136,13 @@ let adapt_stack op stack =
     | MatchPush mode | WrapperPush mode | InitializationPush mode -> mode :: stack
     | MatchReplace mode -> mode :: List.tl stack
     | MatchPop | WrapperPop | InitializationPop -> List.tl stack
-    | MatchSimple | WrapperSimple | Initialization -> stack
+    | MatchSimple | WrapperSimple | Initialization | MatchDroppable -> stack
 
 let extend_matching op op1 op2 matching =
     match op with
     | MatchSimple | MatchPush _ | MatchReplace _ | MatchPop -> Pair(op1, op2) :: matching
     | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2 :: matching
-    | Initialization | InitializationPush _ | InitializationPop -> Init op2 :: matching
+    | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
 let collect_object_references { facts2 = facts; rt2 = { objs } } id =
     objs.(id)
@@ -181,7 +183,7 @@ let detect_toString op1 matching_state = match op1 with
 
 let adapt_matching_state op op1 op2 matching_state =
     begin match op with
-        | MatchSimple | MatchPush _ | MatchPop -> matching_state
+        | MatchSimple | MatchPush _ | MatchPop | MatchDroppable -> matching_state
         | _ -> perpetuate_initialisation_data matching_state op2
     end |> detect_toString op1
 
