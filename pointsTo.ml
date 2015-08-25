@@ -20,7 +20,7 @@ let find_object_facts id ver pt =
         if VersionReferenceMap.mem vref pt then
           StringMap.add fld (VersionReferenceMap.find vref pt) acc
         else begin
-          Format.eprintf "vret not found in points-to: %a@." pp_versioned_reference vref;
+          Format.eprintf "vref not found in points-to: %a@." pp_versioned_reference vref;
           raise Not_found
         end)
         StringMap.empty vrefs

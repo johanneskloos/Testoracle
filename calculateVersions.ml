@@ -189,7 +189,7 @@ let collect_versions_step (objects: Trace.objects) globals_are_properties state 
 let initial_refs objects globals_are_properties globals =
     let reference_of_global = reference_of_name globals_are_properties StringMap.empty true in
     Misc.StringMap.fold (fun var id refs ->
-                let refs = provide_read (reference_of_global var) refs in
+                let refs = if var = "global" then refs else provide_read (reference_of_global var) refs in
                 let refs = provide_object objects refs (get_object id) in
                 refs)
         globals {
