@@ -9,3 +9,4 @@ certifier.native
 cleantrace_unit.native
 reference_unit.native
 dumplog.native
+simple_oracle.native
