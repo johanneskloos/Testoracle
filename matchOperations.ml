@@ -198,12 +198,18 @@ let is_function_update { rt2 } = function
 let is_function_update func =
     try is_function_update func with Not_found -> failwith "is_function_update failed"
 
+let is_uninitialized_dummy_write = function
+  | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
+  | _ -> false
+
+
 (**
 * The folloing three predicates detect operations that can
 * be used without any special handling in various contexts. *)
 let may_insert_in_init matching_state op =
     (is_unobservable op || !?(is_instrumentation_write matching_state op) ||
-        !?(is_function_update matching_state op))
+        !?(is_function_update matching_state op) ||
+        is_uninitialized_dummy_write op)
         |> explain NotInitCode
 
 let may_insert_in_matching_simple op =
