@@ -76,6 +76,7 @@ open Yojson.Basic;;
 open Yojson.Basic.Util;;
 
 let parse_jsval json =
+  try
   match member "type" json |> to_string with
     | "undefined" -> OUndefined
     | "boolean" -> OBoolean (member "val" json |> to_string |> bool_of_string)
@@ -93,10 +94,11 @@ let parse_jsval json =
     | "null" -> ONull
     | "object" -> OObject (member "id" json |> to_int)
     | _ as ty -> OOther (ty, member "id" json |> to_int)
-
+  with e -> Format.eprintf "parse_jsval failed@."; raise e
+  
 let native_pattern = Str.regexp_string "[native code]"
 let parse_funcspec json =
-  let instr = json |> member "instrumented" |> to_string in
+  let instr = try json |> member "instrumented" |> to_string with e -> Format.eprintf "functspec parse error@."; raise e in
     if (Str.string_match native_pattern instr 0)
     then External (json |> member "obj" |> to_int)
     else Local { instrumented=instr; uninstrumented = json |> member "uninstrumented" |> to_string_option }
@@ -117,10 +119,10 @@ let parse_objectspec json =
     StringMap.empty
 let parse_operation json =
   let get_int key = member key json |> to_int
-  and get_string key = member key json |> to_string
-  and get_jsval key = member key json |> parse_jsval
-  and get_bool key = member key json |> to_bool in
-  match member "step" json |> to_string with
+  and get_string key = try member key json |> to_string with e -> Format.eprintf "Can't find string %s@." key; raise e
+  and get_jsval key = try member key json |> parse_jsval with e -> Format.eprintf "Can't find jsval %s@." key; raise e
+  and get_bool key = try member key json |> to_bool with e -> Format.eprintf "Can't find bool %s@." key; raise e in
+  match try member "step" json |> to_string with e -> Format.eprintf "Can't parse step type@."; raise e with
     | "funpre" -> FunPre { iid = get_int "iid"; f = get_jsval "f";
                            base = get_jsval "base"; args = get_jsval "args";
                            isConstructor = get_bool "isConstructor";
