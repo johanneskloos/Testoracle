@@ -142,13 +142,16 @@ let match_operations matching_state op1 op2 =
         | RLiteral { value = val1; hasGetterSetter = hgs1 }, RLiteral { value = val2; hasGetterSetter = hgs2 } ->
             !!objeq &&& check "val" val1 val2 &&& check_eq "hgs" hgs1 hgs2
         | RLocal { name = name1; ref = ref1 }, RLocal { name = name2; ref = ref2 } ->
-            !!objeq &&& check_ref "ref" ref1 ref2 &&& check_eq "name" name1 name2
+					(* Not checking ref equivalence; the initial value is provided by a write later, so we don't need to*)
+					(* handle it here, and it breaks the function-declaring-function pattern. *)
+            !!objeq &&& (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2
         | RAlias { name = name1; ref = ref1; source = src1 }, RAlias { name = name2; ref = ref2; source = src2 } ->
             match_source matching_state src1 src2 &&& check_ref "ref" ref1 ref2 &&& check_eq "name" name1 name2
         | RRead { ref = ref1; value = val1 }, RRead { ref = ref2; value = val2 } ->
             !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2
         | RWrite { ref = ref1; oldref = oref1; value = val1; success = succ1 }, RWrite { ref = ref2; oldref = oref2; value = val2; success = succ2 } ->
-            !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2 &&& check_ref "oref" oref1 oref2
+					(* Don't check oref; we probably need to check a proper match between ref. *)
+            !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2 (*&&& check_ref "oref" oref1 oref2*)
         | RForIn val1, RForIn val2 -> !! objeq &&& check "val" val1 val2
         | RReturn val1, RReturn val2 -> !!objeq &&& check "val" val1 val2
         | RThrow val1, RThrow val2 -> !!objeq &&& check "val" val1 val2

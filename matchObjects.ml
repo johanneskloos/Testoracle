@@ -149,7 +149,10 @@ let match_objects_raw
             (objeq_cache, Some (MissingOrig (field, []))))
       (fun field val1 val2 (objeq, failure_trace) ->
          assert (failure_trace = None);
-         matchobj data seen objeq (val1, val2) |> extend_error field)
+				if List.mem field ignored then
+					(objeq, None)
+			  else
+				  matchobj data seen objeq (val1, val2) |> extend_error field)
 
 let match_objects_memo matchobj ignored data seen objeq id1 id2 =
     if IntIntSet.mem (id1, id2) seen then begin
