@@ -70,7 +70,6 @@ let collect_pointsto_step (globals_are_properties: bool) (objects: objects) (sta
     | _ -> state
 
 let globals_points_to (objects: Trace.objects) globals_are_properties (globals: Trace.globals) trace pt =
-  let reference_of_global = reference_of_name globals_are_properties StringMap.empty true in
   match trace with
   | [] -> failwith "Empty trace"
   | (_, { versions }) :: _ ->
