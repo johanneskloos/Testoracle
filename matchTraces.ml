@@ -38,13 +38,15 @@ let rules_regular =
 let rules_regular_enter =
   [
     ([MatchEnter], MatchReplace Regular);
-    ([MatchSides; IsPostExit], MatchPop)
+    ([MatchSides; IsPostExit], MatchPop);
+    ([MatchSides; IsCatch], MatchPop);
   ]
 
 let rules_wrapper_enter =
 	[
 		([IsEnter], WrapperReplace Wrapper);
-		([IsPostExit], WrapperPop)
+		([IsPostExit], WrapperPop);
+    ([IsCatch], WrapperPop);
 	]
 let rules_wrap =
     [
@@ -88,7 +90,8 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | IsUnobservable -> is_unobservable op2 |> explain Observable
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
         | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd
-				| UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict in
+				| UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict
+        | IsCatch -> is_catch op2 |> explain NotCatch in
     let interpret_conds conds =
       conds
       |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])

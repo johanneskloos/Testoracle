@@ -38,6 +38,7 @@ type match_condition =
   | IsUnobservable
   | MayInsertInWrapSimple
 	| UseStrictRHS
+  | IsCatch
 
 (** Description of the current state of matching. *)
 type match_state =

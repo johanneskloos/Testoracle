@@ -30,6 +30,7 @@ type rich_operation =
   | RLiteral of rliteral
   | RForIn of jsval
   | RLocal of rlocal
+  | RCatch of rlocal
   | RAlias of ralias
   | RRead of rread
   | RWrite of rwrite
@@ -87,6 +88,8 @@ let pp_rich_operation pp = function
     | RForIn obj -> fprintf pp "for (... in %a)" pp_jsval obj
     | RLocal { name; ref } ->
         fprintf pp "var %s; (reference: %a)" name pp_versioned_reference ref
+    | RCatch { name; ref } ->
+        fprintf pp "catch %s; (reference: %a)" name pp_versioned_reference ref
     | RAlias { name; source; ref } ->
         fprintf pp "introducting alias %s for %a due to %a"
             name pp_versioned_reference ref pp_alias_source source
@@ -169,6 +172,10 @@ let enrich_step globals_are_properties objs (op, data) =
           let ref = reference_of_local_name name |> make_versioned data in
           [RLocal { name; ref };
            RWrite { ref; oldref=ref; value=OUndefined; success=true} ]
+  | CDeclare { name; value; declaration_type = CatchParam } ->
+          let ref = reference_of_local_name name |> make_versioned data in
+          [RCatch { name; ref };
+           RWrite { ref; oldref=ref; value; success=true} ]
   | CDeclare { name; value } ->
           let ref = reference_of_local_name name |> make_versioned data in
           [RLocal { name; ref };

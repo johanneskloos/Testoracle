@@ -50,6 +50,7 @@ type rich_operation =
   | RLiteral of rliteral
   | RForIn of Trace.jsval
   | RLocal of rlocal
+  | RCatch of rlocal
   | RAlias of ralias
   | RRead of rread
   | RWrite of rwrite

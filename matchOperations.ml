@@ -19,7 +19,7 @@ let is_unobservable = function
     | RForIn _ | RLocal _ | RAlias _ | RRead _ | RReturn _
     | RWith _ | RScriptEnter | RScriptExit | RScriptExc _ | RBinary _
     | RUnary _ | REndExpression | RConditional _ | RLiteral _
-    | RFunEnter _ | RFunPost _ ->
+    | RFunEnter _ | RFunPost _ | RCatch _ ->
         true
     | RFunPre _ | RWrite _ | RFunExit _ | RThrow _ ->
         false
@@ -43,6 +43,7 @@ let is_exit = function RFunExit _ -> true | _ -> false
 let is_post_exit = function RFunPost _ -> true | _ -> false
 let is_enter = function RFunEnter _ -> true | _ -> false
 let is_use_strict = function RLiteral { value = OString "use strict" } -> true | REndExpression -> true | _ -> false
+let is_catch = function RCatch _ -> true | _ -> false 
 (**
 * Functions dependening on the current matching state.
 *
@@ -90,6 +91,7 @@ type mismatch =
   | NotEnter
   | FunctionMismatch of fun_match_failure
 	| NotUseStrict
+  | NotCatch
 
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
@@ -144,6 +146,10 @@ let match_operations matching_state op1 op2 =
         | RLiteral { value = val1; hasGetterSetter = hgs1 }, RLiteral { value = val2; hasGetterSetter = hgs2 } ->
             !!objeq &&& check "val" val1 val2 &&& check_eq "hgs" hgs1 hgs2
         | RLocal { name = name1; ref = ref1 }, RLocal { name = name2; ref = ref2 } ->
+					(* Not checking ref equivalence; the initial value is provided by a write later, so we don't need to*)
+					(* handle it here, and it breaks the function-declaring-function pattern. *)
+            !!objeq &&& (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2
+        | RCatch { name = name1; ref = ref1 }, RCatch { name = name2; ref = ref2 } ->
 					(* Not checking ref equivalence; the initial value is provided by a write later, so we don't need to*)
 					(* handle it here, and it breaks the function-declaring-function pattern. *)
             !!objeq &&& (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2

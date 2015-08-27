@@ -47,7 +47,8 @@ type mismatch =
   | NotEnter
   | FunctionMismatch of MatchObjects.fun_match_failure
 	| NotUseStrict
-
+  | NotCatch
+  
 val explain: mismatch -> bool -> mismatch option
 
 type 'a comparator = matching_state -> 'a -> 'a -> MatchObjects.objeq * mismatch option
@@ -71,3 +72,4 @@ val is_matching_toString_call : matching_state -> Richtrace.rich_operation -> Ri
 val may_be_wrapper_entry : call_comparator
 val is_not_function : rich_operation -> bool
 val is_matching_entry: rich_operation comparator
+val is_catch : rich_operation -> bool

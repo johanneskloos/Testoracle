@@ -57,6 +57,9 @@ let output_op =
   | RLocal { name; ref } ->
     <:html< Declaring local variable $str:name$,
     mapped to reference $output_ref ref$>>
+  | RCatch { name; ref } ->
+    <:html< Catching into $str:name$,
+    mapped to reference $output_ref ref$>>
   | RAlias { name; source; ref } ->
     <:html< Declaring alias $str:name$ for
     reference $output_ref ref$ because
@@ -245,6 +248,7 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | IsEnter -> <:html<$output_op op2$ is not an entry>>
     | MatchEnter -> <:html<$output_op op1$ and $output_op op2$ are not matching function entries>>
 		| UseStrictRHS -> <:html<RHS not "use strict">>
+    | IsCatch -> <:html<$output_op op2$ is not a catch>>
      in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
@@ -285,7 +289,8 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | NotInitCode -> <:html<Not init code>>
     | NotEnter -> <:html<Not a function entry>>
     | FunctionMismatch reason -> output_function_mismatch reason
-		| NotUseStrict -> <:html<Not "use strict">> in
+		| NotUseStrict -> <:html<Not "use strict">>
+    | NotCatch -> <:html<Not catch>> in
   let output_cond (cond, reason) =
     <:html<$output_cond cond$: $output_reason reason$>> in
   let output_nonempty = function
