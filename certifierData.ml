@@ -74,7 +74,7 @@ let collect_trace idx tree nodes =
     match TraceNodes.find idx nodes with
       | NodeData { op1; op2; stack } ->
         let matching = begin match op with
-          | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2
+          | WrapperSimple | WrapperPush _ | WrapperPop | WrapperReplace _ -> Wrap op2
           | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2
           | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> Pair (op1, op2)
         end in collect_edge idx ((idx, stack, matching) :: trace)
@@ -93,9 +93,9 @@ let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
       | WrapperPush m | MatchPush m | InitializationPush m -> m :: stack
       | WrapperPop | MatchPop | InitializationPop -> List.tl stack
       | WrapperSimple | MatchSimple | Initialization | MatchDroppable -> stack
-      | MatchReplace m -> m :: List.tl stack in 
+      | MatchReplace m | WrapperReplace m -> m :: List.tl stack in 
     match op with
-    | WrapperSimple | WrapperPush _ | WrapperPop ->
+    | WrapperSimple | WrapperPush _ | WrapperPop | WrapperReplace _  ->
         (pm @ [idx, stack', Wrap op2], stack', tr1, tr2)
     | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ ->
         let (op1, tr1) = split tr1 in

@@ -1,6 +1,6 @@
 open Richtrace
 (** The mode to switch to, on a push. *)
-type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter
+type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter | WrapperEnter
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -17,6 +17,7 @@ type match_operation =
   | WrapperSimple
   | WrapperPush of match_mode
   | WrapperPop
+	| WrapperReplace of match_mode
 
 (** Next come the match conditions. *)
 type match_condition =
@@ -49,6 +50,7 @@ type match_state =
   | InToString
   | InExternal
   | InInit
+	| InWrapperEnter
 
 (**
 * The entries of the matching certificate.
@@ -70,12 +72,14 @@ let pp_match_mode pp = function
     | External -> Format.pp_print_string pp "external"
     | ToString -> Format.pp_print_string pp "toString"
     | Init -> Format.pp_print_string pp "init"
+		| WrapperEnter -> Format.pp_print_string pp "wrapper-enter"
 
 let pp_match_operation pp = function
     | Initialization -> Format.pp_print_string pp "init"
     | WrapperSimple -> Format.pp_print_string pp "wrap"
     | WrapperPop -> Format.pp_print_string pp "wrap, pop"
     | WrapperPush m -> Format.fprintf pp "wrap, push %a" pp_match_mode m
+		| WrapperReplace m -> Format.fprintf pp "wrap, replace %a" pp_match_mode m
     | MatchSimple -> Format.pp_print_string pp "match"
     | MatchPop -> Format.pp_print_string pp "match, pop"
     | MatchPush m -> Format.fprintf pp "match, push %a" pp_match_mode m

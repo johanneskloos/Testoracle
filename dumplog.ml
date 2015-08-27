@@ -13,7 +13,8 @@ let pp_print_stack pp =
     | External -> pp_print_char pp 'E'
     | ToString -> pp_print_char pp 'T'
     | Init -> pp_print_char pp 'I'
-    | RegularEnter -> pp_print_char pp 'r')
+    | RegularEnter -> pp_print_char pp 'r'
+		| WrapperEnter -> pp_print_char pp 'r')
 
 let pp_cond pp cond = pp_print_string pp (match cond with
     MatchSides -> "match operations"

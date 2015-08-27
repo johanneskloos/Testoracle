@@ -59,35 +59,15 @@ let function_body_split = function
 type whitespace_state = Initial | Pending | NotPending
 let whitespace_set = let open UCharInfo in load_property_set `White_Space;;
 
-let use_strict = Pcre.regexp "\"use strict\"( *;)? *"
+let use_strict = Pcre.regexp "['\"]use ?strict[\"']( *;)? *"
+let whitespace = Pcre.regexp "\\s+"
 let empty_subst = Pcre.subst ""
 
 let normalize str =
-  let buf = UTF8.Buf.create (UTF8.length str)
-  and state = ref Initial in
-  for i = 0 to UTF8.length str - 1 do
-    let c = UTF8.get str i
-		and add_char c =
-			begin match !state with
-        | Pending ->
-          UTF8.Buf.add_string buf " ";
-					UTF8.Buf.add_char buf c 
-        | _ ->
-          UTF8.Buf.add_char buf c
-       end; state := NotPending in
-    if USet.mem c whitespace_set then
-      match !state with
-        | Initial -> ()
-        | _ -> state := Pending
-		else if c = UChar.of_char '\'' then
-			(* Another dumb hack. This time, it's about strings delimiters. Sigh. *)
-			add_char (UChar.of_char '"')
-    else
-			add_char c
-  done;
-  UTF8.Buf.contents buf |>
 	let open Pcre in
-	replace ~rex:use_strict ~itempl:empty_subst 
+	str |>
+	replace ~rex:use_strict ~itempl:empty_subst |>
+	replace ~rex:whitespace ~itempl:empty_subst 
   
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
@@ -209,7 +189,7 @@ let rec match_values_raw data seen objeq = function
         when match_functions_associated data fun1 fun2 ->
           (* Who thought that having a name property on functions was a good idea?
              And why do we have toString? *)
-            match_objects_memo match_values_raw ["toString"; "name"; "length"] data  seen objeq
+            match_objects_memo match_values_raw ["toString"; "name"; "length"; "*J$SID*"; "*J$IID*"] data  seen objeq
                  (Function (id1, fun1)) (Function (id2, fun2))
     | (o1, o2) ->
         (objeq, Some (NonMatching ([], o1, o2) ))

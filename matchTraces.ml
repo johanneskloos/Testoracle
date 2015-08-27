@@ -19,7 +19,7 @@ let rules_toplevel =
     ([MatchSides; MatchCallInt], MatchPush RegularEnter);
     ([MatchSides; MatchCallExt], MatchPush External);
     ([MatchCallToString], MatchPush ToString);
-    ([MatchSides; MatchCallWrap], MatchPush Wrapper);
+    ([MatchSides; MatchCallWrap], MatchPush WrapperEnter);
     ([MayInit; IsToplevel; IsNotFunction], Initialization);
     ([IsCallInt (* TODO add "local function" check *)], InitializationPush Init)
     ]
@@ -40,11 +40,16 @@ let rules_regular_enter =
     ([MatchEnter], MatchReplace Regular);
     ([MatchSides; IsPostExit], MatchPop)
   ]
-  
+
+let rules_wrapper_enter =
+	[
+		([IsEnter], WrapperReplace Wrapper);
+		([IsPostExit], WrapperPop)
+	]
 let rules_wrap =
     [
     ([IsCallInt], WrapperPush RegularEnter);
-    ([IsCallInt], WrapperPush Wrapper);
+    ([IsCallInt], WrapperPush WrapperEnter);
     ([IsExit], WrapperPop);
     ([MayInsertInWrapSimple], WrapperSimple)
     ]
@@ -104,6 +109,7 @@ let build_candidates matching_state op1 op2 state =
         | InToString -> rules_toString
         | InExternal -> rules_external
         | InInit -> rules_init
+				| InWrapperEnter -> rules_wrapper_enter
     in
     interpret_rules (find_rules state) matching_state op1 op2
 
@@ -112,6 +118,7 @@ let build_candidates matching_state op1 op2 state =
 *)
 let get_state = function
     | Wrapper :: _ -> InWrap
+		| WrapperEnter :: _ -> InWrapperEnter
     | Regular :: _ -> InRegular
     | RegularEnter :: _ -> InRegularEnter
     | External :: _ -> InExternal
@@ -128,20 +135,20 @@ let can_be_added_as_initialisation matching_state trace stack =
 let adapt_first op op1 facts1 trace1 =
     match op with
     | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> trace1
-    | WrapperPush _ | WrapperPop | WrapperSimple | MatchDroppable
+    | WrapperPush _ | WrapperPop | WrapperSimple | MatchDroppable | WrapperReplace _
 		| InitializationPush _ | InitializationPop | Initialization -> (op1, facts1) :: trace1
 
 let adapt_stack op stack =
     match op with
     | MatchPush mode | WrapperPush mode | InitializationPush mode -> mode :: stack
-    | MatchReplace mode -> mode :: List.tl stack
+    | MatchReplace mode | WrapperReplace mode -> mode :: List.tl stack
     | MatchPop | WrapperPop | InitializationPop -> List.tl stack
     | MatchSimple | WrapperSimple | Initialization | MatchDroppable -> stack
 
 let extend_matching op op1 op2 matching =
     match op with
     | MatchSimple | MatchPush _ | MatchReplace _ | MatchPop -> Pair(op1, op2) :: matching
-    | WrapperSimple | WrapperPush _ | WrapperPop -> Wrap op2 :: matching
+    | WrapperSimple | WrapperPush _ | WrapperPop | WrapperReplace _ -> Wrap op2 :: matching
     | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
 let collect_object_references { facts2 = facts; rt2 = { objs } } id =

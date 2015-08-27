@@ -100,7 +100,8 @@ let output_stack st =
     | Wrapper -> "W"
     | External -> "E"
     | ToString -> "T"
-    | RegularEnter -> "r" in
+    | RegularEnter -> "r"
+		| WrapperEnter -> "w" in
   let output_mode x = <:html< $str:mode_to_string x$ >> in
    <:html<$list:List.map output_mode st$>>
 
@@ -215,6 +216,7 @@ let output_matchop = function
     | WrapperSimple -> <:html< Simple wrap >>
     | WrapperPush m -> <:html< Wrap and push $output_mode m$>>
     | WrapperPop -> <:html< Wrap and pop >>
+		| WrapperReplace m -> <:html< Wrap and replace $output_mode m$>>
     | Initialization -> <:html< Simple init >>
     | InitializationPush m -> <:html< Init and push $output_mode m$>>
     | InitializationPop -> <:html< Init and pop >>

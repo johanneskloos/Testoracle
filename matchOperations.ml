@@ -195,13 +195,21 @@ let is_function_update { rt2 } = function
                None
             | _ ->
                Some NotFunctionUpdate
-            with Not_found -> Format.eprintf "%a not found in is_function_update@." pp_versioned_reference ref; raise Not_found 
+            with Not_found -> 
+							Format.eprintf "%a not found in is_function_update@." pp_versioned_reference ref;
+							failwith "is_function_update failed" 
         end
     | _ ->
       Some OtherOperation
 
-let is_function_update func =
-    try is_function_update func with Not_found -> failwith "is_function_update failed"
+let is_function_property_update = function
+	| RWrite { ref = (ref, _) } ->
+		begin match get_fieldref ref with
+		| Some (Function _, _) -> None
+		| _ -> Some NotFunctionUpdate
+		end
+	| _ -> Some OtherOperation
+
 
 let is_uninitialized_dummy_write = function
   | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
@@ -214,7 +222,7 @@ let is_uninitialized_dummy_write = function
 let may_insert_in_init matching_state op =
     (is_unobservable op || !?(is_instrumentation_write matching_state op) ||
         !?(is_function_update matching_state op) ||
-        is_uninitialized_dummy_write op)
+        is_uninitialized_dummy_write op || !?(is_function_property_update op))
         |> explain NotInitCode
 
 let may_insert_in_matching_simple op =

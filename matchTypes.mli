@@ -1,6 +1,6 @@
 open Richtrace
 (** The mode to switch to, on a push. *)
-type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter
+type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter | WrapperEnter
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -17,6 +17,7 @@ type match_operation =
   | WrapperSimple
   | WrapperPush of match_mode
   | WrapperPop
+	| WrapperReplace of match_mode
 
 (** Next come the match conditions. *)
 type match_condition =
@@ -47,6 +48,7 @@ type match_state =
   | InToString
   | InExternal
   | InInit
+	| InWrapperEnter
 
 (**
 * The entries of the matching certificate.
