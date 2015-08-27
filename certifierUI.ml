@@ -6,13 +6,6 @@ open Cleantrace
 open Reference
 open CertifierData
 
-let output_ref (ref, ver) =
-  match get_fieldref ref, get_name ref, is_global ref with
-    | Some (obj, field), None, _ -> <:html<obj#$int:obj$.$str:field$@$int:ver$>>
-    | None, Some name, false -> <:html<$str:name$@$int:ver$>>
-    | None, Some name, true -> <:html<global:$str:name$@$int:ver$>>
-    | _ -> assert false
-
 let output_val = function
   | OUndefined -> <:html<(undefined)>>
   | ONull -> <:html<(null)>>
@@ -25,9 +18,19 @@ let output_val = function
   | OFunction(id, fid) -> <:html<fun#$int:id$/$int:fid$>>
   | OOther (ty, id) -> <:html<$str:ty$#$int:id$>>
 
+let output_objectid obj = output_val (objectid_to_jsval obj)
+
+let output_ref (ref, ver) =
+  match get_fieldref ref, get_name ref, is_global ref with
+    | Some (obj, field), None, _ -> <:html<$output_objectid obj$.$str:field$@$int:ver$>>
+    | None, Some name, false -> <:html<$str:name$@$int:ver$>>
+    | None, Some name, true -> <:html<global:$str:name$@$int:ver$>>
+    | _ -> assert false
+
+
 let output_op =
   let output_call_type = function
-    | Function -> <:html<function>>
+    | Cleantrace.Function -> <:html<function>>
     | Method -> <:html<method>>
     | Constructor -> <:html<constructor>>
     | ConstructorMethod -> <:html<constructor/method>>

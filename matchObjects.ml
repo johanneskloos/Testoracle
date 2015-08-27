@@ -175,15 +175,16 @@ let match_objects_raw
 				  matchobj data seen objeq (val1, val2) |> extend_error field)
 
 let match_objects_memo matchobj ignored data seen objeq id1 id2 =
-    if IntIntSet.mem (id1, id2) seen then begin
+	 	let id1' = get_object_id id1 and id2' = get_object_id id2 in
+    if IntIntSet.mem (id1', id2') seen then begin
         (objeq, None)
-    end else if IntIntMap.mem (id1, id2) objeq then begin
-        (objeq, IntIntMap.find (id1, id2) objeq)
+    end else if IntIntMap.mem (id1', id2') objeq then begin
+        (objeq, IntIntMap.find (id1', id2') objeq)
     end else begin
         let m1 = find_object_facts id1 data.facts1 data.pt1
         and m2 = find_object_facts id2 data.facts2 data.pt2
-        and seen' = IntIntSet.add (id1, id2) seen
-        and extend_cache (objeq, res) = (IntIntMap.add (id1, id2) res objeq, res) in
+        and seen' = IntIntSet.add (id1', id2') seen
+        and extend_cache (objeq, res) = (IntIntMap.add (id1', id2') res objeq, res) in
         match_objects_raw matchobj ignored data seen' objeq m1 m2
         |> extend_cache 
     end
@@ -200,16 +201,16 @@ let rec match_values_raw data seen objeq = function
     | (OObject 0, OObject 0) ->
             (objeq, None) (* HACK HACK HACK *)
     | (OObject id1, OObject id2) ->
-            match_objects_memo match_values_raw [] data seen objeq id1 id2
+            match_objects_memo match_values_raw [] data seen objeq (Object id1) (Object id2)
     | (OOther (ty1, id1), OOther (ty2, id2))
         when ty1 = ty2 ->
-            match_objects_memo match_values_raw [] data seen objeq id1 id2
+            match_objects_memo match_values_raw [] data seen objeq (Other (ty1, id1)) (Other (ty2, id2))
     | (OFunction (id1, fun1), OFunction (id2, fun2))
         when match_functions_associated data fun1 fun2 ->
           (* Who thought that having a name property on functions was a good idea?
              And why do we have toString? *)
             match_objects_memo match_values_raw ["toString"; "name"; "length"] data  seen objeq
-                 id1 id2
+                 (Function (id1, fun1)) (Function (id2, fun2))
     | (o1, o2) ->
         (objeq, Some (NonMatching ([], o1, o2) ))
 

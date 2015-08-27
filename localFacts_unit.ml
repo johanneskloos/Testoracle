@@ -76,8 +76,8 @@ let test_reference_of_variable_2 =
     (fun () ->
       let ref = reference_of_variable true empty_local_facts true "x" in
       Assert.equal
-         ~prn:(Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Format.pp_print_int Format.pp_print_string)))
-        (Some (0, "x")) (get_fieldref ref))
+         ~prn:(Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Reference.pp_objectid Format.pp_print_string)))
+        (Some (Object 0, "x")) (get_fieldref ref))
 let test_reference_of_variable_3 =
   Test.make_simple_test ~title:"reference to local, no alias"
     (fun () ->
@@ -89,10 +89,10 @@ let test_reference_of_variable_3 =
 let test_reference_of_variable_4 =
   Test.make_simple_test ~title:"reference to local, no alias"
     (fun () ->
-      let ref = reference_of_variable false { empty_local_facts with aliases = Misc.StringMap.add "x" (0, "x") Misc.StringMap.empty } false "x" in
+      let ref = reference_of_variable false { empty_local_facts with aliases = Misc.StringMap.add "x" (Object 0, "x") Misc.StringMap.empty } false "x" in
       Assert.equal
-         ~prn:(Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Format.pp_print_int Format.pp_print_string)))
-        (Some (0, "x")) (get_fieldref ref))
+         ~prn:(Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Reference.pp_objectid Format.pp_print_string)))
+        (Some (Object 0, "x")) (get_fieldref ref))
 
 let test_make_versioned =
   Test.make_simple_test ~title: "make_versioned"

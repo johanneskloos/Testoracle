@@ -25,10 +25,10 @@ let add_read (facts: local_facts) (state: points_to_map) (ref: reference) (value
         VersionReferenceMap.add vref value state
 
 let add_known_new_object (objects: objects) (facts: local_facts) (state: points_to_map) (obj: jsval): points_to_map =
-    let id = get_object obj in
+    let id = objectid_of_jsval obj in
     StringMap.fold (fun name (objspec: Trace.fieldspec) state ->
         add_write facts state (reference_of_fieldref (id, name)) objspec.value)
-        objects.(id) state
+        objects.(get_object_id id) state
 
 let add_literal (objects: objects) (facts: local_facts) (state: points_to_map) (value: jsval): points_to_map =
     (* HACK use the fact that all references in state.versions should be mapped to find missing fields. *)
@@ -39,7 +39,7 @@ let add_literal (objects: objects) (facts: local_facts) (state: points_to_map) (
         else
           match Reference.get_fieldref ref with
             | Some (obj, field) ->
-              let value = (StringMap.find field objects.(obj)).Trace.value in
+              let value = (StringMap.find field objects.(get_object_id obj)).Trace.value in
               VersionReferenceMap.add vref value state
             | None -> failwith "Unexpected unmapped variable")
         facts.versions state
@@ -78,8 +78,8 @@ let globals_points_to (objects: Trace.objects) globals_are_properties (globals: 
       let vref = (ref, ver)
       and value = match Reference.get_fieldref ref with
         | Some (obj, field) ->
-          begin try (StringMap.find field objects.(obj)).value
-          with Not_found -> failwith ("Can't find field " ^ field ^ " of " ^ string_of_int obj) end 
+          begin try (StringMap.find field objects.(get_object_id obj)).value
+          with Not_found -> failwith ("Can't find field " ^ field ^ " of " ^ (Misc.to_string pp_objectid obj)) end 
         | None ->
           assert (Reference.is_global ref);
           let name = (Reference.get_name ref |> Misc.Option.some) in

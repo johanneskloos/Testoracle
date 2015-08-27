@@ -15,7 +15,7 @@ type local_facts = {
     (** The current version of all known references. *)
     versions: int ReferenceMap.t;
     (** All currently-existing aliases. *)
-    aliases: (int * string) Misc.StringMap.t;
+    aliases: fieldref Misc.StringMap.t;
 }
 (** An empty set of local facts. *)
 val empty_local_facts: local_facts

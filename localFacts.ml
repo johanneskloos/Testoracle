@@ -9,7 +9,7 @@ type local_facts = {
     last_parameters: int option;
     last_update: versioned_reference option;
     versions: int ReferenceMap.t;
-    aliases: (int * string) StringMap.t
+    aliases: fieldref StringMap.t
 }
 
 type 'a enriched_trace = (clean_operation * 'a) list
@@ -30,8 +30,8 @@ let pp_local_facts pp
         (FormatHelper.pp_print_option pp_versioned_reference) last_update
         (pp_reference_map Format.pp_print_int) versions
         (StringMapFormat.pp_print_map "" "" ","
-          (fun pp name (obj, fld) ->
-              Format.fprintf pp "%s -> %d@@%s" name obj fld)) aliases
+          (fun pp name fr ->
+              Format.fprintf pp "%s -> %a" name pp_fieldref fr)) aliases
                 
 let pp_enriched_trace fmt =
     FormatHelper.pp_print_list_lines

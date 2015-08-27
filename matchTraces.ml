@@ -145,14 +145,13 @@ let extend_matching op op1 op2 matching =
     | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
 let collect_object_references { facts2 = facts; rt2 = { objs } } id =
-    objs.(id)
+    objs.(get_object_id id)
     |> StringMap.bindings
     |> List.map (fun (field, _) -> reference_of_fieldref (id, field) |> make_versioned facts)
 
-let collect_references matching_state = function
-    | OObject id -> collect_object_references matching_state id
-    | OFunction(id, _) -> collect_object_references matching_state id
-    | OOther(_, id) -> collect_object_references matching_state id
+let collect_references matching_state obj = match obj with
+      OObject _ | OFunction _ | OOther _ ->
+			collect_object_references matching_state (objectid_of_jsval obj)
     | _ -> []
 
 let perpetuate_initialisation_data matching_state op =

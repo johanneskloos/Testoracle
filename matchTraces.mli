@@ -78,7 +78,7 @@ val extend_matching :
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
-  MatchOperations.matching_state -> int -> Reference.versioned_reference list
+  MatchOperations.matching_state -> Reference.objectid -> Reference.versioned_reference list
 (** Collect the references belonging to a value. *)
 val collect_references :
   MatchOperations.matching_state ->

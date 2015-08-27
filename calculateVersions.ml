@@ -7,13 +7,13 @@ open Cleantrace
 type saved_variable =
     | Unknown
     | Version of int
-    | Alias of int * string
+    | Alias of fieldref
 
 type version_state = {
     save_stack: saved_variable StringMap.t list;
     versions_bound: int ReferenceMap.t;
     versions_current: int ReferenceMap.t;
-    aliases: (int * string) StringMap.t;
+    aliases: fieldref StringMap.t;
     last_update: versioned_reference option
 }
 
@@ -27,8 +27,8 @@ let save_version state name =
                     assert (not (StringMap.mem name state.aliases));
                     Version (ReferenceMap.find lv state.versions_current)
                 end else if StringMap.mem name state.aliases then
-                    let (obj, fld) = StringMap.find name state.aliases in
-                    Alias (obj, fld)
+                    let ref = StringMap.find name state.aliases in
+                    Alias ref
                 else Unknown end in
         { state with
             save_stack = StringMap.add name saveval fr :: stack;
@@ -82,7 +82,8 @@ let provide_write (objects: objects) ref state =
         | Some (obj, fld) ->
         (* If the field is not writable, do nothing. *)
             begin try
-                let fldspec = StringMap.find fld objects.(obj) in
+								let objid = get_object_id obj in
+                let fldspec = StringMap.find fld objects.(objid) in
                 if fldspec.writable && fldspec.set = None then
                     increment_reference state ref
                 else if fldspec.set = None then
@@ -92,8 +93,8 @@ let provide_write (objects: objects) ref state =
                     * update goes through, but warn about possible
                     * unsoundness. *)
                     let msg =
-                        Format.sprintf "Writing to %d@%s with set handler"
-                            obj fld
+                        Format.sprintf "Writing to %a@%s with set handler"
+                            (fun () -> Misc.to_string pp_objectid) obj fld
                     in warnings := msg :: !warnings;
                     increment_reference state ref
                 end
@@ -126,9 +127,9 @@ let provide_object objects state obj =
                         state
                     else
                         increment_reference state ref |> recurse_value field.Trace.value)
-            objects.(obj) state
+            objects.(get_object_id obj) state
     and recurse_value field state = match field with
-        | OObject id | OOther (_, id) | OFunction (id, _) -> recurse id state
+        | OObject _ | OOther _ | OFunction _ -> recurse (objectid_of_jsval field) state
         | _ -> state in
     recurse obj state
 
@@ -137,7 +138,7 @@ let provide_argument_alias objects state name facts i =
     match facts.last_parameters with
     | Some params when StringMap.mem field objects.(params) ->
         { state with aliases =
-                StringMap.add name (params, field) state.aliases }
+                StringMap.add name (Object params, field) state.aliases }
     | Some _ ->
     (* Argh. Javascript. arguments reflects the * actual * parameters,
     * while name bindings reflect the * formal * parameters. Of course,
@@ -148,7 +149,7 @@ let provide_argument_alias objects state name facts i =
     | None -> failwith "No arguments to alias!"
 let provide_literal objs state = function
     | (OFunction _ | OOther _ | OObject _) as o ->
-        provide_object objs state (get_object o)
+        provide_object objs state (objectid_of_jsval o)
     | _ -> state
 
 let collect_versions_step (objects: Trace.objects) globals_are_properties state facts op =
@@ -190,7 +191,7 @@ let initial_refs objects globals_are_properties globals =
     let reference_of_global = reference_of_name globals_are_properties StringMap.empty true in
     Misc.StringMap.fold (fun var id refs ->
                 let refs = if var = "global" then refs else provide_read (reference_of_global var) refs in
-                let refs = provide_object objects refs (get_object id) in
+                let refs = provide_object objects refs (objectid_of_jsval id) in
                 refs)
         globals {
             save_stack = [];

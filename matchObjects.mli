@@ -93,7 +93,8 @@ val match_objects_raw :
 val match_objects_memo :
   recursive_matcher ->
   Misc.StringMap.key list ->
-  data -> Misc.IntIntSet.t -> objeq -> int -> int -> objeq * failure_trace
+  data -> Misc.IntIntSet.t -> objeq ->
+	Reference.objectid -> Reference.objectid -> objeq * failure_trace
   
 (** [match_values_raw cmpname data seen objeq (v1, v2)] checks
  * whether two values [v1] and [v2] are isomorphic. For base values,
