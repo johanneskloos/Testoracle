@@ -277,10 +277,10 @@ let is_internal_call rt = function
 let is_matching_call may_be_literally_equal local matching_data op1 op2 =
     match op1, op2 with
     | RFunPre { f = OFunction(_, f1) },
-    RFunPre { f = OFunction(_, f2) } ->
+      RFunPre { f = OFunction(_, f2) } ->
         let is_matching = match match_functions (convert matching_data) f1 f2 with
           | Some _ -> false | None -> true in
-        if is_matching || may_be_literally_equal then
+        if (not is_matching) || may_be_literally_equal then
           if !?(is_internal_call_impl matching_data.rt1 f1) = local then
             None
           else
