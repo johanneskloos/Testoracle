@@ -16,3 +16,4 @@
 <certifierData.ml>: package(batteries), package(camomile), package(ocamlgraph)
 <certifier.ml>: package(cohttp), package(lwt), package(batteries)
 <certifier.*>:package(cohttp), package(cow), package(cow.syntax), syntax(camlp4o), package(lwt), package(batteries), package(lwt.unix), package(cohttp.lwt), package(ocamlgraph), package(yojson), package(bolt)
+<detect_nested.*>: package(pcre)

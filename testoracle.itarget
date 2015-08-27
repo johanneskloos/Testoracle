@@ -10,3 +10,4 @@ reference_unit.native
 dumplog.native
 objectgraph.native
 simple_oracle.native
+detect_nested.native
