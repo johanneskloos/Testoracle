@@ -54,22 +54,23 @@ let server_callback cache conn req body =
     and query key = Uri.get_query_param uri key
     and self query' = Uri.with_query' uri query' |> Uri.to_string
     and page base = Uri.with_path uri base |> Uri.to_string in
-    begin
-        match path with
-        | "/stylesheet.css" -> shared_css
-        | "" | "/" -> list_certs page (get_certs())
-        | _ when Str.string_match good_path path 0 ->
-            let data = cache path in
-            trace_multiplex self path data query
-        | _ -> bad_path path
-    end |> begin function
-        | (HTML, body) -> ("text/html", body)
-        | (JSON, body) -> ("application/json", body)
-        | (CSS, body) -> ("text/css", body)
-        | (SVG, body) -> ("image/svg+xml", body)
-    end |> fun (ctype, body) ->
-        Server.respond_string ~status:`OK ~headers: (Header.init_with "Content-type" ctype) ~body ()
-
+		try
+	    begin
+  	      match path with
+    	    | "/stylesheet.css" -> shared_css
+      	  | "" | "/" -> list_certs page (get_certs())
+        	| _ when Str.string_match good_path path 0 ->
+          	  let data = cache path in
+            	trace_multiplex self path data query
+        	| _ -> bad_path path
+	    end |> begin function
+  	      | (HTML, body) -> ("text/html", body)
+    	    | (JSON, body) -> ("application/json", body)
+      	  | (CSS, body) -> ("text/css", body)
+	    end |> fun (ctype, body) ->
+  	      Server.respond_string ~status:`OK ~headers: (Header.init_with "Content-type" ctype) ~body ()
+		with e -> Format.eprintf "%s@." (Printexc.to_string e); raise e
+		
 let () =
   Format.eprintf "Starting...@.";
   let cache = BatCache.lru_cache ~gen:read_result ~cap:10 in 

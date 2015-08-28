@@ -6,7 +6,7 @@ open Cleantrace
 open Reference
 open CertifierData
 
-let output_val = function
+let output_val = function 
   | OUndefined -> <:html<(undefined)>>
   | ONull -> <:html<(null)>>
   | OBoolean x -> <:html<$str:string_of_bool x$>>
@@ -104,7 +104,9 @@ let output_stack st =
     | External -> "E"
     | ToString -> "T"
     | RegularEnter -> "r"
-		| WrapperEnter -> "w" in
+		| WrapperEnter -> "w"
+		| HigherOrder -> "H"
+		| IndirectDefinitionPattern -> "i" in
   let output_mode x = <:html< $str:mode_to_string x$ >> in
    <:html<$list:List.map output_mode st$>>
 
@@ -249,6 +251,8 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | MatchEnter -> <:html<$output_op op1$ and $output_op op2$ are not matching function entries>>
 		| UseStrictRHS -> <:html<RHS not "use strict">>
     | IsCatch -> <:html<$output_op op2$ is not a catch>>
+		| MatchHigherOrder -> <:html<$output_op op2$ is not a higher-order call>>
+		| IsFunLiteral -> <:html<$output_op op2$ is not a function literal>>
      in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->

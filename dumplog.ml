@@ -14,7 +14,9 @@ let pp_print_stack pp =
     | ToString -> pp_print_char pp 'T'
     | Init -> pp_print_char pp 'I'
     | RegularEnter -> pp_print_char pp 'r'
-		| WrapperEnter -> pp_print_char pp 'r')
+		| WrapperEnter -> pp_print_char pp 'r'
+		| HigherOrder -> pp_print_char pp 'H'
+		| IndirectDefinitionPattern -> pp_print_char pp 'i')
 
 let pp_cond pp cond = pp_print_string pp (match cond with
     MatchSides -> "match operations"
@@ -34,7 +36,9 @@ let pp_cond pp cond = pp_print_string pp (match cond with
   | IsEnter -> "is a function entry"
   | MatchEnter-> "matching function entries"
 	| UseStrictRHS -> "\"use strict\" on RHS"
-  | IsCatch -> "is a catch")
+  | IsCatch -> "is a catch"
+	| MatchHigherOrder -> "is a higher order function call"
+	| IsFunLiteral -> "is a function literal")
 
 let pp_path pp = function
   | [] ->

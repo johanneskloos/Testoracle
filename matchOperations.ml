@@ -357,3 +357,45 @@ let is_matching_entry matching_data op1 op2 =
         match_val "args" args1 args2 &&&
         match_val "this" this1 this2
     | _ -> (objeq, Some  NotEnter)
+
+(** Check if a call goes to a known higher-order function. *)
+let is_call_to id { funcs; objs } name =
+	let rec lookup base name = match name with
+		| component :: rest ->
+			lookup (StringMap.find component objs.(get_object base)).value rest
+		| [] -> base
+	in try
+		match lookup (OObject 0) name with
+		| OFunction(_, id') -> id = id'
+		| _ -> false
+	with Not_found -> false
+
+let known_higher_order = [
+	["Array"; "from"];
+	["Array"; "prototype"; "each"];
+	["Array"; "prototype"; "filter"];
+	["Array"; "prototype"; "find"];
+	["Array"; "prototype"; "findIndex"];
+	["Array"; "prototype"; "forEach"];
+	["Array"; "prototype"; "map"];
+	["Array"; "prototype"; "reduce"];
+	["Array"; "prototype"; "reduceRight"];
+	["Array"; "prototype"; "some"];
+	["Array"; "prototype"; "sort"]		
+]
+
+let match_higher_order  { rt1; rt2 } op1 op2 =
+	match op1, op2 with
+	| RFunPre { f = OFunction (_, id1) },
+	  RFunPre { f = OFunction (_, id2) } ->
+		if List.exists
+		  (fun name -> is_call_to id1 rt1 name && is_call_to id2 rt2 name)
+			known_higher_order then
+			None
+		else
+			Some NotFunction (* Give better error later *)
+	| _ -> Some OtherOperation
+
+let is_fun_literal = function
+	| RLiteral { value = OFunction _ } -> None
+	| _ -> Some NotFunction

@@ -189,7 +189,8 @@ let rec match_values_raw data seen objeq = function
         when match_functions_associated data fun1 fun2 ->
           (* Who thought that having a name property on functions was a good idea?
              And why do we have toString? *)
-            match_objects_memo match_values_raw ["toString"; "name"; "length"; "*J$SID*"; "*J$IID*"] data  seen objeq
+            match_objects_memo match_values_raw
+						  ["toString"; "name"; "length"; "*J$SID*"; "*J$IID*"; "apply"; "call"] data  seen objeq
                  (Function (id1, fun1)) (Function (id2, fun2))
     | (o1, o2) ->
         (objeq, Some (NonMatching ([], o1, o2) ))

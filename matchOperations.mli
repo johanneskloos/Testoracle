@@ -73,3 +73,5 @@ val may_be_wrapper_entry : call_comparator
 val is_not_function : rich_operation -> bool
 val is_matching_entry: rich_operation comparator
 val is_catch : rich_operation -> bool
+val match_higher_order : call_comparator
+val is_fun_literal : rich_operation -> mismatch option

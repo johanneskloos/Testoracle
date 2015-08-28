@@ -6,7 +6,7 @@ open Cleantrace
 open Reference
 open Graph
 
-type output_type = HTML | JSON | CSS | SVG
+type output_type = HTML | JSON | CSS
  
 module IntSig = struct
   type t = int

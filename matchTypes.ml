@@ -1,6 +1,15 @@
 open Richtrace
 (** The mode to switch to, on a push. *)
-type match_mode = Wrapper | Regular | External | ToString | Init | RegularEnter | WrapperEnter
+type match_mode = 
+	| Wrapper
+	| Regular
+	| External
+	| ToString
+	| Init
+	| RegularEnter
+	| WrapperEnter
+	| HigherOrder
+	| IndirectDefinitionPattern
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -39,7 +48,8 @@ type match_condition =
   | MayInsertInWrapSimple
 	| UseStrictRHS
   | IsCatch
-
+	| MatchHigherOrder
+	| IsFunLiteral
 
 
 (** Description of the current state of matching. *)
@@ -52,6 +62,8 @@ type match_state =
   | InExternal
   | InInit
 	| InWrapperEnter
+	| InHigherOrder
+	| InIndirectDefinitionPattern
 
 (**
 * The entries of the matching certificate.
@@ -74,6 +86,8 @@ let pp_match_mode pp = function
     | ToString -> Format.pp_print_string pp "toString"
     | Init -> Format.pp_print_string pp "init"
 		| WrapperEnter -> Format.pp_print_string pp "wrapper-enter"
+		| HigherOrder -> Format.pp_print_string pp "higher-order"
+		| IndirectDefinitionPattern -> Format.pp_print_string pp "indirect-def"
 
 let pp_match_operation pp = function
     | Initialization -> Format.pp_print_string pp "init"

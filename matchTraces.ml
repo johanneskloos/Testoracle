@@ -21,6 +21,7 @@ let rules_toplevel =
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush WrapperEnter);
     ([MayInit; IsToplevel; IsNotFunction], Initialization);
+		([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([IsCallInt (* TODO add "local function" check *)], InitializationPush Init)
     ]
 
@@ -29,12 +30,21 @@ let rules_regular =
     ([MatchSides; MayMatchSimple], MatchSimple);
     ([MatchSides; MatchCallInt], MatchPush RegularEnter);
     ([MatchSides; MatchCallExt], MatchPush External);
+		([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
     ([MatchSides; IsExit], MatchPop);
 		([UseStrictRHS], MatchDroppable);
+		([MatchSides; IsFunLiteral], MatchPush IndirectDefinitionPattern)
     ]
 
+let rules_higher_order =
+	[
+		([MatchSides; IsEnter], MatchPush Regular);
+		([IsEnter], WrapperPush Wrapper);
+		([MatchSides; IsPostExit], MatchPop)
+	]
+	
 let rules_regular_enter =
   [
     ([MatchEnter], MatchReplace Regular);
@@ -71,6 +81,10 @@ let rules_init =
     ([IsCallInt], InitializationPush Init);
     ([IsExit], InitializationPop) ]
 
+let rules_indirect_definition =
+	[ ([IsCallInt], WrapperPush Wrapper);
+		([IsPostExit], WrapperPop) ]
+		
 let interpret_rules (rules: (match_condition list * match_operation) list) matching_state op1 op2 =
     let (objeq, match12) = match_operations matching_state op1 op2 in
     let interpret_cond = function
@@ -91,7 +105,9 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
         | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd
 				| UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict
-        | IsCatch -> is_catch op2 |> explain NotCatch in
+        | IsCatch -> is_catch op2 |> explain NotCatch
+				| MatchHigherOrder -> match_higher_order matching_state op1 op2
+				| IsFunLiteral -> is_fun_literal op2 in
     let interpret_conds conds =
       conds
       |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])
@@ -113,6 +129,8 @@ let build_candidates matching_state op1 op2 state =
         | InExternal -> rules_external
         | InInit -> rules_init
 				| InWrapperEnter -> rules_wrapper_enter
+				| InHigherOrder -> rules_higher_order
+				| InIndirectDefinitionPattern -> rules_indirect_definition
     in
     interpret_rules (find_rules state) matching_state op1 op2
 
@@ -127,6 +145,8 @@ let get_state = function
     | External :: _ -> InExternal
     | ToString :: _ -> InToString
     | Init :: _ -> InInit
+		| HigherOrder :: _ -> InHigherOrder
+		| IndirectDefinitionPattern :: _ -> InIndirectDefinitionPattern
     | [] -> InToplevel
 
 let can_be_added_as_initialisation matching_state trace stack =
