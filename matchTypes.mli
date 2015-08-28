@@ -10,6 +10,8 @@ type match_mode =
 	| WrapperEnter
 	| HigherOrder
 	| IndirectDefinitionPattern
+	| ExtraFunctionPattern
+	| ToStringUpdatePattern
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -50,6 +52,9 @@ type match_condition =
   | IsCatch
 	| MatchHigherOrder
 	| IsFunLiteral
+	| IsLocalDecl
+	| IsFunRead
+	| IsEndOfExpr
 
 (** Description of the current state of matching. *)
 type match_state =
@@ -63,6 +68,8 @@ type match_state =
 	| InWrapperEnter
 	| InHigherOrder
 	| InIndirectDefinitionPattern
+	| InExtraFunctionPattern
+	| InToStringUpdatePattern
 
 (**
 * The entries of the matching certificate.

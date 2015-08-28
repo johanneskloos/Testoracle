@@ -75,3 +75,6 @@ val is_matching_entry: rich_operation comparator
 val is_catch : rich_operation -> bool
 val match_higher_order : call_comparator
 val is_fun_literal : rich_operation -> mismatch option
+val is_local_decl : rich_operation -> mismatch option
+val is_fun_read : rich_operation -> mismatch option
+val is_end_of_expr : rich_operation -> mismatch option

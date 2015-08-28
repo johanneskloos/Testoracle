@@ -359,16 +359,35 @@ let is_matching_entry matching_data op1 op2 =
     | _ -> (objeq, Some  NotEnter)
 
 (** Check if a call goes to a known higher-order function. *)
-let is_call_to id { funcs; objs } name =
+let is_call_to { funcs; objs; points_to } name: Richtrace.rfunpre -> bool = function
+	| { f = OFunction(_, id); base } as rt ->
+		Format.eprintf "Checking if %a is a higher-order call to %a@."
+			pp_rich_operation (RFunPre rt) (FormatHelper.pp_print_list Format.pp_print_string) name;
+		begin 
 	let rec lookup base name = match name with
 		| component :: rest ->
 			lookup (StringMap.find component objs.(get_object base)).value rest
 		| [] -> base
 	in try
-		match lookup (OObject 0) name with
-		| OFunction(_, id') -> id = id'
-		| _ -> false
-	with Not_found -> false
+		let get path = lookup (OObject 0) path in
+		let called_via path id' =
+			Format.eprintf "Checking for indirect call via %a@."
+				(FormatHelper.pp_print_list Format.pp_print_string) path;
+			match get path, base with
+			| OFunction(_, id''), OFunction(_, id''') when id = id'' ->
+					Format.eprintf "%d vs. %d@." id'' id'; id''' = id'
+		  | OFunction _, _ -> Format.eprintf "Not an indirect call.@."; false 
+			| (v, _) -> Format.eprintf "Not a function?! Got %a@." pp_jsval v; false
+		in match get name with
+		| OFunction(_, id') ->
+			Format.eprintf "Got implementation, id=%d@." id; 
+			id = id' ||
+			called_via ["Function"; "prototype"; "call"] id' ||
+			called_via ["Function"; "prototype"; "apply"] id'
+		| _ -> Format.eprintf "No implementation found@."; false
+	with Not_found -> Format.eprintf "Something not found@."; false
+	end
+	| _ -> Format.eprintf "Calling a non-function@."; false
 
 let known_higher_order = [
 	["Array"; "from"];
@@ -386,10 +405,9 @@ let known_higher_order = [
 
 let match_higher_order  { rt1; rt2 } op1 op2 =
 	match op1, op2 with
-	| RFunPre { f = OFunction (_, id1) },
-	  RFunPre { f = OFunction (_, id2) } ->
+	| RFunPre fp1,  RFunPre fp2 ->
 		if List.exists
-		  (fun name -> is_call_to id1 rt1 name && is_call_to id2 rt2 name)
+		  (fun name -> is_call_to rt1 name fp1 && is_call_to rt2 name fp2)
 			known_higher_order then
 			None
 		else
@@ -399,3 +417,15 @@ let match_higher_order  { rt1; rt2 } op1 op2 =
 let is_fun_literal = function
 	| RLiteral { value = OFunction _ } -> None
 	| _ -> Some NotFunction
+
+let is_local_decl = function
+	| RLocal _ -> None
+	| _ -> Some OtherOperation
+
+let is_fun_read = function
+	| RRead { value = OFunction _ } -> None
+	| _ -> Some OtherOperation
+
+let is_end_of_expr = function
+	| REndExpression -> None
+	| _ -> Some OtherOperation

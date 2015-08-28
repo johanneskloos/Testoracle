@@ -10,6 +10,8 @@ type match_mode =
 	| WrapperEnter
 	| HigherOrder
 	| IndirectDefinitionPattern
+	| ExtraFunctionPattern
+	| ToStringUpdatePattern
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -50,7 +52,9 @@ type match_condition =
   | IsCatch
 	| MatchHigherOrder
 	| IsFunLiteral
-
+	| IsLocalDecl
+	| IsFunRead
+	| IsEndOfExpr
 
 (** Description of the current state of matching. *)
 type match_state =
@@ -64,6 +68,8 @@ type match_state =
 	| InWrapperEnter
 	| InHigherOrder
 	| InIndirectDefinitionPattern
+	| InExtraFunctionPattern
+	| InToStringUpdatePattern
 
 (**
 * The entries of the matching certificate.
@@ -88,6 +94,8 @@ let pp_match_mode pp = function
 		| WrapperEnter -> Format.pp_print_string pp "wrapper-enter"
 		| HigherOrder -> Format.pp_print_string pp "higher-order"
 		| IndirectDefinitionPattern -> Format.pp_print_string pp "indirect-def"
+		| ExtraFunctionPattern -> Format.pp_print_string pp "extra-func"
+		| ToStringUpdatePattern -> Format.pp_print_string pp "tostring-update"
 
 let pp_match_operation pp = function
     | Initialization -> Format.pp_print_string pp "init"

@@ -106,7 +106,9 @@ let output_stack st =
     | RegularEnter -> "r"
 		| WrapperEnter -> "w"
 		| HigherOrder -> "H"
-		| IndirectDefinitionPattern -> "i" in
+		| IndirectDefinitionPattern -> "i"
+		| ExtraFunctionPattern -> "e"
+		| ToStringUpdatePattern -> "u" in
   let output_mode x = <:html< $str:mode_to_string x$ >> in
    <:html<$list:List.map output_mode st$>>
 
@@ -253,6 +255,9 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | IsCatch -> <:html<$output_op op2$ is not a catch>>
 		| MatchHigherOrder -> <:html<$output_op op2$ is not a higher-order call>>
 		| IsFunLiteral -> <:html<$output_op op2$ is not a function literal>>
+		| IsLocalDecl -> <:html<$output_op op2$ is not a local declaration>>
+		| IsFunRead -> <:html<$output_op op2$ is not a function read>>
+		| IsEndOfExpr -> <:html<$output_op op2$ is not end-of-expr>>
      in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
