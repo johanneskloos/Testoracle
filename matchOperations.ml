@@ -353,8 +353,7 @@ let is_matching_entry matching_data op1 op2 =
   match op1, op2 with
     | RFunEnter { f=OFunction(_, f1); args=args1; this=this1 },
       RFunEnter { f=OFunction(_, f2); args=args2; this=this2 } ->
-        !!objeq &&+
-        match_functions  f1 f2 &&&
+        !!objeq &&&
         match_val "args" args1 args2 &&&
         match_val "this" this1 this2
     | _ -> (objeq, Some  NotEnter)
