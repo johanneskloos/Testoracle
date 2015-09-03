@@ -10,48 +10,9 @@ val is_post_exit : rich_operation -> bool
 val is_enter : rich_operation -> bool
 val is_use_strict : rich_operation -> bool
 
-type matching_state = {
-  rt1 : rich_tracefile;
-  rt2 : rich_tracefile;
-  facts1 : LocalFacts.local_facts;
-  facts2 : LocalFacts.local_facts;
-  objeq : MatchObjects.objeq;
-  initialisation_data : Reference.VersionReferenceSet.t;
-  toString_data : Trace.jsval list;
-  nonequivalent_functions: Misc.IntIntSet.t;
-  known_blocked: match_mode list list Misc.IntIntMap.t
-}
-type mismatch =
-  | DifferentType
-  | DifferentObjects of string * MatchObjects.obj_match_failure
-  | DifferentArguments
-  | DifferentValues of string
-  | DifferentOperations
-  | OtherOperation
-  | NotToString
-  | NotInitData
-  | NotFunctionUpdate
-  | NotInitCode
-  | NotSimpleMatchable
-  | NotWrapCode
-  | NotToStringCode
-  | ExternalCall
-  | InternalCall
-  | NotLiterallyEqual
-  | LiterallyEqual
-  | NotToplevel
-  | NotFunction
-  | NotExit
-  | Observable
-  | NotAtToplevel
-  | NotEnter
-  | FunctionMismatch of MatchObjects.fun_match_failure
-	| NotUseStrict
-  | NotCatch
-  
 val explain: mismatch -> bool -> mismatch option
 
-type 'a comparator = matching_state -> 'a -> 'a -> MatchObjects.objeq * mismatch option
+type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
 type call_comparator = matching_state -> rich_operation -> rich_operation -> mismatch option
 

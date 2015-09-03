@@ -2,6 +2,7 @@ open Trace
 open Richtrace
 open Arg
 open Reference
+open MatchTypes
 
 type write_global = { ref: versioned_reference; value: jsval }
 type call_external = { f: jsval; this: jsval; args: jsval; result: jsval }

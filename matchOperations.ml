@@ -49,49 +49,6 @@ let is_catch = function RCatch _ -> true | _ -> false
 *
 * We summarize the matching state in a record.
 *)
-type matching_state = {
-    rt1: rich_tracefile;
-    rt2: rich_tracefile;
-    facts1: local_facts;
-    facts2: local_facts;
-    objeq: objeq;
-    initialisation_data: VersionReferenceSet.t;
-    toString_data: jsval list;
-    nonequivalent_functions: IntIntSet.t;
-    known_blocked: match_mode list list IntIntMap.t
-}
-
-
-(**
-* Check if two alias sources match.
-*)
-type mismatch =
-  | DifferentType
-  | DifferentObjects of string * obj_match_failure
-  | DifferentArguments
-  | DifferentValues of string
-  | DifferentOperations
-  | OtherOperation
-  | NotToString
-  | NotInitData
-  | NotFunctionUpdate
-  | NotInitCode
-  | NotSimpleMatchable
-  | NotWrapCode
-  | NotToStringCode
-  | ExternalCall
-  | InternalCall
-  | NotLiterallyEqual
-  | LiterallyEqual
-  | NotToplevel
-  | NotFunction
-  | NotExit
-  | Observable
-  | NotAtToplevel
-  | NotEnter
-  | FunctionMismatch of fun_match_failure
-	| NotUseStrict
-  | NotCatch
 
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
@@ -344,11 +301,7 @@ let is_not_function = function
 
 let is_matching_entry matching_data op1 op2 =
   let { rt1; rt2; facts1; facts2; objeq; toString_data; nonequivalent_functions } = matching_data in
-  let match_functions f1 f2 =
-    match match_functions (convert matching_data) f1 f2 with
-      | Some err -> Some (FunctionMismatch err)
-      | None -> None
-  and match_val key obj1 obj2 objeq =
+  let match_val key obj1 obj2 objeq =
     match_values key rt1 rt2 facts1 facts2 nonequivalent_functions obj1 obj2 objeq |> wrap_reason in
   match op1, op2 with
     | RFunEnter { f=OFunction(_, f1); args=args1; this=this1 },

@@ -5,20 +5,6 @@ open Misc
 open Richtrace
 open Reference
 open MatchTypes
-open CamomileLibraryDefault.Camomile
-
-type obj_match_failure =
-  | NonMatching of string list * jsval * jsval
-  | MissingOrig of string * string list
-  | MissingXfrm of string * string list
-  | Other of string
-
-type fun_match_failure =
-  | DifferentBodies of string * string
-  | DifferentInstrumentedBodies of string * string
-  | InconsistentlyInstrumented
-  | DifferentExternal of int * int
-  | InternalExternal
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option 
@@ -57,7 +43,6 @@ let function_body_split = function
 		with Not_found -> None
 
 type whitespace_state = Initial | Pending | NotPending
-let whitespace_set = let open UCharInfo in load_property_set `White_Space;;
 
 let use_strict = Pcre.regexp "['\"]use ?strict[\"']( *;)? *"
 let whitespace = Pcre.regexp "\\s+"

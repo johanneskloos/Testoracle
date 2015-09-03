@@ -26,7 +26,7 @@ type trace_inner_node_data = {
   op1: rich_operation;
   op2: rich_operation;
   stack: match_mode list;
-  trace_trace: ((match_condition * MatchOperations.mismatch) list * match_operation) list
+  trace_trace: ((match_condition * mismatch) list * match_operation) list
   }
 
 type trace_node =
