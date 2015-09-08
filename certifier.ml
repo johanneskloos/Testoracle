@@ -67,6 +67,8 @@ let server_callback cache conn req body =
   	      | (HTML, body) -> ("text/html", body)
     	    | (JSON, body) -> ("application/json", body)
       	  | (CSS, body) -> ("text/css", body)
+					| (SVG, body) -> ("image/svg+xml", body)
+					| (TEXT, body) -> ("text/plain", body)
 	    end |> fun (ctype, body) ->
   	      Server.respond_string ~status:`OK ~headers: (Header.init_with "Content-type" ctype) ~body ()
 		with e -> Format.eprintf "%s@." (Printexc.to_string e); raise e

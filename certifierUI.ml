@@ -258,6 +258,7 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
 		| IsLocalDecl -> <:html<$output_op op2$ is not a local declaration>>
 		| IsFunRead -> <:html<$output_op op2$ is not a function read>>
 		| IsEndOfExpr -> <:html<$output_op op2$ is not end-of-expr>>
+		| IsIndirectCall -> <:html<$output_op op2$ is not an indirect call>>
      in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
@@ -394,6 +395,10 @@ let trace_multiplex self base data query =
           | Some idx -> (HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
           | None -> raise (Invalid_argument "Needs exactly one index")
         end
+		| Some "dot" ->
+			(TEXT, generate_dot self base data)
+		| Some "svg" ->
+			(SVG, generate_svg self base data)
     | None ->  (HTML, trace_main_page self base data |> Cow.Html.to_string)
     | _ -> raise (Invalid_argument "Unknown operation given")
 

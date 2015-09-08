@@ -6,7 +6,7 @@ open Cleantrace
 open Reference
 open Graph
 
-type output_type = HTML | JSON | CSS
+type output_type = HTML | JSON | CSS | SVG | TEXT
  
 module IntSig = struct
   type t = int
@@ -135,3 +135,26 @@ let extract_data data =
       | MatchTracesObserver.RBlockedShared (id, len1, len2, stack) ->
         { tree; nodes = TraceNodes.add id (BlockedData (len1, len2, stack)) nodes })
       { tree = TraceTree.empty; nodes = TraceNodes.empty } data
+
+let generate_dot self base { tree; nodes } =
+	let open Format in
+	let bufbase = Buffer.create 1048576 in
+	let buf = formatter_of_buffer bufbase in
+	fprintf buf "digraph search {@.";
+	TraceTree.iter_vertex (fun v -> fprintf	buf "\tn%d [label=\"%d\",URL=\"%s\"@."
+		v v (self [("operation", "details"); ("index", string_of_int v)])) tree;
+	TraceTree.iter_edges (fun f t -> fprintf buf "\tn%d -> n%d@." f t) tree;
+	fprintf buf "}@.";
+	pp_print_flush buf ();
+	Buffer.contents bufbase
+
+let generate_svg self base data =
+	let (tmpname, tmp) = Filename.open_temp_file "cert" ".dot" in
+	let tmpsvg = Filename.temp_file "cert" ".svg" in
+	output_string tmp (generate_dot self base data);
+	close_out tmp;
+	Unix.system(Misc.to_string (fun pp ->
+		Format.fprintf pp "dot -Tsvg %s >%s" tmpname tmpsvg));
+	let buf = Buffer.create 1048576
+	and inp = open_in tmpsvg in
+	
