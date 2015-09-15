@@ -155,20 +155,6 @@ let build_candidates matching_state op1 op2 state =
 (**
 * Helpers for the matching engine.
 *)
-let get_state = function
-    | Wrapper :: _ -> InWrap
-		| WrapperEnter :: _ -> InWrapperEnter
-    | Regular :: _ -> InRegular
-    | RegularEnter :: _ -> InRegularEnter
-    | External :: _ -> InExternal
-    | ToString :: _ -> InToString
-    | Init :: _ -> InInit
-		| HigherOrder :: _ -> InHigherOrder
-		| IndirectDefinitionPattern :: _ -> InIndirectDefinitionPattern
-		| ExtraFunctionPattern :: _ -> InExtraFunctionPattern
-		| ToStringUpdatePattern :: _ -> InToStringUpdatePattern
-    | [] -> InToplevel
-
 let can_be_added_as_initialisation matching_state trace stack =
   if get_state stack <> InToplevel then Some NotAtToplevel
   else if List.for_all (fun (op, facts) ->

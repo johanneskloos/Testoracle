@@ -269,3 +269,22 @@ let pp_failed pp (failed_cons, op) =
     (FormatHelper.pp_print_list_lines
       (fun pp (cond, reason) -> fprintf pp "%a because %a" pp_cond cond pp_reason reason))
       failed_cons
+
+let get_state = function
+    | Wrapper :: _ -> InWrap
+		| WrapperEnter :: _ -> InWrapperEnter
+    | Regular :: _ -> InRegular
+    | RegularEnter :: _ -> InRegularEnter
+    | External :: _ -> InExternal
+    | ToString :: _ -> InToString
+    | Init :: _ -> InInit
+		| HigherOrder :: _ -> InHigherOrder
+		| IndirectDefinitionPattern :: _ -> InIndirectDefinitionPattern
+		| ExtraFunctionPattern :: _ -> InExtraFunctionPattern
+		| ToStringUpdatePattern :: _ -> InToStringUpdatePattern
+    | [] -> InToplevel
+
+let pp_event_match pp = function
+  | Pair(r1, r2) -> fprintf pp "Pair\t%a\t%a@." pp_rich_operation r1 pp_rich_operation r2
+  | Init i -> fprintf pp "Init\t\t%a@." pp_rich_operation i
+  | Wrap i -> fprintf pp "Wrap\t\t%a@." pp_rich_operation i

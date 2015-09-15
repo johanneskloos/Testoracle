@@ -53,6 +53,7 @@ let is_catch = function RCatch _ -> true | _ -> false
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
 type call_comparator = matching_state -> rich_operation -> rich_operation -> mismatch option
+type simple_predicate = rich_operation -> mismatch option
 
 let match_source { rt1; rt2; facts1; facts2; objeq; nonequivalent_functions } src1 src2 =
     match src1, src2 with

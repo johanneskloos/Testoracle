@@ -20,10 +20,6 @@ open MatchTypes
 * on the right.
 *)
 
-(** Get the operating match_state by examining the stack. *)
-
-val get_state : match_mode list -> match_state
-
 val add_objeq :
   rich_operation -> objeq -> 'a -> 'a * objeq
 
