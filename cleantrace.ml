@@ -163,61 +163,62 @@ let pp_call_type pp = function
     | Constructor -> fprintf pp "constructor"
     | ConstructorMethod -> fprintf pp "constructor method"
 
+let pp_declaration_type pp = function
+  | Var -> pp_print_string pp "LocalVariable"
+  | ArgumentArray -> pp_print_string pp "ArgumentArray"
+  | ArgumentBinding i -> fprintf pp "Argument(%d)" i
+  | CatchParam -> pp_print_string pp "CatchParameter"
+
 let pp_clean_operation pp = function
     | CFunPre { f; base; args; call_type } ->
-        fprintf pp "Calling %a %a on %a with %a"
-            pp_call_type call_type pp_jsval f pp_jsval base pp_jsval args
+        fprintf pp "CFunPre(f=%a, base=%a, args=%a, call_type=%a)"
+            pp_jsval f pp_jsval base pp_jsval args pp_call_type call_type
     | CFunPost { f; base; args; result; call_type } ->
-        fprintf pp "Called %a %a on %a with %a, result = %a"
-            pp_call_type call_type pp_jsval f pp_jsval base pp_jsval args
-            pp_jsval result
+        fprintf pp "CFunPost(f=%a, base=%a, args=%a, result=%a, call_type=%a"
+            pp_jsval f pp_jsval base pp_jsval args
+            pp_jsval result pp_call_type call_type
     | CLiteral { value; hasGetterSetter } ->
-        fprintf pp "Literal %a%s" pp_jsval value
-            (if hasGetterSetter then " (has getter and setter)" else "")
+        fprintf pp "CLiteral(value=%a,hasGetterSetter=%b" pp_jsval value hasGetterSetter
     | CForIn value ->
-        fprintf pp "for (... in %a)" pp_jsval value
+        fprintf pp "CForIn(%a)" pp_jsval value
     | CDeclare { name; value; declaration_type } ->
-        begin match declaration_type with
-            | Var -> fprintf pp "var %s = %a" name pp_jsval value
-            | ArgumentArray -> fprintf pp "%s (argument array) = %a" name pp_jsval value
-            | ArgumentBinding i -> fprintf pp "%s (argument %d) = %a" name i pp_jsval value
-            | CatchParam -> fprintf pp "catch %s = %a" name pp_jsval value
-        end
+      fprintf pp "CDeclare(name=%s, value=%a, declaration_type=%a"
+        name pp_jsval value pp_declaration_type declaration_type
     | CGetField { base; offset; value } ->
-        fprintf pp "Reading %a.%s, gives %a" pp_jsval base offset pp_jsval value
+        fprintf pp "CGetField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
     | CPutField { base; offset; value } ->
-        fprintf pp "Writing %a.%s, value %a" pp_jsval base offset pp_jsval value
+        fprintf pp "CPutField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
     | CRead { name; value; isGlobal } ->
-        fprintf pp "Reading %s (global=%B), value %a" name isGlobal pp_jsval value
+        fprintf pp "CRead(name=%s, global=%B, value=%a)" name isGlobal pp_jsval value
     | CWrite { name; lhs; value; isGlobal; isSuccessful } ->
-        fprintf pp "Writing %s (global=%B), old value %a, new value %a, successful: %B"
+        fprintf pp "CWrite(name=%s, global=%B, oldValue=%a, newValue=%a, successful=%B)"
             name isGlobal pp_jsval lhs pp_jsval value isSuccessful
     | CReturn value ->
-        fprintf pp "return %a" pp_jsval value
+        fprintf pp "CReturn(value=%a)" pp_jsval value
     | CThrow value ->
-        fprintf pp "throw %a" pp_jsval value
+        fprintf pp "CThrow(value=%a)" pp_jsval value
     | CWith value ->
-        fprintf pp "with %a" pp_jsval value
+        fprintf pp "CWith(value=%a)" pp_jsval value
     | CFunEnter { f; this; args } ->
-        fprintf pp "Entering %a with base %a and args %a"
+        fprintf pp "CEnter(f=%a, base=%a, args=%a)"
             pp_jsval f pp_jsval this pp_jsval args
     | CFunExit { ret; exc } ->
-        fprintf pp "Exiting function, return value %a and exception %a"
+        fprintf pp "CExit(value=%a, exception=%a)"
             pp_jsval ret pp_jsval exc
     | CScriptEnter ->
-        fprintf pp "Entering script"
+        fprintf pp "CScriptEnter"
     | CScriptExit ->
-        fprintf pp "Exiting script"
+        fprintf pp "CScriptExit"
     | CScriptExc exc ->
-        fprintf pp "Exiting script with exception %a" pp_jsval exc
+        fprintf pp "CScriptExit(value=%a)" pp_jsval exc
     | CBinary { op; left; right; result } ->
-        fprintf pp "%a %s %a yields %a" pp_jsval left op pp_jsval right pp_jsval result
+        fprintf pp "CBinary(left=%a, op=%s, right=%a, result=%a)" pp_jsval left op pp_jsval right pp_jsval result
     | CUnary { op; arg; result } ->
-        fprintf pp "%s %a yields %a" op pp_jsval arg pp_jsval result
+        fprintf pp "CUnar(op=%s, arg=%a, result=%a)" op pp_jsval arg pp_jsval result
     | CEndExpression ->
-        fprintf pp "(discarding result)"
+        fprintf pp "CEndExpression"
     | CConditional value ->
-        fprintf pp "conditional yields %a" pp_jsval value
+        fprintf pp "CConditonal(value=%a)" pp_jsval value
 
 let pp_clean_trace = FormatHelper.pp_print_list_lines pp_clean_operation
 let pp_clean_tracefile pp (f, o, t, g, gap) =

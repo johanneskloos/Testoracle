@@ -65,64 +65,46 @@ let pp_alias_source pp = function
 
 let pp_rich_operation pp = function
     | RFunPre { f; base; args; call_type } ->
-        begin match call_type with
-        | Function ->
-            fprintf pp "Calling function %a on %a with %a"
-                pp_jsval f pp_jsval base pp_jsval args
-        | Method ->
-            fprintf pp "Calling method %a on %a with %a"
-                pp_jsval f pp_jsval base pp_jsval args
-        | Constructor ->
-            fprintf pp "Calling constructor %a on %a with %a"
-                pp_jsval f pp_jsval base pp_jsval args
-        | ConstructorMethod ->
-            fprintf pp "Calling constructor method %a on %a with %a"
-                pp_jsval f pp_jsval base pp_jsval args
-        end
+      fprintf pp "RFunPre(f=%a, base=%a, args=%a, call_type=%a)"
+        pp_jsval f pp_jsval base pp_jsval args pp_call_type call_type
     | RFunPost { f; base; args; result } ->
-        fprintf pp "Calling %a on %a with %a returns %a"
+        fprintf pp "RFunPost(f=%a, base=%a, args=%a, result=%a)"
             pp_jsval f pp_jsval base pp_jsval args pp_jsval result
     | RLiteral { value; hasGetterSetter } ->
-        fprintf pp "Literal %a" pp_jsval value;
-        if hasGetterSetter then pp_print_string pp " (has getter and/or setter)"
-    | RForIn obj -> fprintf pp "for (... in %a)" pp_jsval obj
+        fprintf pp "RLiteral(value=%a, hasGetterSetter=%B)" pp_jsval value hasGetterSetter;
+    | RForIn obj -> fprintf pp "RForIn(value=%a)" pp_jsval obj
     | RLocal { name; ref } ->
-        fprintf pp "var %s; (reference: %a)" name pp_versioned_reference ref
+        fprintf pp "RLocal(name=%s, ref=%a)" name pp_versioned_reference ref
     | RCatch { name; ref } ->
-        fprintf pp "catch %s; (reference: %a)" name pp_versioned_reference ref
+        fprintf pp "RCatch(name=%s, ref=%a)" name pp_versioned_reference ref
     | RAlias { name; source; ref } ->
-        fprintf pp "introducting alias %s for %a due to %a"
+        fprintf pp "RAlias(name=%s, ref=%a, source=%a)"
             name pp_versioned_reference ref pp_alias_source source
     | RRead { ref; value } ->
-        fprintf pp "Reading %a yields %a"
+        fprintf pp "RRead(ref=%a, value=%a)"
             pp_versioned_reference ref pp_jsval value
     | RWrite { ref; value; oldref; success } ->
-        if success then
-            fprintf pp "Writing %a to %a (formerly %a)"
+        fprintf pp "RWrite(ref=%a, value=%a, oldref=%a, success=%B"
                 pp_jsval value pp_versioned_reference ref
-                pp_versioned_reference oldref
-        else
-            fprintf pp "Ignored write of %a to %a (formerly %a)" 
-                pp_jsval value pp_versioned_reference ref
-                pp_versioned_reference oldref
-    | RReturn obj -> fprintf pp "return %a" pp_jsval obj
-    | RThrow obj -> fprintf pp "throw %a" pp_jsval obj
-    | RWith obj -> fprintf pp "with %a" pp_jsval obj
+                pp_versioned_reference oldref success
+    | RReturn obj -> fprintf pp "RReturn(value=%a)" pp_jsval obj
+    | RThrow obj -> fprintf pp "RThrow(value=%a)" pp_jsval obj
+    | RWith obj -> fprintf pp "RWith(value=%a)" pp_jsval obj
     | RFunEnter { f; this; args } ->
-        fprintf pp "Entering %a on %a with %a"
+        fprintf pp "RFunEnter(f=%a, this=%a, args=%a)"
             pp_jsval f pp_jsval this pp_jsval args
     | RFunExit { ret; exc } ->
-        fprintf pp "Returning %a with exception %a" pp_jsval ret pp_jsval exc
-    | RScriptEnter -> pp_print_string pp "Entering script"
-    | RScriptExit -> pp_print_string pp "Exiting script"
-    | RScriptExc e -> fprintf pp "Exiting script with exception %a" pp_jsval e
+        fprintf pp "RFunExit(ret=%a, exc=%a)" pp_jsval ret pp_jsval exc
+    | RScriptEnter -> pp_print_string pp "RScriptEnter"
+    | RScriptExit -> pp_print_string pp "RScriptExit"
+    | RScriptExc e -> fprintf pp "RScriptExit(value=%a)" pp_jsval e
     | RBinary { op; left; right; result } ->
-        fprintf pp "Evaluationg %a %s %a yields %a"
+        fprintf pp "RBinary(left=%a, op=%s, right=%a, result=%a)"
             pp_jsval left op pp_jsval right pp_jsval result
     | RUnary { op; arg; result } ->
-        fprintf pp "Evaluationg %s %a yields %a" op pp_jsval arg pp_jsval result
-    | REndExpression -> pp_print_string pp "(discarding expression result)"
-    | RConditional value -> fprintf pp "Conditional yielded %a" pp_jsval value
+        fprintf pp "RUnary(op=%s, arg=%a, result=%a)" op pp_jsval arg pp_jsval result
+    | REndExpression -> pp_print_string pp "REndExpression"
+    | RConditional value -> fprintf pp "RConditional(value=%a)" pp_jsval value
 
 let dump_facts = ref false
 
@@ -149,6 +131,8 @@ let pp_rich_tracefile pp
     pp_rich_trace trace
     pp_points_to_map points_to
 
+let is_external data f = false (* XXX *)
+
 let enrich_step globals_are_properties objs (op, data) =
     let mkfieldref base offset =
         reference_of_field base offset |> make_versioned data
@@ -156,8 +140,12 @@ let enrich_step globals_are_properties objs (op, data) =
         reference_of_name globals_are_properties data.aliases isGlobal name
         |> make_versioned data in
     let res = match op with
+  | CFunPre { f; base; args; call_type } when is_external data f ->
+          [RFunPre { f; base; args; call_type }; RFunEnter { f; this=base; args } ]
   | CFunPre { f; base; args; call_type } ->
           [RFunPre { f; base; args; call_type } ]
+  | CFunPost { f; base; args; result } when is_external data f ->
+          [RFunExit { ret = result; exc = OUndefined }; RFunPost { f; base; args; result }]
   | CFunPost { f; base; args; result } -> [RFunPost {f; base; args; result}]
   | CLiteral { value; hasGetterSetter } -> [RLiteral {value; hasGetterSetter}]
   | CForIn value -> [RForIn value]

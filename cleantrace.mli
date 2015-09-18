@@ -95,6 +95,7 @@ type clean_trace = clean_operation list
 (** A clean trace file is like a trace file, only it contains a clean trace. *)
 type clean_tracefile = functions * objects * clean_trace * globals * bool
 (** Pretty-printers. *)
+val pp_call_type : Format.formatter -> call_type -> unit
 val pp_clean_operation : Format.formatter -> clean_operation -> unit
 val pp_clean_trace : Format.formatter -> clean_trace -> unit
 val pp_clean_tracefile : Format.formatter -> clean_tracefile -> unit

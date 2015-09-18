@@ -17,7 +17,7 @@ let rules_toplevel =
     [
     ([MatchSides; MayMatchSimple; IsToplevel], MatchSimple);
     ([MatchSides; MatchCallInt], MatchPush RegularEnter);
-    ([MatchSides; MatchCallExt], MatchPush External);
+    ([MatchSides; MatchCallExt], MatchPush RegularEnter);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush WrapperEnter);
     ([MayInit; IsToplevel; IsNotFunction], Initialization);
@@ -29,7 +29,7 @@ let rules_regular =
     [
     ([MatchSides; MayMatchSimple], MatchSimple);
     ([MatchSides; MatchCallInt], MatchPush RegularEnter);
-    ([MatchSides; MatchCallExt], MatchPush External);
+    ([MatchSides; MatchCallExt], MatchPush RegularEnter);
 		([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);

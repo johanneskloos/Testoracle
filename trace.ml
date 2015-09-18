@@ -383,83 +383,55 @@ let pp_jsval pp = function
   | OOther (ty, id) -> fprintf pp "other:%s:%d" ty id
 
 let pp_operation pp = function
-  | FunPre x ->
-      if x.isConstructor && x.isMethod then fprintf pp "Calling constructor %a on %a with %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
-      else if x.isConstructor then fprintf pp "Calling constructor %a using base %a on %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
-      else if x.isMethod then fprintf pp "Calling function %a on %a with %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
-      else fprintf pp "Calling function %a using base %a on %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args
-  | FunPost x ->
-      if x.isConstructor && x.isMethod then fprintf pp "Called constructor %a on %a with %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
-      else if x.isConstructor then fprintf pp "Called constructor %a using base %a on %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
-      else if x.isMethod then fprintf pp "Called function %a on %a with %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
-      else fprintf pp "Called function %a using base %a on %a, returns %a" pp_jsval x.f pp_jsval x.base pp_jsval x.args pp_jsval x.result
-  | Literal x -> fprintf pp "Literal %a%s" pp_jsval x.value (if x.hasGetterSetter then " (has getter and setter)" else "")
-  | ForIn x -> fprintf pp "for (... in %a)" pp_jsval x.value
-  | Declare x ->
-      begin match x.argument with
-        | Some i -> fprintf pp "argument def: %s from %d = %a" x.name i pp_jsval x.value
-        | None ->
-            if x.isCatchParam then
-              fprintf pp "catch %s = %a" x.name pp_jsval x.value
-            else
-              fprintf pp "var %s = %a" x.name pp_jsval x.value
-      end
-  | GetFieldPre x ->
-      if x.isOpAssign then
-        fprintf pp "Reading %a.%s (for assign-and-modify)" pp_jsval x.base x.offset
-      else if x.isMethodCall then
-        fprintf pp "Reading %a.%s (for method call)" pp_jsval x.base x.offset
-      else
-        fprintf pp "Reading %a.%s" pp_jsval x.base x.offset
-  | GetField x ->
-      if x.isOpAssign then
-        fprintf pp "Reading %a.%s gives %a (for assign-and-modify)" pp_jsval x.base x.offset pp_jsval x.value
-      else if x.isMethodCall then
-        fprintf pp "Reading %a.%s gives %a (for method call)" pp_jsval x.base x.offset pp_jsval x.value
-      else
-        fprintf pp "Reading %a.%s gives %a" pp_jsval x.base x.offset pp_jsval x.value
-  | PutFieldPre x ->
-      if x.isOpAssign then
-        fprintf pp "Writing %a to %a.%s (pre, for assign-and-modify)" pp_jsval x.value pp_jsval x.base x.offset
-      else
-        fprintf pp "Writing %a to %a.%s (pre)" pp_jsval x.value pp_jsval x.base x.offset
-  | PutField x ->
-      if x.isOpAssign then
-        fprintf pp "Writing %a to %a.%s (for assign-and-modify)" pp_jsval x.value pp_jsval x.base x.offset
-      else
-        fprintf pp "Writing %a to %a.%s" pp_jsval x.value pp_jsval x.base x.offset
-  | Read x ->
-    fprintf pp "Reading %s (global=%B, scriptLocal=%B) gives %a"
-      x.name x.isGlobal x.isScriptLocal pp_jsval x.value
-  | Write x ->
-    fprintf pp "Writing to %s (global=%B, scriptLocal=%B), new value: %a"
-      x.name x.isGlobal x.isScriptLocal pp_jsval x.value 
-  | Return x -> fprintf pp "return %a" pp_jsval x.value
-  | Throw x -> fprintf pp "throw %a" pp_jsval x.value
-  | With x -> fprintf pp "with %a" pp_jsval x.value
-  | FunEnter x -> fprintf pp "Entering %a with base %a and arguments %a" pp_jsval x.f pp_jsval x.this pp_jsval x.args
-  | FunExit x -> fprintf pp "Exiting function, return %a and exception %a" pp_jsval x.ret pp_jsval x.exc
-  | ScriptEnter -> pp_print_string pp "script entry"
-  | ScriptExit -> pp_print_string pp "script exit"
+  | FunPre { isConstructor; isMethod; f; base; args } ->
+    fprintf pp "FunPre(f=%a, base=%a, args=%a, isConstructor=%b, isMethod = %b"
+      pp_jsval f pp_jsval base pp_jsval args isConstructor isMethod
+  | FunPost { isConstructor; isMethod; f; base; args; result } ->
+    fprintf pp "FunPost(f=%a, base=%a, args=%a, result=%a, isConstructor=%b, isMethod = %b"
+      pp_jsval f pp_jsval base pp_jsval args pp_jsval result isConstructor isMethod
+  | Literal { value; hasGetterSetter} -> fprintf pp "Literal(value=%a, hasGetterSetter=%b)" pp_jsval value hasGetterSetter
+  | ForIn { value } -> fprintf pp "ForIn(value=%a)" pp_jsval value
+  | Declare { name; value; argument; isCatchParam } ->
+    fprintf pp "Declare(name=%s, value=%a, argument=%a, isCatchParam=%b)"
+      name pp_jsval value (FormatHelper.pp_print_option Format.pp_print_int) argument isCatchParam
+  | GetFieldPre { base; offset; isOpAssign; isMethodCall } ->
+    fprintf pp "GetFieldPre(base=%a, offset=%s, isOpAssign=%b, isMethodCall=%b)"
+      pp_jsval base offset isOpAssign isMethodCall
+  | GetField  { base; offset; value; isOpAssign; isMethodCall } ->
+    fprintf pp "GetFieldPre(base=%a, offset=%s, result=%a, isOpAssign=%b, isMethodCall=%b)"
+      pp_jsval base offset pp_jsval value isOpAssign isMethodCall
+  | PutFieldPre { value; base; offset; isOpAssign } ->
+    fprintf pp "PutFieldPre(base=%a, offset=%s, value=%a, isOpAssign=%b"
+      pp_jsval base offset pp_jsval value isOpAssign
+  | PutField { value; base; offset; isOpAssign } ->
+    fprintf pp "PutField(base=%a, offset=%s, value=%a, isOpAssign=%b"
+      pp_jsval base offset pp_jsval value isOpAssign
+  | Read { name; isGlobal; isScriptLocal; value } ->
+      fprintf pp "Read(name=%s, value=%a, isGlobal=%b, isScriptLocal=%b"
+        name pp_jsval value isGlobal isScriptLocal 
+  | Write { name; isGlobal; isScriptLocal; value } ->
+      fprintf pp "Write(name=%s, value=%a, isGlobal=%b, isScriptLocal=%b"
+        name pp_jsval value isGlobal isScriptLocal 
+  | Return { value } -> fprintf pp "Return(%a)" pp_jsval value
+  | Throw { value } -> fprintf pp "Throw(%a)" pp_jsval value
+  | With { value } -> fprintf pp "With(%a)" pp_jsval value
+  | FunEnter { f; this; args } -> fprintf pp "FunEnter(f=%a, this=%a, args=%a)" pp_jsval f pp_jsval this pp_jsval args
+  | FunExit { ret; exc } -> fprintf pp "FunExit(ret=%a, exc=%a)" pp_jsval ret pp_jsval exc
+  | ScriptEnter -> pp_print_string pp "ScriptEnter"
+  | ScriptExit -> pp_print_string pp "ScriptExit"
   | ScriptExc exc -> fprintf pp "script exit with exception %a" pp_jsval exc
-  | BinPre x ->
-      if x.isOpAssign then
-        fprintf pp "%a %s= %a" pp_jsval x.left x.op pp_jsval x.right
-      else if x.isSwitchCaseComparison then
-        fprintf pp "case %a %s %a" pp_jsval x.left x.op pp_jsval x.right
-      else
-        fprintf pp "%a %s %a" pp_jsval x.left x.op pp_jsval x.right
-  | BinPost x ->
-      if x.isOpAssign then
-        fprintf pp "%a %s= %a returns‡’ %a" pp_jsval x.left x.op pp_jsval x.right pp_jsval x.result
-      else if x.isSwitchCaseComparison then
-        fprintf pp "case %a %s %a âreturns %a" pp_jsval x.left x.op pp_jsval x.right pp_jsval x.result
-      else
-        fprintf pp "%a %s %a â‡’ %a" pp_jsval x.left x.op pp_jsval x.right pp_jsval x.result
-  | UnaryPre x -> fprintf pp "%s %a" x.op pp_jsval x.arg
-  | UnaryPost x -> fprintf pp "%s %a returns‡’ %a" x.op pp_jsval x.arg pp_jsval x.result
-  | EndExpression iid -> pp_print_string pp "(end of expression)"
-  | Conditional v -> fprintf pp "end of conditional, %a" pp_jsval v.value
+  | BinPre { left; right; op; isOpAssign; isSwitchCaseComparison } ->
+      fprintf pp "BinPre(left=%a, op=%s, right=%a, isOpAssign=%b, isSwitchCaseComparison=%b"
+        pp_jsval left op pp_jsval right isOpAssign isSwitchCaseComparison
+  | BinPost { left; right; op; result; isOpAssign; isSwitchCaseComparison } ->
+      fprintf pp "BinPost(left=%a, op=%s, right=%a, result=%a, isOpAssign=%b, isSwitchCaseComparison=%b"
+        pp_jsval left op pp_jsval right pp_jsval result isOpAssign isSwitchCaseComparison
+  | UnaryPre { op; arg } ->
+      fprintf pp "UnaryPre(op=%s, arg=%a)" op pp_jsval arg
+  | UnaryPost { op; arg; result } ->
+      fprintf pp "UnaryPost(op=%s, arg=%a, result=%a)" op pp_jsval arg pp_jsval result
+  | EndExpression iid -> pp_print_string pp "EndExpression"
+  | Conditional { value } -> fprintf pp "Conditional(value=%a)" pp_jsval value
 
 let pp_trace pp trace =
   pp_open_vbox pp 0;

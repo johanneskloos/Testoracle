@@ -37,15 +37,6 @@ let get_certs () =
   |> List.sort (fun (n1, _) (n2, _) -> String.compare n1 n2)
   
 let good_path = Str.regexp "^/[^/]*$"
-let bad_path path =
-  (HTML, <:html<
-  <html>
-    <head><title>Invalid request</title></head>
-    <body>
-    Request for invalid reqsource $str:path$
-    </body>
-  </html>
-  >> |> Cow.Html.to_string)
   
 let server_callback cache conn req body =
     let uri = req |> Request.uri in

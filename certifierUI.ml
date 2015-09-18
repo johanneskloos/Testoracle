@@ -6,6 +6,16 @@ open Cleantrace
 open Reference
 open CertifierData
 
+let bad_path_page path =
+  (HTML, <:html<
+  <html>
+    <head><title>Invalid request</title></head>
+    <body>
+    Request for invalid reqsource $str:path$
+    </body>
+  </html>
+  >> |> Cow.Html.to_string)
+
 let output_val = function 
   | OUndefined -> <:html<(undefined)>>
   | ONull -> <:html<(null)>>
