@@ -206,8 +206,9 @@ let calculate_rich_tracefile tracefile =
     calculate_arguments_and_parameters |>
     calculate_versions |>
     fun tf ->
-    let (funcs, objs, etrace, globals, globals_are_properties) = tf in
-        { funcs; objs; globals; globals_are_properties;
-          trace = etrace |> List.map (enrich_step globals_are_properties objs)
-                         |> List.flatten;
-          points_to = calculate_pointsto tf }
+    let (funcs, objs, etrace, globals, globals_are_properties) = tf
+    and points_to = calculate_pointsto tf in
+        { funcs; objs; globals; globals_are_properties; points_to;
+          trace = etrace
+                         |> List.map (enrich_step globals_are_properties objs)
+                         |> List.flatten }
