@@ -87,25 +87,43 @@ let check_global locals globals name =
     else if List.mem name globals then (locals, globals, true)
     else (locals, name:: globals, true)
 
+let encode_pre ({ f; base; args; isMethod; isConstructor }: Trace.funpre) =
+  CFunPre { f; base; args; call_type = encode_type isMethod isConstructor }
+let encode_post { f; base; args; result; isMethod; isConstructor } =
+  CFunPost { f; base; args; result; call_type = encode_type isMethod isConstructor }
+let encode_decl { name; value; argument; isCatchParam } =
+  assert (argument = None || isCatchParam = false);
+  CDeclare { name; value; declaration_type =
+    match argument with
+      | Some i when i >= 0 -> ArgumentBinding i
+      | Some _ -> ArgumentArray
+      | None -> if isCatchParam then CatchParam else Var }
+
 let rec clean_impl stack locals globals = function
-    | FunPre { f; base; args; isMethod; isConstructor } :: tr ->
-        CFunPre { f; base; args; call_type = encode_type isMethod isConstructor } ::
-        clean_impl (locals:: stack) locals globals tr
-    | FunPost { f; base; args; result; isMethod; isConstructor } :: tr ->
-        CFunPost { f; base; args; result; call_type = encode_type isMethod isConstructor } ::
-        clean_impl (List.tl stack) (List.hd stack) globals tr
+    (* Special-case handling for uninstrumented function bodies *)
+    | FunPre ({ f; base; args } as fpre) :: FunPost ({ result } as fpost) :: tr ->
+        encode_pre fpre ::
+        CFunEnter { f; this=base; args } ::
+        CFunExit { ret=result; exc=OUndefined } ::
+        encode_post fpost ::
+        clean_impl stack locals globals tr 
+    | FunPre ({ f; base; args } as fpre) :: Declare ({ value; isCatchParam=true } as decl) :: tr ->
+        encode_pre fpre ::
+        CFunEnter { f; this=base; args } ::
+        CFunExit { ret=OUndefined; exc=value } ::
+        encode_decl decl ::
+        clean_impl stack locals globals tr 
+    (* Regular cleanup *)
+    | FunPre fpre :: tr ->
+        encode_pre fpre :: clean_impl (locals:: stack) locals globals tr
+    | FunPost fpost :: tr ->
+        encode_post fpost :: clean_impl (List.tl stack) (List.hd stack) globals tr
     | Literal { value; hasGetterSetter } :: tr ->
         CLiteral { value; hasGetterSetter } :: clean_impl stack locals globals tr
     | ForIn { value } :: tr ->
         CForIn value :: clean_impl stack locals globals tr
-    | Declare { name; value; argument; isCatchParam } :: tr ->
-        assert (argument = None || isCatchParam = false);
-        CDeclare { name; value; declaration_type =
-                match argument with
-                | Some i when i >= 0 -> ArgumentBinding i
-                | Some _ -> ArgumentArray
-                | None -> if isCatchParam then CatchParam else Var } ::
-        clean_impl stack (name :: locals) globals tr
+    | Declare decl :: tr ->
+        encode_decl decl :: clean_impl stack (decl.name :: locals) globals tr
     | GetFieldPre _ :: tr -> clean_impl stack locals globals tr
     | GetField { base; offset; value } :: tr ->
         CGetField { base; offset; value } :: clean_impl stack locals globals tr
