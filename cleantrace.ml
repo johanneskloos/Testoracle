@@ -100,7 +100,7 @@ let encode_decl { name; value; argument; isCatchParam } =
       | None -> if isCatchParam then CatchParam else Var }
 
 let rec clean_impl stack locals globals = function
-    (* Special-case handling for uninstrumented function bodies *)
+    (* Special-case handling for from_jalangi function bodies *)
     | FunPre ({ f; base; args } as fpre) :: FunPost ({ result } as fpost) :: tr ->
         encode_pre fpre ::
         CFunEnter { f; this=base; args } ::

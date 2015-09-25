@@ -8,8 +8,8 @@ open MatchOperations
 open MatchTypes
 
 (**
- * A helper for candidate generators.
- *)
+* A helper for candidate generators.
+*)
 let add_objeq op objeq cands =
     (cands, if is_write op then IntIntMap.empty else objeq )
 
@@ -21,7 +21,7 @@ let rules_toplevel =
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush WrapperEnter);
     ([MayInit; IsToplevel; IsNotFunction], Initialization);
-		([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
+    ([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([IsCallInt (* TODO add "local function" check *)], InitializationPush Init)
     ]
 
@@ -30,36 +30,36 @@ let rules_regular =
     ([MatchSides; MayMatchSimple], MatchSimple);
     ([MatchSides; MatchCallInt], MatchPush RegularEnter);
     ([MatchSides; MatchCallExt], MatchPush RegularEnter);
-		([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
+    ([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
     ([MatchSides; IsExit], MatchPop);
-		([UseStrictRHS], MatchDroppable);
-		([MatchSides; IsFunLiteral], MatchPush IndirectDefinitionPattern);
-		([IsFunLiteral], WrapperPush ExtraFunctionPattern);
-		([IsFunRead], WrapperPush ToStringUpdatePattern);
+    ([UseStrictRHS], MatchDroppable);
+    ([MatchSides; IsFunLiteral], MatchPush IndirectDefinitionPattern);
+    ([IsFunLiteral], WrapperPush ExtraFunctionPattern);
+    ([IsFunRead], WrapperPush ToStringUpdatePattern);
     ]
 
 let rules_higher_order =
-	[
-		([MatchSides; IsEnter], MatchPush Regular);
-		([IsEnter], WrapperPush Wrapper);
-		([MatchSides; IsPostExit], MatchPop)
-	]
-	
+    [
+    ([MatchSides; IsEnter], MatchPush Regular);
+    ([IsEnter], WrapperPush Wrapper);
+    ([MatchSides; IsPostExit], MatchPop)
+    ]
+
 let rules_regular_enter =
-  [
+    [
     ([MatchEnter], MatchReplace Regular);
     ([MatchSides; IsPostExit], MatchPop);
     ([MatchSides; IsCatch], MatchPop);
-  ]
+    ]
 
 let rules_wrapper_enter =
-	[
-		([IsEnter], WrapperReplace Wrapper);
-		([IsPostExit], WrapperPop);
+    [
+    ([IsEnter], WrapperReplace Wrapper);
+    ([IsPostExit], WrapperPop);
     ([IsCatch], WrapperPop);
-	]
+    ]
 let rules_wrap =
     [
     ([IsCallInt], WrapperPush RegularEnter);
@@ -84,20 +84,20 @@ let rules_init =
     ([IsExit], InitializationPop) ]
 
 let rules_indirect_definition =
-	[ ([IsCallInt], WrapperPush Wrapper);
-		([IsPostExit], WrapperPop) ]
+    [ ([IsCallInt], WrapperPush Wrapper);
+    ([IsPostExit], WrapperPop) ]
 
 let rules_extra_function =
-	[ ([IsFunLiteral], WrapperSimple);
-		([IsLocalDecl], WrapperSimple);
-		([MayInit], WrapperPop);
-  ]
+    [ ([IsFunLiteral], WrapperSimple);
+    ([IsLocalDecl], WrapperSimple);
+    ([MayInit], WrapperPop);
+    ]
 let rules_tostring_update =
-	[ ([MayInit], WrapperSimple);
-		([IsCallInt], WrapperPush Init);
-		([IsEndOfExpr], WrapperPop)
-	] 
-	
+    [ ([MayInit], WrapperSimple);
+    ([IsCallInt], WrapperPush Init);
+    ([IsEndOfExpr], WrapperPop)
+    ]
+
 let interpret_rules (rules: (match_condition list * match_operation) list) matching_state op1 op2 =
     let (objeq, match12) = match_operations matching_state op1 op2 in
     let interpret_cond = function
@@ -117,23 +117,23 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | IsUnobservable -> is_unobservable op2 |> explain Observable
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
         | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd
-				| UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict
+        | UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict
         | IsCatch -> is_catch op2 |> explain NotCatch
-				| MatchHigherOrder -> match_higher_order matching_state op1 op2
-				| IsFunLiteral -> is_fun_literal op2
-				| IsLocalDecl -> is_local_decl op2
-				| IsFunRead -> is_fun_read op2
-				| IsEndOfExpr -> is_end_of_expr op2 in
+        | MatchHigherOrder -> match_higher_order matching_state op1 op2
+        | IsFunLiteral -> is_fun_literal op2
+        | IsLocalDecl -> is_local_decl op2
+        | IsFunRead -> is_fun_read op2
+        | IsEndOfExpr -> is_end_of_expr op2 in
     let interpret_conds conds =
-      conds
-      |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])
-      |> List.flatten
+        conds
+        |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])
+        |> List.flatten
     and split = List.partition (function ([], _) -> true | _ -> false) in
     rules
     |> List.map (fun (cond, res) -> (interpret_conds cond, res))
     |> split
     |> fun (applicable, not_applicable) ->
-       (applicable |> List.map snd |> add_objeq op2 objeq, not_applicable)
+        (applicable |> List.map snd |> add_objeq op2 objeq, not_applicable)
 
 let build_candidates matching_state op1 op2 state =
     let find_rules = function
@@ -144,11 +144,11 @@ let build_candidates matching_state op1 op2 state =
         | InToString -> rules_toString
         | InExternal -> rules_external
         | InInit -> rules_init
-				| InWrapperEnter -> rules_wrapper_enter
-				| InHigherOrder -> rules_higher_order
-				| InIndirectDefinitionPattern -> rules_indirect_definition
-				| InExtraFunctionPattern -> rules_extra_function
-				| InToStringUpdatePattern -> rules_tostring_update
+        | InWrapperEnter -> rules_wrapper_enter
+        | InHigherOrder -> rules_higher_order
+        | InIndirectDefinitionPattern -> rules_indirect_definition
+        | InExtraFunctionPattern -> rules_extra_function
+        | InToStringUpdatePattern -> rules_tostring_update
     in
     interpret_rules (find_rules state) matching_state op1 op2
 
@@ -156,16 +156,16 @@ let build_candidates matching_state op1 op2 state =
 * Helpers for the matching engine.
 *)
 let can_be_added_as_initialisation matching_state trace stack =
-  if get_state stack <> InToplevel then Some NotAtToplevel
-  else if List.for_all (fun (op, facts) ->
-      may_insert_in_init { matching_state with facts2 = facts } op = None) trace
-  then None else Some NotInitCode
+    if get_state stack <> InToplevel then Some NotAtToplevel
+    else if List.for_all (fun (op, facts) ->
+                may_insert_in_init { matching_state with facts2 = facts } op = None) trace
+    then None else Some NotInitCode
 
 let adapt_first op op1 facts1 trace1 =
     match op with
     | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> trace1
     | WrapperPush _ | WrapperPop | WrapperSimple | MatchDroppable | WrapperReplace _
-		| InitializationPush _ | InitializationPop | Initialization -> (op1, facts1) :: trace1
+    | InitializationPush _ | InitializationPop | Initialization -> (op1, facts1) :: trace1
 
 let adapt_stack op stack =
     match op with
@@ -186,8 +186,8 @@ let collect_object_references { facts2 = facts; rt2 = { objs } } id =
     |> List.map (fun (field, _) -> reference_of_fieldref (id, field) |> make_versioned facts)
 
 let collect_references matching_state obj = match obj with
-      OObject _ | OFunction _ | OOther _ ->
-			collect_object_references matching_state (objectid_of_jsval obj)
+        OObject _ | OFunction _ | OOther _ ->
+        collect_object_references matching_state (objectid_of_jsval obj)
     | _ -> []
 
 let perpetuate_initialisation_data matching_state op =
@@ -224,66 +224,66 @@ let adapt_matching_state op op1 op2 matching_state =
 
 (** Merge back results that need to be propagated. *)
 let merge
-  { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data }
-  { nonequivalent_functions; known_blocked } =
-  { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data; nonequivalent_functions; known_blocked }
+    { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data }
+    { nonequivalent_functions; known_blocked } =
+    { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data; nonequivalent_functions; known_blocked }
 
 let mark_blocked ({ known_blocked } as matching_state) trace1 trace2 stack =
-  let key = (List.length trace1, List.length trace2) in
-  let known_blocked_here =
-    if IntIntMap.mem key known_blocked then IntIntMap.find key known_blocked else [] in
-  let known_blocked_new =
-    if List.mem stack known_blocked_here then known_blocked_here else stack :: known_blocked_here in
-  { matching_state with known_blocked = IntIntMap.add key known_blocked_new known_blocked }
+    let key = (List.length trace1, List.length trace2) in
+    let known_blocked_here =
+        if IntIntMap.mem key known_blocked then IntIntMap.find key known_blocked else [] in
+    let known_blocked_new =
+        if List.mem stack known_blocked_here then known_blocked_here else stack :: known_blocked_here in
+    { matching_state with known_blocked = IntIntMap.add key known_blocked_new known_blocked }
 
 let is_blocked { known_blocked } trace1 trace2 stack =
-  let key = (List.length trace1, List.length trace2) in
-  if IntIntMap.mem key known_blocked then List.mem stack (IntIntMap.find key known_blocked) else false
-  
+    let key = (List.length trace1, List.length trace2) in
+    if IntIntMap.mem key known_blocked then List.mem stack (IntIntMap.find key known_blocked) else false
+
 (** The matching engine itself. *)
 let rec matching_engine matching_state trace1 trace2 stack =
     (* Short-circuit matching if we have shown this case to be blocked. *)
     if is_blocked matching_state trace1 trace2 stack then begin
-      MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
-      (None, matching_state)
-    end else match trace1, trace2 with
-    | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
-        let id = MatchTracesObserver.log_node op1 op2 stack in
-        let matching_state' = { matching_state with facts1; facts2 } in
-        let ((ops, objeq), failure_details) =
-            build_candidates matching_state' op1 op2 (get_state stack) in
-        MatchTracesObserver.log_failure id failure_details;
-        apply_first_working id { matching_state' with objeq } op1 op2 trace1 trace2 stack ops
-    | _ :: _, [] ->
-        MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
+        MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
         (None, matching_state)
-    | [], trace2 ->
-        match can_be_added_as_initialisation matching_state trace2 stack with
+    end else match trace1, trace2 with
+        | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
+            let id = MatchTracesObserver.log_node op1 op2 stack in
+            let matching_state' = { matching_state with facts1; facts2 } in
+            let ((ops, objeq), failure_details) =
+                build_candidates matching_state' op1 op2 (get_state stack) in
+            MatchTracesObserver.log_failure id failure_details;
+            apply_first_working id { matching_state' with objeq } op1 op2 trace1 trace2 stack ops
+        | _ :: _, [] ->
+            MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
+            (None, matching_state)
+        | [], trace2 ->
+            match can_be_added_as_initialisation matching_state trace2 stack with
             | None ->
-              MatchTracesObserver.log_orig_consumed_ok (List.map fst trace2) stack;
-              (Some (List.map (fun (op, _) -> Init op) trace2), matching_state)
+                MatchTracesObserver.log_orig_consumed_ok (List.map fst trace2) stack;
+                (Some (List.map (fun (op, _) -> Init op) trace2), matching_state)
             | Some err ->
-              MatchTracesObserver.log_orig_consumed_failed (List.map fst trace2) stack;
-              (None, matching_state)
+                MatchTracesObserver.log_orig_consumed_failed (List.map fst trace2) stack;
+                (None, matching_state)
 and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
     function
     | [] ->
-      (None, matching_state)
+        (None, matching_state)
     | op :: ops ->
         MatchTracesObserver.log_edge parent op;
         let matching_state_adapted = adapt_matching_state op op1 op2 matching_state
         and trace1_adapted = adapt_first op op1 matching_state.facts1 trace1
         and stack_adapted = adapt_stack op stack in
         let (result, matching_state') =
-                  matching_engine matching_state_adapted
-                   trace1_adapted trace2 stack_adapted in
+            matching_engine matching_state_adapted
+                trace1_adapted trace2 stack_adapted in
         let matching_state_merged = merge matching_state matching_state' in match result with
         | Some matching ->
             (Some (extend_matching op op1 op2 matching), matching_state_merged)
         | None ->
             apply_first_working parent
-              (mark_blocked matching_state_merged trace1_adapted trace2 stack_adapted)
-              op1 op2 trace1 trace2 stack ops
+                (mark_blocked matching_state_merged trace1_adapted trace2 stack_adapted)
+                op1 op2 trace1 trace2 stack ops
 
 let match_traces rt1 rt2 =
     matching_engine
@@ -296,4 +296,4 @@ let match_traces rt1 rt2 =
             nonequivalent_functions = Misc.IntIntSet.empty;
             known_blocked = Misc.IntIntMap.empty
         } rt1.trace rt2.trace []
-        |> fst
+    |> fst
