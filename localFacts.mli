@@ -8,8 +8,6 @@ open Cleantrace
 type local_facts = {
     (** The last argument object that was created by a function call. *)
     last_arguments: int option;
-    (** The last parameter object that was created by a function prologue. *)
-    last_parameters: int option;
     (** The last reference that was modified. *)
     last_update: versioned_reference option;
     (** The current version of all known references. *)
@@ -29,9 +27,9 @@ type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
 
 val pp_enriched_trace: (Format.formatter -> 'a -> unit) ->
-    Format.formatter -> 'a enriched_trace -> unit
+Format.formatter -> 'a enriched_trace -> unit
 val pp_enriched_tracefile: (Format.formatter -> 'a -> unit) ->
-    Format.formatter -> 'a enriched_tracefile -> unit
+Format.formatter -> 'a enriched_tracefile -> unit
 val pp_facts_trace: Format.formatter -> facts_trace -> unit
 val pp_facts_tracefile: Format.formatter -> facts_tracefile -> unit
 
@@ -47,29 +45,29 @@ val pp_facts_tracefile: Format.formatter -> facts_tracefile -> unit
  * and [new_state] is the new value for the state.
  *
  * [trace_collect] returns the trace enriched with new data, and the
- * final state. *) 
+ * final state. *)
 val trace_collect :
-  ('state -> 'olddata -> clean_operation -> 'newdata * 'state) ->
-  'state -> 'olddata enriched_trace -> 'newdata enriched_trace * 'state
+('state -> 'olddata -> clean_operation -> 'newdata * 'state) ->
+'state -> 'olddata enriched_trace -> 'newdata enriched_trace * 'state
 (** [trace_enrich step initial_state trace] works exactly
  * like [trace_collect step initial_state trace], except that it only
- * returns the trace enriched with new data. *) 
+ * returns the trace enriched with new data. *)
 val trace_enrich :
-  ('state -> 'olddata -> clean_operation -> 'newdata * 'state) ->
-  'state -> 'olddata enriched_trace -> 'newdata enriched_trace
+('state -> 'olddata -> clean_operation -> 'newdata * 'state) ->
+'state -> 'olddata enriched_trace -> 'newdata enriched_trace
 (** [trace_fold f init] runs over [trace], as if executing it,
  * calling [f] at each step to update some state (initially [init]).
  * It returns the final state after the execution. *)
 val trace_fold:
-  ('acc -> 'data -> clean_operation -> 'acc) -> 'acc ->
-  'data enriched_trace -> 'acc
+('acc -> 'data -> clean_operation -> 'acc) -> 'acc ->
+'data enriched_trace -> 'acc
 (** Transform a trace to a trace enriched with empty local facts. *)
 val trace_initialize : trace -> facts_trace
 (** Fill the arguments and parameters fields of an enriched trace. *)
 val collect_arguments_and_parameters: facts_trace -> facts_trace
 
 (** Transform a trace file into an enriched trace file with
-  * information about arguments and parameters filled in. *)
+ * information about arguments and parameters filled in. *)
 val calculate_arguments_and_parameters: tracefile -> facts_tracefile
 
 (** Create a reference for a variable.

@@ -177,7 +177,7 @@ let rec map_with_commas fmt = function
 
 let fmt_node_link self node =
   let node' = string_of_int node in
-  <:html< <a href="$str:self [("operation", "details"); ("index", node')]$">$str:node'$</a> >>
+  <:html< <a href="$str:self [("event", "details"); ("index", node')]$">$str:node'$</a> >>
 
 let fmt_node_link_list self nodes = map_with_commas (fmt_node_link self) nodes
 
@@ -277,9 +277,9 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | Other reason -> <:html< $str:reason$ >>
   and output_function_mismatch = function
     | DifferentBodies (b1, b2) -> <:html<Function mismatch: <blockquote>$str:b1$</blockquote> vs. <blockquote>$str:b2$</blockquote> >>
-    | DifferentInstrumentedBodies (b1, b2) -> <:html<Function mismatch (instrumented bodies): <blockquote>$str:b1$</blockquote> vs. <blockquote>$str:b2$</blockquote> >>
+    | DifferentInstrumentedBodies (b1, b2) -> <:html<Function mismatch (from_toString bodies): <blockquote>$str:b1$</blockquote> vs. <blockquote>$str:b2$</blockquote> >>
     | DifferentExternal (id1, id2) -> <:html<External function mismatch: $int:id1$ vs. $int:id2$>>
-    | InconsistentlyInstrumented -> <:html<Instrumented vs. uninstrumented function>>
+    | InconsistentlyInstrumented -> <:html<from_toString vs. from_jalangi function>>
     | InternalExternal -> <:html<Internal vs. external function>>
  in
   let output_reason = function
@@ -334,7 +334,7 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
 let trace_details_cases self tree idx =
   let output_follower e =
     <:html<
-      <li><a href="$str:self [("operation", "details"); ("index", string_of_int (TraceTree.E.dst e))]$">$output_matchop (TraceTree.E.label e)$</a></li>
+      <li><a href="$str:self [("event", "details"); ("index", string_of_int (TraceTree.E.dst e))]$">$output_matchop (TraceTree.E.label e)$</a></li>
     >>
   in function
   | FinalNodeData data ->
@@ -357,7 +357,7 @@ let trace_details_cases self tree idx =
 
 let trace_details self base { tree; nodes } idx =
   let node_class = TraceNodes.find idx nodes
-  and link i = self [("operation", "details"); ("index", string_of_int i)] in
+  and link i = self [("event", "details"); ("index", string_of_int i)] in
   let output_matchop = function
     | Pair(op1, op2) ->
       <:html< <td>$output_op op1$</td><td>$output_op op2$</td><td></td> >>
@@ -398,14 +398,14 @@ let trace_details self base { tree; nodes } idx =
   </html> >>
  
 let trace_multiplex self base data query =
-  match query "operation" with
+  match query "event" with
     | Some "details" ->
         begin match query "index" with
           | Some idx -> (HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
           | None -> raise (Invalid_argument "Needs exactly one index")
         end
     | None ->  (HTML, trace_main_page self base data |> Cow.Html.to_string)
-    | _ -> raise (Invalid_argument "Unknown operation given")
+    | _ -> raise (Invalid_argument "Unknown event given")
 
 let list_certs self certs =
     let fmt_result = function

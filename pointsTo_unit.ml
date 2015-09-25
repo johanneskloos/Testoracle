@@ -47,11 +47,11 @@ let equal_objfacts =
 
 let test_object_facts =
     Test.make_simple_test ~title:"Testing find_object_facts" (fun () ->
-        find_object_facts 0 local_facts points_to_facts
-        |> equal_objfacts 
-                (StringMap.empty
-                |> add_cell "a" ONull
-                |> add_cell "b" (OBoolean true)
-                |> add_cell "c" (OString "abc")))
+                find_object_facts 0 local_facts points_to_facts
+                |> equal_objfacts
+                    (StringMap.empty
+                        |> add_cell "a" ONull
+                        |> add_cell "b" (OBoolean true)
+                        |> add_cell "c" (OString "abc")))
 
 let () = Test.run_tests [test_object_facts]

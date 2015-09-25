@@ -7,14 +7,14 @@ open MatchObjects
 open MatchTypes
 
 (**
-* Basic predicates.
-*
-* The following properties of operations are decidable using any extra
-* information.
-*
-* A function is unobservable if it neither changes global state nor
-* calls external functions.
-*)
+ * Basic predicates.
+ *
+ * The following properties of operations are decidable using any extra
+ * information.
+ *
+ * A function is unobservable if it neither changes global state nor
+ * calls external functions.
+ *)
 let is_unobservable = function
     | RForIn _ | RLocal _ | RAlias _ | RRead _ | RReturn _
     | RWith _ | RScriptEnter | RScriptExit | RScriptExc _ | RBinary _
@@ -43,7 +43,7 @@ let is_exit = function RFunExit _ -> true | _ -> false
 let is_post_exit = function RFunPost _ -> true | _ -> false
 let is_enter = function RFunEnter _ -> true | _ -> false
 let is_use_strict = function RLiteral { value = OString "use strict" } -> true | REndExpression -> true | _ -> false
-let is_catch = function RCatch _ -> true | _ -> false 
+let is_catch = function RCatch _ -> true | _ -> false
 (**
 * Functions dependening on the current matching state.
 *
@@ -60,19 +60,19 @@ let match_source { rt1; rt2; facts1; facts2; objeq; nonequivalent_functions } sr
     | Argument i1, Argument i2 -> (objeq, (if i1 = i2 then None else Some DifferentArguments))
     | With r1, With r2 ->
         begin match
-          MatchObjects.match_refs "source" rt1 rt2 facts1 facts2 nonequivalent_functions r1 r2 objeq
-        with
-          | (objeq, None) -> (objeq, None)
-          | (objeq, Some (which, reason)) -> (objeq, Some (DifferentObjects (which, reason)))
+            MatchObjects.match_refs "source" rt1 rt2 facts1 facts2 nonequivalent_functions r1 r2 objeq
+            with
+            | (objeq, None) -> (objeq, None)
+            | (objeq, Some (which, reason)) -> (objeq, Some (DifferentObjects (which, reason)))
         end
     | _ -> (objeq, Some DifferentType)
 
 let (&&&) (objeq, cond) check =
-  match cond with
+    match cond with
     | Some err -> (objeq, Some err)
     | None -> check objeq
 let (&&+) (objeq, cond) check =
-  match cond with
+    match cond with
     | Some err -> (objeq, Some err)
     | None -> (objeq, check)
 let (!!) objeq = (objeq, None)
@@ -80,9 +80,9 @@ let (|||) res1 res2 = match res1 with Some _ -> res1 | None -> res2
 let (!?) = function Some _ -> false | None -> true
 
 let wrap_reason = function
-  | (objeq, Some (name, reason)) -> (objeq, Some (DifferentObjects (name, reason)))
-  | (objeq, None) -> (objeq, None)
- let explain reason = function true -> None | false -> Some reason
+    | (objeq, Some (name, reason)) -> (objeq, Some (DifferentObjects (name, reason)))
+    | (objeq, None) -> (objeq, None)
+let explain reason = function true -> None | false -> Some reason
 
 (**
 * Check if two operations match. This does not take
@@ -91,9 +91,9 @@ let wrap_reason = function
 let match_operations matching_state op1 op2 =
     let { rt1; rt2; facts1; facts2; objeq; nonequivalent_functions } = matching_state in
     let check name v1 v2 oe =
-      MatchObjects.match_values name rt1 rt2 facts1 facts2 nonequivalent_functions v1 v2 oe |> wrap_reason
+        MatchObjects.match_values name rt1 rt2 facts1 facts2 nonequivalent_functions v1 v2 oe |> wrap_reason
     and check_ref name r1 r2 oe =
-      MatchObjects.match_refs name rt1 rt2 facts1 facts2 nonequivalent_functions r1 r2 oe |> wrap_reason
+        MatchObjects.match_refs name rt1 rt2 facts1 facts2 nonequivalent_functions r1 r2 oe |> wrap_reason
     and check_eq name x1 x2 objeq =
         if x1 = x2 then (objeq, None) else (objeq, Some (DifferentValues name)) in
     begin match op1, op2 with
@@ -104,28 +104,30 @@ let match_operations matching_state op1 op2 =
         | RLiteral { value = val1; hasGetterSetter = hgs1 }, RLiteral { value = val2; hasGetterSetter = hgs2 } ->
             !!objeq &&& check "val" val1 val2 &&& check_eq "hgs" hgs1 hgs2
         | RLocal { name = name1; ref = ref1 }, RLocal { name = name2; ref = ref2 } ->
-					(* Not checking ref equivalence; the initial value is provided by a write later, so we don't need to*)
-					(* handle it here, and it breaks the function-declaring-function pattern. *)
+        (* Not checking ref equivalence; the initial value is provided by  *)
+        (* a write later, so we don't need to handle it here, and it       *)
+        (* breaks the function-declaring-function pattern.                 *)
             !!objeq &&& (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2
         | RCatch { name = name1; ref = ref1 }, RCatch { name = name2; ref = ref2 } ->
-					(* Not checking ref equivalence; the initial value is provided by a write later, so we don't need to*)
-					(* handle it here, and it breaks the function-declaring-function pattern. *)
+        (* Not checking ref equivalence; the initial value is provided by  *)
+        (* a write later, so we don't need to handle it here, and it       *)
+        (* breaks the function-declaring-function pattern.                 *)
             !!objeq &&& (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2
         | RAlias { name = name1; ref = ref1; source = src1 }, RAlias { name = name2; ref = ref2; source = src2 } ->
             match_source matching_state src1 src2 &&& check_ref "ref" ref1 ref2 &&& check_eq "name" name1 name2
         | RRead { ref = ref1; value = val1 }, RRead { ref = ref2; value = val2 } ->
             !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2
         | RWrite { ref = ref1; oldref = oref1; value = val1; success = succ1 }, RWrite { ref = ref2; oldref = oref2; value = val2; success = succ2 } ->
-					(* Don't check oref; we probably need to check a proper match between ref. *)
+        (* Don't check oref; we probably need to check a proper match      *)
+        (* between ref.                                                    *)
             !!objeq &&& check_ref "ref" ref1 ref2 &&& check "val" val1 val2 (*&&& check_ref "oref" oref1 oref2*)
         | RForIn val1, RForIn val2 -> !! objeq &&& check "val" val1 val2
         | RReturn val1, RReturn val2 -> !!objeq &&& check "val" val1 val2
         | RThrow val1, RThrow val2 -> !!objeq &&& check "val" val1 val2
         | RWith val1, RWith val2 -> !!objeq &&& check "val" val1 val2
-        (*
-        | RFunEnter { f = f1; this = this1; args = args1 }, RFunEnter { f = f2; this = this2; args = args2 } ->
-            !!objeq &&& check "f" f1 f2 &&& check "this" this1 this2 &&& check "args" args1 args2
-        *)
+        (* | RFunEnter { f = f1; this = this1; args = args1 }, RFunEnter { *)
+        (* f = f2; this = this2; args = args2 } -> !!objeq &&& check "f"   *)
+        (* f1 f2 &&& check "this" this1 this2 &&& check "args" args1 args2 *)
         | RFunExit { ret = ret1; exc = exc1 }, RFunExit { ret = ret2; exc = exc2 } ->
             !!objeq &&& check "ret" ret1 ret2 &&& check "ext" exc1 exc2
         | RScriptEnter, RScriptEnter -> !!objeq
@@ -148,37 +150,35 @@ let match_operations matching_state op1 op2 =
 *)
 let is_instrumentation_write { initialisation_data } = function
     | RWrite { oldref } ->
-      if VersionReferenceSet.mem oldref initialisation_data then None else Some NotInitData
+        if VersionReferenceSet.mem oldref initialisation_data then None else Some NotInitData
     | _ ->
-       Some OtherOperation
+        Some OtherOperation
 
 let is_function_update { rt2 } = function
     | RWrite { ref } ->
         begin try match VersionReferenceMap.find ref rt2.points_to with
             | OFunction _ ->
-               None
+                None
             | _ ->
-               Some NotFunctionUpdate
-            with Not_found -> 
-							Format.eprintf "%a not found in is_function_update@." pp_versioned_reference ref;
-							failwith "is_function_update failed" 
+                Some NotFunctionUpdate
+        with Not_found ->
+            Format.eprintf "%a not found in is_function_update@." pp_versioned_reference ref;
+            failwith "is_function_update failed"
         end
     | _ ->
-      Some OtherOperation
+        Some OtherOperation
 
 let is_function_property_update = function
-	| RWrite { ref = (ref, _) } ->
-		begin match get_fieldref ref with
-		| Some (Function _, _) -> None
-		| _ -> Some NotFunctionUpdate
-		end
-	| _ -> Some OtherOperation
-
+    | RWrite { ref = (ref, _) } ->
+        begin match get_fieldref ref with
+            | Some (Function _, _) -> None
+            | _ -> Some NotFunctionUpdate
+        end
+    | _ -> Some OtherOperation
 
 let is_uninitialized_dummy_write = function
-  | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
-  | _ -> false
-
+    | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
+    | _ -> false
 
 (**
 * The folloing three predicates detect operations that can
@@ -187,7 +187,7 @@ let may_insert_in_init matching_state op =
     (is_unobservable op || !?(is_instrumentation_write matching_state op) ||
         !?(is_function_update matching_state op) ||
         is_uninitialized_dummy_write op || !?(is_function_property_update op))
-        |> explain NotInitCode
+    |> explain NotInitCode
 
 let may_insert_in_matching_simple op =
     (is_unobservable op || is_write op || is_throw op)
@@ -235,16 +235,16 @@ let is_internal_call rt = function
 let is_matching_call may_be_literally_equal local matching_data op1 op2 =
     match op1, op2 with
     | RFunPre { f = OFunction(_, f1) },
-      RFunPre { f = OFunction(_, f2) } ->
+    RFunPre { f = OFunction(_, f2) } ->
         let is_matching = match match_functions (convert matching_data) f1 f2 with
-          | Some _ -> false | None -> true in
+            | Some _ -> false | None -> true in
         if (not is_matching) || may_be_literally_equal then
-          if !?(is_internal_call_impl matching_data.rt1 f1) = local then
-            None
-          else
+            if !?(is_internal_call_impl matching_data.rt1 f1) = local then
+                None
+            else
             if local then Some ExternalCall else Some InternalCall
         else
-          Some LiterallyEqual
+            Some LiterallyEqual
     | _, _ -> Some OtherOperation
 
 let is_matching_call literally_equal local matching_data op1 op2 =
@@ -301,85 +301,85 @@ let is_not_function = function
     | _ -> true
 
 let is_matching_entry matching_data op1 op2 =
-  let { rt1; rt2; facts1; facts2; objeq; toString_data; nonequivalent_functions } = matching_data in
-  let match_val key obj1 obj2 objeq =
-    match_values key rt1 rt2 facts1 facts2 nonequivalent_functions obj1 obj2 objeq |> wrap_reason in
-  match op1, op2 with
-    | RFunEnter { f=OFunction(_, f1); args=args1; this=this1 },
-      RFunEnter { f=OFunction(_, f2); args=args2; this=this2 } ->
+    let { rt1; rt2; facts1; facts2; objeq; toString_data; nonequivalent_functions } = matching_data in
+    let match_val key obj1 obj2 objeq =
+        match_values key rt1 rt2 facts1 facts2 nonequivalent_functions obj1 obj2 objeq |> wrap_reason in
+    match op1, op2 with
+    | RFunEnter { f = OFunction(_, f1); args = args1; this = this1 },
+    RFunEnter { f = OFunction(_, f2); args = args2; this = this2 } ->
         !!objeq &&&
         match_val "args" args1 args2 &&&
         match_val "this" this1 this2
-    | _ -> (objeq, Some  NotEnter)
+    | _ -> (objeq, Some NotEnter)
 
 (** Check if a call goes to a known higher-order function. *)
 let is_call_to { funcs; objs; points_to } name: Richtrace.rfunpre -> bool = function
-	| { f = OFunction(_, id); base } as rt ->
-		Format.eprintf "Checking if %a is a higher-order call to %a@."
-			pp_rich_operation (RFunPre rt) (FormatHelper.pp_print_list Format.pp_print_string) name;
-		begin 
-	let rec lookup base name = match name with
-		| component :: rest ->
-			lookup (StringMap.find component objs.(get_object base)).value rest
-		| [] -> base
-	in try
-		let get path = lookup (OObject 0) path in
-		let called_via path id' =
-			Format.eprintf "Checking for indirect call via %a@."
-				(FormatHelper.pp_print_list Format.pp_print_string) path;
-			match get path, base with
-			| OFunction(_, id''), OFunction(_, id''') when id = id'' ->
-					Format.eprintf "%d vs. %d@." id'' id'; id''' = id'
-		  | OFunction _, _ -> Format.eprintf "Not an indirect call.@."; false 
-			| (v, _) -> Format.eprintf "Not a function?! Got %a@." pp_jsval v; false
-		in match get name with
-		| OFunction(_, id') ->
-			Format.eprintf "Got implementation, id=%d@." id; 
-			id = id' ||
-			called_via ["Function"; "prototype"; "call"] id' ||
-			called_via ["Function"; "prototype"; "apply"] id'
-		| _ -> Format.eprintf "No implementation found@."; false
-	with Not_found -> Format.eprintf "Something not found@."; false
-	end
-	| _ -> Format.eprintf "Calling a non-function@."; false
+    | { f = OFunction(_, id); base } as rt ->
+        Format.eprintf "Checking if %a is a higher-order call to %a@."
+            pp_rich_operation (RFunPre rt) (FormatHelper.pp_print_list Format.pp_print_string) name;
+        begin
+            let rec lookup base name = match name with
+                | component :: rest ->
+                    lookup (StringMap.find component objs.(get_object base)).value rest
+                | [] -> base
+            in try
+                let get path = lookup (OObject 0) path in
+                let called_via path id' =
+                    Format.eprintf "Checking for indirect call via %a@."
+                        (FormatHelper.pp_print_list Format.pp_print_string) path;
+                    match get path, base with
+                    | OFunction(_, id''), OFunction(_, id''') when id = id'' ->
+                        Format.eprintf "%d vs. %d@." id'' id'; id''' = id'
+                    | OFunction _, _ -> Format.eprintf "Not an indirect call.@."; false
+                    | (v, _) -> Format.eprintf "Not a function?! Got %a@." pp_jsval v; false
+                in match get name with
+                | OFunction(_, id') ->
+                    Format.eprintf "Got implementation, id=%d@." id;
+                    id = id' ||
+                    called_via ["Function"; "prototype"; "call"] id' ||
+                    called_via ["Function"; "prototype"; "apply"] id'
+                | _ -> Format.eprintf "No implementation found@."; false
+            with Not_found -> Format.eprintf "Something not found@."; false
+        end
+    | _ -> Format.eprintf "Calling a non-function@."; false
 
 let known_higher_order = [
-	["Array"; "from"];
-	["Array"; "prototype"; "each"];
-	["Array"; "prototype"; "filter"];
-	["Array"; "prototype"; "find"];
-	["Array"; "prototype"; "findIndex"];
-	["Array"; "prototype"; "forEach"];
-	["Array"; "prototype"; "map"];
-	["Array"; "prototype"; "reduce"];
-	["Array"; "prototype"; "reduceRight"];
-	["Array"; "prototype"; "some"];
-	["Array"; "prototype"; "sort"]		
-]
+    ["Array"; "from"];
+    ["Array"; "prototype"; "each"];
+    ["Array"; "prototype"; "filter"];
+    ["Array"; "prototype"; "find"];
+    ["Array"; "prototype"; "findIndex"];
+    ["Array"; "prototype"; "forEach"];
+    ["Array"; "prototype"; "map"];
+    ["Array"; "prototype"; "reduce"];
+    ["Array"; "prototype"; "reduceRight"];
+    ["Array"; "prototype"; "some"];
+    ["Array"; "prototype"; "sort"]
+    ]
 
-let match_higher_order  { rt1; rt2 } op1 op2 =
-	match op1, op2 with
-	| RFunPre fp1,  RFunPre fp2 ->
-		if List.exists
-		  (fun name -> is_call_to rt1 name fp1 && is_call_to rt2 name fp2)
-			known_higher_order then
-			None
-		else
-			Some NotFunction (* Give better error later *)
-	| _ -> Some OtherOperation
+let match_higher_order { rt1; rt2 } op1 op2 =
+    match op1, op2 with
+    | RFunPre fp1, RFunPre fp2 ->
+        if List.exists
+            (fun name -> is_call_to rt1 name fp1 && is_call_to rt2 name fp2)
+            known_higher_order then
+            None
+        else
+            Some NotFunction (* Give better error later *)
+    | _ -> Some OtherOperation
 
 let is_fun_literal = function
-	| RLiteral { value = OFunction _ } -> None
-	| _ -> Some NotFunction
+    | RLiteral { value = OFunction _ } -> None
+    | _ -> Some NotFunction
 
 let is_local_decl = function
-	| RLocal _ -> None
-	| _ -> Some OtherOperation
+    | RLocal _ -> None
+    | _ -> Some OtherOperation
 
 let is_fun_read = function
-	| RRead { value = OFunction _ } -> None
-	| _ -> Some OtherOperation
+    | RRead { value = OFunction _ } -> None
+    | _ -> Some OtherOperation
 
 let is_end_of_expr = function
-	| REndExpression -> None
-	| _ -> Some OtherOperation
+    | REndExpression -> None
+    | _ -> Some OtherOperation

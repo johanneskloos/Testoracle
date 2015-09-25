@@ -17,7 +17,7 @@ val explain: mismatch -> bool -> mismatch option
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option
 type call_comparator = matching_state -> rich_operation -> rich_operation -> mismatch option
-type simple_predicate = rich_operation-> mismatch option
+type simple_predicate = rich_operation -> mismatch option
 
 val is_internal_call_impl : rich_tracefile -> int -> mismatch option
 val is_internal_call : rich_tracefile -> rich_operation -> mismatch option

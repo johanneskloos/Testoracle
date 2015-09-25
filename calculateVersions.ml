@@ -82,7 +82,7 @@ let provide_write (objects: objects) ref state =
         | Some (obj, fld) ->
         (* If the field is not writable, do nothing. *)
             begin try
-								let objid = get_object_id obj in
+                let objid = get_object_id obj in
                 let fldspec = StringMap.find fld objects.(objid) in
                 if fldspec.writable && fldspec.set = None then
                     increment_reference state ref
@@ -90,8 +90,8 @@ let provide_write (objects: objects) ref state =
                     state
                 else begin
                     (* Set handlers can do whatever they like. Assume the
-                    * update goes through, but warn about possible
-                    * unsoundness. *)
+                     * update goes through, but warn about possible
+                     * unsoundness. *)
                     let msg =
                         Format.sprintf "Writing to %a@%s with set handler"
                             (fun () -> Misc.to_string pp_objectid) obj fld
@@ -99,15 +99,13 @@ let provide_write (objects: objects) ref state =
                     increment_reference state ref
                 end
             with Not_found ->
-            (* A new field.
-            * TODO: Can objects prevent this from happening? *)
+            (* A new field. TODO: Can objects prevent this from happening? *)
                 increment_reference state ref
             end
         | None ->
-        (* Apparently, global variables may be read - only
-        * (e.g., console in node.js).
-        * Since we cannot detect this as of now, just assume it
-        * goes through and warn about possible unsoundness. *)
+        (* Apparently, global variables may be read-only (e.g., console in
+         * node.js. Since we cannot detect this as of now, just assume
+         * it goes through and warn about possible unsoundness. *)
             if is_global ref then begin
                 let name = get_name ref |> Misc.Option.some in
                 let msg =
@@ -119,7 +117,8 @@ let provide_write (objects: objects) ref state =
         increment_reference state ref
 
 let provide_object objects state obj =
-    (* Recurse over object structure, initialize all fields that have not been seen yet. *)
+    (* Recurse over object structure, initialize all fields that have not
+     * been seen yet. *)
     let rec recurse obj state =
         StringMap.fold (fun name field state ->
                     let ref = reference_of_fieldref (obj, name) in
@@ -135,16 +134,16 @@ let provide_object objects state obj =
 
 let provide_argument_alias objects state name facts i =
     let field = string_of_int i in
-    match facts.last_parameters with
+    match facts.last_arguments with
     | Some params when StringMap.mem field objects.(params) ->
         { state with aliases =
                 StringMap.add name (Object params, field) state.aliases }
     | Some _ ->
-    (* Argh. Javascript. arguments reflects the * actual * parameters,
-    * while name bindings reflect the * formal * parameters. Of course,
-    * if there are less actual then formal parameters, we cannot
-    * possibly name - bind some field in the arguments object, can we?
-    *)
+    (* Argh. Javascript.
+     * arguments reflects the *actual* parameters, while name bindings reflect
+     * the *formal* parameters. Of course,  if there are less actual then formal
+     * parameters, we cannot possibly name-bind some field in the arguments
+     * object, can we? *)
         provide_write objects (reference_of_local_name name) state
     | None -> failwith "No arguments to alias!"
 let provide_literal objs state = function

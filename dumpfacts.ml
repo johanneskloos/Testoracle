@@ -20,13 +20,11 @@ let build_facts tracefile =
 
 let pp_field pp (obj, fld) = fprintf pp "%d@@%s" obj fld
 
-let pp_facts pp {last_arguments; last_parameters; versions; aliases} =
-    fprintf pp "@[<v>Last caller argument object: %a@ \
-      Last frame argument object: %a@ \
+let pp_facts pp {last_arguments; versions; aliases} =
+    fprintf pp "@[<v>Last argument object: %a@ \
       Versions: %a@ \
       Aliases: %a@ @]"
       (pp_print_option pp_print_int) last_arguments
-      (pp_print_option pp_print_int) last_parameters
       (pp_reference_map pp_print_int) versions
       (StringMapFormat.pp_print_map_default pp_print_string pp_field) aliases
 
