@@ -103,11 +103,11 @@ let parse_jsval json =
     | _ as ty -> OOther (ty, member "id" json |> to_int)
   with e -> Format.eprintf "parse_jsval failed@."; raise e
   
-let native_pattern = Str.regexp_string "[native code]"
+let native_pattern = Pcre.regexp "\\[native code\\]"
 let parse_funcspec json =
   let instr = try json |> member "instrumented" |> to_string with e -> Format.eprintf "functspec parse error@."; raise e in
-    if (Str.string_match native_pattern instr 0)
-    then External (json |> member "obj" |> to_int)
+    if (Pcre.pmatch ~rex:native_pattern instr)
+    then External (json |> member "obj" |> parse_jsval |> get_object)
     else Local { instrumented=instr; uninstrumented = json |> member "uninstrumented" |> to_string_option }
 let parse_fieldspec json =
     let default_to d = function Some x -> x | None -> d in
