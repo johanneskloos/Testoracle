@@ -12,6 +12,13 @@ type jsval =
   | OObject of int
   | OOther of string * int
 
+exception NotAnObject
+let get_object = function
+    | OObject id -> id
+    | OOther (_, id) -> id
+    | OFunction (id, _) -> id
+    | _ -> raise NotAnObject
+
 type funpre = { iid: int; f: jsval; base: jsval; args: jsval; isConstructor: bool; isMethod: bool }
 type funpost = { iid: int; f: jsval; base: jsval; args: jsval; result: jsval; isConstructor: bool; isMethod: bool }
 type literal = { iid: int; value: jsval; hasGetterSetter: bool }
@@ -517,10 +524,3 @@ let pp_globals pp spec =
 let pp_tracefile pp (f, o, t, g, gap) =
   fprintf pp "@[<v>Globals are properties: %b@ @[<hov>%a@]@ @[<hov>%a@]@ @[<hov>Globals:@ %a@]@ Trace:@ @[<hov>%a@]@]"
     gap pp_functions f pp_objects o pp_globals g pp_trace t 
-
-exception NotAnObject
-let get_object = function
-    | OObject id -> id
-    | OOther (_, id) -> id
-    | OFunction (id, _) -> id
-    | _ -> raise NotAnObject
