@@ -78,3 +78,4 @@ val is_fun_literal : rich_operation -> mismatch option
 val is_local_decl : rich_operation -> mismatch option
 val is_fun_read : rich_operation -> mismatch option
 val is_end_of_expr : rich_operation -> mismatch option
+val hack_whitelist_externals : predicate

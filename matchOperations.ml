@@ -6,6 +6,27 @@ open Misc
 open MatchObjects
 open MatchTypes
 
+let follow_name { objs; points_to } facts base field =
+	VersionReferenceMap.find (LocalFacts.make_versioned facts
+	  (reference_of_fieldref (objectid_of_jsval base, field))) points_to
+	
+let follow rt facts base field = follow_name rt facts base (string_of_int field)
+  
+let lookup rt facts path =
+	let rec lookup base name = match name with
+		| component :: rest -> lookup (follow_name rt facts base component) rest
+		| [] -> base
+	in try Some (lookup (OObject 0) path) with Not_found -> None
+
+let is_function rt facts path id =
+	try
+		match lookup rt facts path with
+		| Some (OFunction (_, id')) ->
+			id = id'
+		| _ -> false
+	with Not_found -> Format.eprintf "Resolution failed@."; raise Not_found
+
+
 (**
 * Basic predicates.
 *
@@ -235,8 +256,21 @@ let may_insert_in_matching_simple op =
     (is_unobservable op || is_write op || is_throw op)
     |> explain NotSimpleMatchable
 
+
+let hack_whitelist_externals { rt2 = rt; facts2 = facts } = function
+	| RFunPre { f = OFunction(_, id) } ->
+		if List.exists (fun fn ->
+			is_function rt facts [ "Object"; fn ] id)
+			[ "defineProperties"; "defineProperty"; "freeze";
+				"getOwnPropertyDescriptor"; "getOwnPropertyNames";
+				"getPrototypeOf"; "isExtensible"; "isFrozen";
+				"isSealed"; "preventExtensions"; "seal" ]
+			then None else Some OtherOperation
+	| _ -> Some OtherOperation
+
 let may_insert_in_wrap_simple matching_state op =
-    !?(may_insert_in_init matching_state op) (* for now *)
+    (!?(may_insert_in_init matching_state op)
+		|| !?(hack_whitelist_externals matching_state op)) (* for now *)
     |> explain NotWrapCode
 
 let may_insert_in_toString_simple op = is_unobservable op |> explain NotToStringCode
