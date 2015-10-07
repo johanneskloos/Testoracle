@@ -5,7 +5,6 @@ pptrace.native
 pprichtrace.native
 ppcleantrace.native
 certifier.native
-cleantrace_unit.native
 reference_unit.native
 dumplog.native
 objectgraph.native

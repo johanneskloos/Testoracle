@@ -63,7 +63,7 @@ val trace_fold:
 ('acc -> 'data -> clean_operation -> 'acc) -> 'acc ->
 'data enriched_trace -> 'acc
 (** Transform a trace to a trace enriched with empty local facts. *)
-val trace_initialize : trace -> facts_trace
+val trace_initialize : globals -> functions -> objects -> trace -> facts_trace
 (** Fill the arguments and parameters fields of an enriched trace. *)
 val collect_arguments_and_parameters: facts_trace -> facts_trace
 

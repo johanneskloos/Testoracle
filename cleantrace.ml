@@ -157,9 +157,122 @@ let rec clean_impl stack locals globals = function
         CConditional value :: clean_impl stack locals globals tr
     | [] -> []
 
-let clean_trace = clean_impl [] ["this"] []
+let global_object = OObject 0
+
+let get_object (objects: objects) objval fieldname =
+  try
+      objects.(get_object objval)
+        |> Misc.StringMap.find fieldname
+        |> fun { value } -> value
+  with Not_found -> OUndefined
+
+let get_object_array objects objval index =
+  get_object objects objval (string_of_int index)
+  
+let lookup globals (objs: objects) path = match path with
+    | [] -> global_object
+    | objname :: path ->
+      List.fold_left (get_object objs)
+        (Misc.StringMap.find objname globals)
+        path
+        
+let resolve_call objects function_apply function_call f base args call_type =
+  let rec resolve f base args argsidx =
+    if f = function_apply then
+      resolve base
+        (get_object_array objects args argsidx)
+        (get_object_array objects args (argsidx + 1))
+        0
+    else if f = function_call then
+      resolve base
+        (get_object_array objects args argsidx)
+        args
+        (argsidx + 1)
+    else
+      { f=f; base=base; args=args; call_type=call_type }
+  in resolve f base args 0  
+  
+let normalize_calls globals (objs: objects) =
+  let function_apply = lookup globals objs ["Function"; "prototype"; "apply"]
+  and function_call = lookup globals objs ["Function"; "prototype"; "call"] in 
+  List.map (function
+  | CFunPre { f; base; args; call_type } when f = function_apply || f = function_call ->
+    CFunPre (resolve_call objs function_apply function_call f base args call_type)
+  | ev -> ev
+  )
+  
+type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a
+let apply_stackop stack = function
+  | Push tos -> tos :: stack
+  | Keep -> stack
+  | Pop -> List.tl stack
+  | Replace tos -> tos :: List.tl stack
+
+let is_instrumented funcs f =
+  match f with
+    | OFunction (_, fid) ->
+      begin match funcs.(fid) with
+        | Local { from_jalangi = Some _ } -> true
+        | _ -> false
+      end
+    | _ -> false
+
+
+let synthesize_funpre funcs (fpre: funpre) =
+    if is_instrumented funcs fpre.f then
+      (Push None, [ CFunPre fpre ])
+    else
+      (Push (Some fpre), [ CFunPre fpre; CFunEnter { f = fpre.f; this = fpre.base; args = fpre.args } ])
+
+let synthesize_funpre_split funcs f this args call_type =
+  synthesize_funpre funcs { f; base=this; args; call_type }
+     
+let synthesize_internal funcs (next: funpre option) = function
+  | CFunPre fpre -> synthesize_funpre funcs fpre
+  | CFunExit e when e.exc = OUndefined ->
+    begin match next with
+      | Some { f; base; args; call_type } ->
+        (Pop, [ CFunExit e; CFunPost { f; base; args; call_type; result = e.ret } ])
+      | None -> (Pop, [CFunExit e])
+    end 
+  | e -> (Keep, [e])
+
+let synthesize_external funcs next = function
+  | CFunEnter ({ f; this; args}) ->
+    synthesize_funpre_split funcs
+      f this args (if this = global_object then Function else Method)
+  | CFunPost fpost ->
+    (Pop, [CFunExit { ret=fpost.result; exc=OUndefined }; CFunPost fpost])
+  | CDeclare ({ declaration_type = CatchParam } as decl) ->
+    (Pop, [CFunExit { ret=OUndefined; exc=decl.value }; CDeclare decl])
+  | CScriptExc exc ->
+    (Pop, [CFunExit { ret=OUndefined; exc=exc }; CScriptExc exc])
+  | _ -> failwith "Unexpected event in external function"
+
+let synthesize_events funcs trace =
+  List.fold_left (fun (stack, trace) op -> match stack with
+    | Some _ :: next :: _ ->
+      let (stackop, ops') = synthesize_external funcs next op in
+       (apply_stackop stack stackop, ops' @ trace)
+    | [Some _] ->
+      let (stackop, ops') = synthesize_external funcs None op in
+       (apply_stackop stack stackop, ops' @ trace)    
+    | None :: next :: _ ->    
+      let (stackop, ops') = synthesize_internal funcs next op in
+       (apply_stackop stack stackop, ops' @ trace)
+    | _ ->
+      let (stackop, ops') = synthesize_internal funcs None op in
+       (apply_stackop stack stackop, ops' @ trace) )
+      ([], []) trace |> snd |> List.rev
+
+let clean_trace globals funcs (objs: objects) trace =
+    trace
+    |> clean_impl [] ["this"] []
+    |> normalize_calls globals objs
+    |> synthesize_events funcs
+
 let clean_tracefile (funs, objs, rawtr, globals, gap) =
-    (funs, objs, clean_trace rawtr, globals, gap)
+    (funs, objs, clean_trace globals funs objs rawtr, globals, gap)
 
 open Format
 let pp_call_type pp = function

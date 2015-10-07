@@ -55,8 +55,8 @@ let empty_local_facts = {
     aliases = StringMap.empty
 }
 
-let trace_initialize tr =
-    tr |> clean_trace |> List.map (fun op -> (op, empty_local_facts))
+let trace_initialize globals funcs objects tr =
+    tr |> clean_trace globals funcs objects |> List.map (fun op -> (op, empty_local_facts))
 
 let trace_collect
     (f: 'state -> 'olddata -> clean_operation -> 'newdata * 'state)
@@ -88,7 +88,7 @@ let collect_arguments_and_parameters tr =
 
 let calculate_arguments_and_parameters
     (funs, objs, trace, globals, globals_are_properties) =
-    (funs, objs, trace_initialize trace |> collect_arguments_and_parameters,
+    (funs, objs, trace_initialize globals funs objs trace |> collect_arguments_and_parameters,
         globals, globals_are_properties)
 
 let reference_of_variable gap facts global name =

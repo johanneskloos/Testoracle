@@ -75,7 +75,7 @@ let test_reference_of_variable_2 =
         (fun () ->
                 let ref = reference_of_variable true empty_local_facts true "x" in
                 Assert.equal
-                    ~prn: (Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Reference.pp_objectid Format.pp_print_string)))
+                    ~prn: (Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Types.pp_objectid Format.pp_print_string)))
                     (Some (Object 0, "x")) (get_fieldref ref))
 let test_reference_of_variable_3 =
     Test.make_simple_test ~title:"reference to local, no alias"
@@ -90,7 +90,7 @@ let test_reference_of_variable_4 =
         (fun () ->
                 let ref = reference_of_variable false { empty_local_facts with aliases = Misc.StringMap.add "x" (Object 0, "x") Misc.StringMap.empty } false "x" in
                 Assert.equal
-                    ~prn: (Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Reference.pp_objectid Format.pp_print_string)))
+                    ~prn: (Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Types.pp_objectid Format.pp_print_string)))
                     (Some (Object 0, "x")) (get_fieldref ref))
 
 let test_make_versioned =
@@ -102,7 +102,7 @@ let test_make_versioned =
                     (ref, 17) (make_versioned facts ref))
 
 let () = Test.run_tests [test_get_object1; test_get_object2; test_get_object3;
-        test_get_object4; test_trace_initialize; test_trace_fold; test_trace_collect;
+        test_get_object4; test_trace_fold; test_trace_collect;
         test_reference_of_variable_1; test_reference_of_variable_2;
         test_reference_of_variable_3; test_reference_of_variable_4;
         test_make_versioned
