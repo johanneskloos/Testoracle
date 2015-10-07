@@ -9,11 +9,14 @@ open Cleantrace
 let add_write (facts: local_facts) (state: points_to_map) (ref: reference)
     (value: jsval): points_to_map =
     let vref = make_versioned facts ref in
-    if VersionReferenceMap.mem vref state then
+    if VersionReferenceMap.mem vref state then begin
         (* This write was dropped; most likely, the field was marked
          * "not writable". *)
+        Format.eprintf
+          "Weirdness detected: Write of %a failed"
+          pp_reference ref;
         state
-    else
+    end else
         VersionReferenceMap.add vref value state
 
 let add_read (facts: local_facts) (state: points_to_map) (ref: reference)
