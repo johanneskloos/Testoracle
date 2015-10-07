@@ -1,3 +1,4 @@
+open Types
 open Trace
 
 type call_type = Function | Method | Constructor | ConstructorMethod

@@ -1,16 +1,4 @@
-(** A JavaScript value. *)
-type jsval =
-        OUndefined
-    | ONull
-    | OBoolean of bool
-    | ONumberInt of int
-    | ONumberFloat of float
-    | OString of string
-    | OSymbol of string
-    | OFunction of int * int (** [OFunction(id, fid)] stands for a function belonging to object [id], with function id [fid]. *)
-    | OObject of int (** [OObject id] stands for the object with object id [id]. *)
-    | OOther of string * int (** [OOther (ty, id) stands for a special object with type [ty] and object id [id]. *)
-
+open Types
 (** * Structures that contain event data *)
 (** Thanks to these structures, we do not carry around huge tuples. The fields are exactly
 * the properties that can be read off from the JSON trace representation, unless otherwise noted. *)
@@ -132,44 +120,7 @@ type event =
     | Conditional of value
 (** A trace is a sequence of events. *)
 type trace = event list
-(** The description of a field in an object. This record reflects
- * the structure of the Property Descriptor described in ECMAScript 6. *)
-type fieldspec = {
-    value: jsval;
-    writable: bool;
-    get: jsval option;
-    set: jsval option;
-    enumerable: bool;
-    configurable: bool
-}
-(** An object can be described by a description of all its fields.
-*
-* Note that complete knowledge of object fields is not always available;
-* this comes up in [MatchObjects]. *)
-type objectspec = fieldspec Misc.StringMap.t
-(** Description of all object initial states in the program. *)
-type objects = objectspec array
-(** Description of a local JavaScript function, i.e., a function that
-* consists of JavaScript code and not a native call.
-*
-* The two fields contain the from_toString and the from_jalangi code
-* of the function. In some cases, from_jalangi contains "(unknown)";
-* this happens when the code is outside of the Jalangi - from_toString
-* part of the program.
-*
-* FIXME: Obviously, it would more sense to have a single strong
-* describing the function body, containing the from_jalangi code
-* only. The cases can be kept apart in parsing.
-*)
-type local_funcspec = { from_toString : string; from_jalangi : string option }
-(** Description of a Javascript function. It can either be local, with
-* a description as given above, or [External fid], with function
-* identifier [fid]. *)
-type funcspec = Local of local_funcspec | External of int
-(** Description of all Javascript functions in a trace. *)
-type functions = funcspec array
-(** The values of all (known) global variables. *)
-type globals = jsval Misc.StringMap.t
+
 (** A trace file is a tuple containing the various components defined above. *)
 type tracefile = functions * objects * trace * globals * bool
 (** [parse_tracefile c] parses a JSON trace file from input channel [c] and returns it. *)
@@ -177,20 +128,6 @@ val parse_tracefile : in_channel -> tracefile
 (** [dump_tracefile c t] dumps [t] as a JSON trace file to channel [c]. *)
 val dump_tracefile: out_channel -> tracefile -> unit
 (** Pretty printers. *)
-val pp_jsval : Format.formatter -> jsval -> unit
 val pp_operation : Format.formatter -> event -> unit
 val pp_trace : Format.formatter -> event list -> unit
-val pp_fieldspec : Format.formatter -> fieldspec -> unit
-val pp_objectspec : Format.formatter -> objectspec -> unit
-val pp_objects : Format.formatter -> objects -> unit
-val pp_local_funcspec : Format.formatter -> local_funcspec -> unit
-val pp_funcspec : Format.formatter -> funcspec -> unit
-val pp_functions : Format.formatter -> functions -> unit
-val pp_globals : Format.formatter -> globals -> unit
 val pp_tracefile : Format.formatter -> tracefile -> unit
-
-(** Indicated that an operation cannot be performed on some value because it does not have object nature. *)
-exception NotAnObject
-(** Get the object identifier of a given value, or throw [NotAnObject]. *)
-val get_object: jsval -> int
-

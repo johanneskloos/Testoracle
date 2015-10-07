@@ -3,7 +3,7 @@ open LocalFacts
 open CalculateVersions
 open CalculatePointsTo
 open PointsTo
-open Trace
+open Types
 open Reference
 open Cleantrace
 

@@ -7,6 +7,7 @@ open Abbreviations
 open Misc
 open Reference
 open LocalFacts
+open Types
 
 let (|>>) = (|>)
 let (|>) = Pervasives.(|>)
@@ -73,7 +74,7 @@ let objs_m = [|
     |]
 
 let fun_m = [|
-    Trace.External 17;
+    External 17;
     Local { from_toString = body1; from_jalangi = Some body1 };
     Local { from_toString = body2; from_jalangi = Some body2 }
     |]

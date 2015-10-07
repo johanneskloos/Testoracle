@@ -2,9 +2,10 @@ open Trace
 open LocalFacts
 open PointsTo
 open MatchTypes
+open Types
 
 (** Check if a value is of base type. *)
-val is_base : Trace.jsval -> bool
+val is_base : jsval -> bool
 
 type data = {
     funs1 : functions;
@@ -22,10 +23,11 @@ val match_functions : data -> int -> int -> fun_match_failure option
 * if do not have proof that they are not behaviourally equivalent. *)
 val match_functions_associated : data -> int -> int -> bool
 
+(** The type of the main function for recursive object matching. *)
 type recursive_matcher =
     data ->
     Misc.IntIntSet.t ->
-    objeq -> Trace.jsval * Trace.jsval -> objeq * failure_trace
+    objeq -> jsval * jsval -> objeq * failure_trace
 
 (** ** Matching of the recursive object structure. *)
 (** The algorithm is based around the usual "remove distinguishables"
@@ -55,8 +57,8 @@ Misc.StringMap.key list ->
 data ->
 Misc.IntIntSet.t ->
 objeq ->
-Trace.jsval Misc.StringMap.t ->
-Trace.jsval Misc.StringMap.t -> objeq * failure_trace
+jsval Misc.StringMap.t ->
+jsval Misc.StringMap.t -> objeq * failure_trace
 
 (** [match_objects_memo matchobj ignored data seen objeq id1 id2]
 * checks whether two objects, refered to by their ids [id1] and [id2],
@@ -77,7 +79,7 @@ val match_objects_memo :
 recursive_matcher ->
 Misc.StringMap.key list ->
 data -> Misc.IntIntSet.t -> objeq ->
-Reference.objectid -> Reference.objectid -> objeq * failure_trace
+objectid -> objectid -> objeq * failure_trace
 
 (** [match_values_raw cmpname data seen objeq (v1, v2)] checks
 * whether two values [v1] and [v2] are isomorphic. For base values,
@@ -106,7 +108,7 @@ Richtrace.rich_tracefile ->
 LocalFacts.local_facts ->
 LocalFacts.local_facts ->
 Misc.IntIntSet.t ->
-Trace.jsval -> Trace.jsval -> objeq -> objeq * named_failure_trace
+jsval -> jsval -> objeq -> objeq * named_failure_trace
 
 (** [match_references rt1 rt2 facts1 facts2 r1 r2 objeq]
 * checks whether the versioned references [r1] and [r2] point to

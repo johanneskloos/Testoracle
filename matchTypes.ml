@@ -1,4 +1,4 @@
-open Trace
+open Types
 open Richtrace
 (** The mode to switch to, on a push. *)
 type match_mode =

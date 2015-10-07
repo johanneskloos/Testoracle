@@ -1,7 +1,7 @@
 open Reference;;
 open LocalFacts;;
 open Misc;;
-open Trace;;
+open Types;;
 open CalculateVersions;;
 open PointsTo;;
 open Cleantrace
@@ -34,7 +34,7 @@ let add_read (facts: local_facts) (state: points_to_map) (ref: reference)
 let add_known_new_object (objects: objects) (facts: local_facts)
     (state: points_to_map) (obj: jsval): points_to_map =
     let id = objectid_of_jsval obj in
-    StringMap.fold (fun name (objspec: Trace.fieldspec) state ->
+    StringMap.fold (fun name (objspec: fieldspec) state ->
                 add_write facts state
                     (reference_of_fieldref (id, name))
                     objspec.value)
@@ -52,7 +52,7 @@ let add_literal (objects: objects) (facts: local_facts)
                     match Reference.get_fieldref ref with
                     | Some (obj, field) ->
                         let objid = get_object_id obj in
-                        let { Trace.value } =
+                        let { Types.value } =
                             StringMap.find field objects.(objid)
                         in
                         VersionReferenceMap.add vref value state
@@ -91,8 +91,8 @@ let collect_pointsto_step (globals_are_properties: bool) (objects: objects)
         add_write facts state (reference_of_local_name "this") this
     | _ -> state
 
-let globals_points_to (objects: Trace.objects) globals_are_properties
-    (globals: Trace.globals) trace pt =
+let globals_points_to (objects: objects) globals_are_properties
+    (globals: globals) trace pt =
     match trace with
     | [] -> failwith "Empty trace"
     | (_, { versions }) :: _ ->
@@ -111,7 +111,7 @@ let globals_points_to (objects: Trace.objects) globals_are_properties
         in
         ReferenceMap.fold step versions pt
 
-let collect_pointsto (globals_are_properties: bool) (globals: Trace.globals) (objects: Trace.objects) (trace: LocalFacts.facts_trace) =
+let collect_pointsto (globals_are_properties: bool) (globals: globals) (objects: objects) (trace: LocalFacts.facts_trace) =
     begin
         VersionReferenceMap.empty |>
         VersionReferenceMap.add (Reference.reference_of_local_name "this", 0) (OObject 0) |>

@@ -1,5 +1,6 @@
 open Trace
 open Pcre
+open Types
 
 let nested_pattern =
     regexp ~study: true ~flags:[`MULTILINE] "function.*function\\w*[({]"

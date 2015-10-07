@@ -1,5 +1,6 @@
 open Trace
 open Format
+open Types
 
 let (_, objs, _, _, _) = Trace.parse_tracefile (open_in Sys.argv.(1))
 

@@ -1,7 +1,7 @@
 open LocalFacts
 open Misc
 open Reference
-open Trace
+open Types
 open Cleantrace
 
 type saved_variable =
@@ -116,7 +116,7 @@ let provide_write (objects: objects) ref state =
     else
         increment_reference state ref
 
-let provide_object objects state obj =
+let provide_object (objects: objects) state obj =
     (* Recurse over object structure, initialize all fields that have not
      * been seen yet. *)
     let rec recurse obj state =
@@ -125,7 +125,7 @@ let provide_object objects state obj =
                     if ReferenceMap.mem ref state.versions_current then
                         state
                     else
-                        increment_reference state ref |> recurse_value field.Trace.value)
+                        increment_reference state ref |> recurse_value field.Types.value)
             objects.(get_object_id obj) state
     and recurse_value field state = match field with
         | OObject _ | OOther _ | OFunction _ -> recurse (objectid_of_jsval field) state
@@ -146,12 +146,12 @@ let provide_argument_alias objects state name facts i =
      * object, can we? *)
         provide_write objects (reference_of_local_name name) state
     | None -> failwith "No arguments to alias!"
-let provide_literal objs state = function
+let provide_literal (objs: objects) state = function
     | (OFunction _ | OOther _ | OObject _) as o ->
         provide_object objs state (objectid_of_jsval o)
     | _ -> state
 
-let collect_versions_step (objects: Trace.objects) globals_are_properties state facts op =
+let collect_versions_step (objects: objects) globals_are_properties state facts op =
     let nameref isGlobal =
         reference_of_name globals_are_properties state.aliases isGlobal in
     let res = match op with

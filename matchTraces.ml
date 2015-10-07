@@ -1,5 +1,5 @@
 open Richtrace
-open Trace
+open Types
 open Reference
 open LocalFacts
 open Misc

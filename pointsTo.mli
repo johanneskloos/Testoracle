@@ -1,6 +1,6 @@
 open LocalFacts
 open Reference
-open Trace
+open Types
 
 (** A points-to map assigned a value to each versioned reference occuring in a trace. *)
 type points_to_map = jsval VersionReferenceMap.t

@@ -1,4 +1,4 @@
-open Trace
+open Types
 open Richtrace
 open MatchTraces
 open MatchTypes

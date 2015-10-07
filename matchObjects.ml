@@ -1,6 +1,6 @@
 open PointsTo
 open LocalFacts
-open Trace
+open Types
 open Misc
 open Richtrace
 open Reference

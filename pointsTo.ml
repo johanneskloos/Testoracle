@@ -1,7 +1,7 @@
 open Reference;;
 open LocalFacts;;
 open Misc;;
-open Trace;;
+open Types;;
 open CalculateVersions;;
 
 module VersionReferenceMapFormat = FormatHelper.MapFormat(VersionReferenceMap)

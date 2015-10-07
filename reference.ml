@@ -1,12 +1,5 @@
 open Format;;
-open Trace;;
-
-type objectid =
-    | Object of int
-    | Function of int * int
-    | Other of string * int
-
-type fieldref = objectid * string;;
+open Types
 
 type reference =
     | LocalVariable of string
@@ -25,21 +18,6 @@ let reference_compare r1 r2 = match (r1, r2) with
     | (Field (o1, f1), Field (o2, f2)) -> match compare o1 o2 with
         | 0 -> compare f1 f2
         | c -> c
-
-let objectid_to_jsval = function
-    | Object o -> OObject o
-    | Function (o, f) -> OFunction (o, f)
-    | Other (t, o) -> OOther (t, o)
-
-let objectid_of_jsval = function
-    | OObject o -> Object o
-    | OFunction (o, f) -> Function (o, f)
-    | OOther (t, o) -> Other (t, o)
-    | _ -> failwith "Not an object"
-
-let pp_objectid pp id = pp_jsval pp (objectid_to_jsval id)
-
-let pp_fieldref pp (obj, name) = fprintf pp "%a@%s" pp_objectid obj name
 
 let pp_reference pp = function
     | LocalVariable v -> fprintf pp "%s" v
@@ -113,6 +91,3 @@ module VersionReference = struct
 end;;
 module VersionReferenceMap = Map.Make(VersionReference);;
 module VersionReferenceSet = Set.Make(VersionReference);;
-
-let get_object_id = function
-    | Object id | Function (id, _) | Other (_, id) -> id
