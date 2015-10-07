@@ -45,54 +45,48 @@ type event =
     | Conditional of value
 
 type trace = event list
-type fieldspec = {
-    value: jsval;
-    writable: bool;
-    get: jsval option;
-    set: jsval option;
-    enumerable: bool;
-    configurable: bool
-}
-type objectspec = fieldspec StringMap.t
-type objects = objectspec array
-type local_funcspec = { from_toString: string; from_jalangi: string option }
-type funcspec = Local of local_funcspec | External of int
-type functions = funcspec array
-type globals = jsval Misc.StringMap.t
 type tracefile = functions * objects * trace * globals * bool
 
 open Yojson.Basic;;
 open Yojson.Basic.Util;;
 
+exception ParseError
+let report err msg json = Format.eprintf "%s - %s: %s@." err msg (Yojson.Basic.to_string json); raise ParseError
+  
+let to_string err json =
+  try to_string json with Type_error (msg, json) -> report err msg json
+
 let parse_jsval json =
     try
-        match member "type" json |> to_string with
+        match member "type" json |> to_string "Value type" with
         | "undefined" -> OUndefined
-        | "boolean" -> OBoolean (member "val" json |> to_string |> bool_of_string)
+        | "boolean" -> OBoolean (member "val" json |> to_string "Value" |> bool_of_string)
         | "number" ->
-            let numstr = member "val" json |> to_string in begin
+            let numstr = member "val" json |> to_string "Value" in begin
                 try ONumberInt (int_of_string numstr)
                 with Failure "int_of_string" ->
                     try ONumberFloat (float_of_string numstr)
                     with Failure "float_of_string" ->
                         failwith ("Strange number here: " ^ Yojson.Basic.to_string json)
             end
-        | "string" -> OString (member "val" json |> to_string)
-        | "symbol" -> OSymbol (member "val" json |> to_string)
+        | "string" -> OString (member "val" json |> to_string "Value")
+        | "symbol" -> OSymbol (member "val" json |> to_string "Value")
         | "function" -> OFunction (member "id" json |> to_int, member "funid" json |> to_int)
         | "null" -> ONull
         | "object" -> OObject (member "id" json |> to_int)
         | _ as ty -> OOther (ty, member "id" json |> to_int)
-    with e -> Format.eprintf "parse_jsval failed@."; raise e
+    with
+      | ParseError -> report "Context" "jsval" json
 
 let native_pattern = Str.regexp_string "[native code]"
 let parse_funcspec json =
-    let instr = try json |> member "from_toString" |> to_string with e -> Format.eprintf "functspec parse error@."; raise e in
+    let instr = member "instrumented" json |> to_string "Function specification" in
     if (Str.string_match native_pattern instr 0)
     then External (json |> member "obj" |> to_int)
-    else Local { from_toString = instr; from_jalangi = json |> member "from_jalangi" |> to_string_option }
+    else Local { from_toString = instr; from_jalangi = json |> member "uninstrumented" |> to_string_option }
+    
 let parse_fieldspec json =
-    let default_to d = function Some x -> x | None -> d in
+    let default_to d = function Some x -> x | None -> d in try
     { value = json |> member "value" |> to_option parse_jsval |> default_to OUndefined;
         writable = json |> member "writable" |> to_bool_option |> default_to true;
         enumerable = json |> member "enumerable" |> to_bool_option |> default_to true;
@@ -100,18 +94,25 @@ let parse_fieldspec json =
         get = json |> member "get" |> to_option parse_jsval;
         set = json |> member "set" |> to_option parse_jsval
     }
+    with ParseError -> report "Context" "fieldspec" json
+    
+    
 let parse_objectspec json =
+  try
     json |> to_assoc |>
     List.fold_left
         (fun spec (name, content) ->
                 StringMap.add name (parse_fieldspec content) spec)
         StringMap.empty
+    with ParseError -> report "Context" "objectspec" json
+
 let parse_operation json =
     let get_int key = member key json |> to_int
-    and get_string key = try member key json |> to_string with e -> Format.eprintf "Can't find string %s@." key; raise e
+    and get_string key = member key json |> to_string key
     and get_jsval key = try member key json |> parse_jsval with e -> Format.eprintf "Can't find jsval %s@." key; raise e
     and get_bool key = try member key json |> to_bool with e -> Format.eprintf "Can't find bool %s@." key; raise e in
-    match try member "step" json |> to_string with e -> Format.eprintf "Can't parse step type@."; raise e with
+    try
+    match member "step" json |> to_string "Step" with
     | "funpre" -> FunPre {
             iid = get_int "iid";
             f = get_jsval "f";
@@ -258,18 +259,33 @@ let parse_operation json =
             value = get_jsval "result"
         }
     | _ as op -> failwith ("Unknown event " ^ op)
+    with ParseError -> report "Context" "event" json
 
 let parse_functions json =
-    json |> convert_each parse_funcspec |> Array.of_list
+    try json |> convert_each parse_funcspec |> Array.of_list
+    with ParseError -> report "Context" "functions" json
+
 let parse_objects json =
-    json |> convert_each parse_objectspec |> Array.of_list
+    try json |> convert_each parse_objectspec |> Array.of_list
+    with ParseError -> report "Context" "objects" json
+
 let parse_trace json =
-    json |> convert_each parse_operation
+    try json |> convert_each parse_operation
+    with ParseError -> report "Context" "trace" json
+
+let parse_global_value json = (* Backwards compatibility! *)
+  match member "id" json with
+    | `Null -> parse_jsval json
+    | `Int _ -> parse_jsval json
+    | json' -> parse_jsval json'
+
 
 let parse_globals json: globals =
     let module Extra = Misc.MapExtra(Misc.StringMap) in
+    try
     json |> to_assoc |> Extra.of_list |>
-    Misc.StringMap.map parse_jsval
+    Misc.StringMap.map parse_global_value
+    with ParseError -> report "Context" "globals" json
 
 let parse_tracefile source =
     let json = from_channel source in
@@ -292,11 +308,11 @@ let dump_jsval = function
     | OFunction (id, fid) -> `Assoc [ ("type", `String "function"); ("id", `Int id); ("funid", `Int fid) ]
 
 let dump_funcspec = function
-    | External id -> `Assoc [ ("from_toString", `String "[native code]"); ("obj", `Int id) ]
+    | External id -> `Assoc [ ("instrumented", `String "[native code]"); ("obj", `Int id) ]
     | Local { from_toString; from_jalangi = Some from_jalangi } ->
-        `Assoc [ ("from_toString", `String from_toString); ("from_jalangi", `String from_jalangi) ]
+        `Assoc [ ("instrumented", `String from_toString); ("uninstrumented", `String from_jalangi) ]
     | Local { from_toString; from_jalangi = None } ->
-        `Assoc [ ("from_toString", `String from_toString) ]
+        `Assoc [ ("instrumented", `String from_toString) ]
 let dump_fieldspec { value; writable; get; set; enumerable; configurable }: json =
     let add name x l = match x with Some id -> (name, dump_jsval id) :: l | None -> l in
     `Assoc ([ ("value", dump_jsval value); ("writable", `Bool writable);
