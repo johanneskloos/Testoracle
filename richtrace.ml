@@ -131,41 +131,35 @@ let pp_rich_tracefile pp
         pp_rich_trace trace
         pp_points_to_map points_to
 
-let is_external data f = false (* XXX *)
-
-let enrich_step globals_are_properties objs (op, data) =
+let enrich_step globals_are_properties funcs (op, facts) =
     let mkfieldref base offset =
-        reference_of_field base offset |> make_versioned data
+        reference_of_field base offset |> make_versioned facts
     and mkvarref isGlobal name =
-        reference_of_name globals_are_properties data.aliases isGlobal name
-        |> make_versioned data in
+        reference_of_name globals_are_properties facts.aliases isGlobal name
+        |> make_versioned facts in
     let res = match op with
-        | CFunPre { f; base; args; call_type } when is_external data f ->
-            [RFunPre { f; base; args; call_type }; RFunEnter { f; this = base; args } ]
         | CFunPre { f; base; args; call_type } ->
             [RFunPre { f; base; args; call_type } ]
-        | CFunPost { f; base; args; result } when is_external data f ->
-            [RFunExit { ret = result; exc = OUndefined }; RFunPost { f; base; args; result }]
         | CFunPost { f; base; args; result } -> [RFunPost { f; base; args; result }]
         | CLiteral { value; hasGetterSetter } -> [RLiteral { value; hasGetterSetter }]
         | CForIn value -> [RForIn value]
         | CDeclare { name; declaration_type = ArgumentBinding idx } ->
-            if Misc.StringMap.mem name data.aliases then
+            if Misc.StringMap.mem name facts.aliases then
                 [RAlias { name;
-                    ref = Misc.StringMap.find name data.aliases
+                    ref = Misc.StringMap.find name facts.aliases
                         |> reference_of_fieldref
-                        |> make_versioned data;
+                        |> make_versioned facts;
                     source = Argument idx }]
             else
-                let ref = reference_of_local_name name |> make_versioned data in
+                let ref = reference_of_local_name name |> make_versioned facts in
                 [RLocal { name; ref };
                 RWrite { ref; oldref = ref; value = OUndefined; success = true } ]
         | CDeclare { name; value; declaration_type = CatchParam } ->
-            let ref = reference_of_local_name name |> make_versioned data in
+            let ref = reference_of_local_name name |> make_versioned facts in
             [RCatch { name; ref };
             RWrite { ref; oldref = ref; value; success = true } ]
         | CDeclare { name; value } ->
-            let ref = reference_of_local_name name |> make_versioned data in
+            let ref = reference_of_local_name name |> make_versioned facts in
             [RLocal { name; ref };
             RWrite { ref; oldref = ref; value; success = true } ]
         | CGetField { base; offset; value } ->
@@ -174,7 +168,7 @@ let enrich_step globals_are_properties objs (op, data) =
         (* FIXME success handling *)
             [RWrite {
                 ref = mkfieldref base offset;
-                oldref = Option.some data.last_update;
+                oldref = Option.some facts.last_update;
                 value; success = true
             }]
         | CRead { name; value; isGlobal } ->
@@ -183,7 +177,7 @@ let enrich_step globals_are_properties objs (op, data) =
         (* FIXME success handling *)
             [RWrite {
                 ref = mkvarref isGlobal name;
-                oldref = Option.some data.last_update;
+                oldref = Option.some facts.last_update;
                 value;
                 success = true
             }]
@@ -199,7 +193,7 @@ let enrich_step globals_are_properties objs (op, data) =
         | CUnary { op; arg; result } -> [RUnary { op; arg; result }]
         | CEndExpression -> [REndExpression]
         | CConditional value -> [RConditional value] in
-    List.map (fun op -> (op, data)) res
+    List.map (fun op -> (op, facts)) res
 
 let calculate_rich_tracefile tracefile =
     tracefile |>
@@ -210,5 +204,5 @@ let calculate_rich_tracefile tracefile =
         and points_to = calculate_pointsto tf in
         { funcs; objs; globals; globals_are_properties; points_to;
             trace = etrace
-                |> List.map (enrich_step globals_are_properties objs)
+                |> List.map (enrich_step globals_are_properties funcs)
                 |> List.flatten }
