@@ -192,7 +192,7 @@ let collect_references matching_state obj = match obj with
 
 let perpetuate_initialisation_data matching_state op =
     let { initialisation_data = init_old } = matching_state in
-    let initialisation_data =
+    let init_new =
         match op with
         | RWrite { ref; oldref }
         when VersionReferenceSet.mem oldref init_old ->
@@ -204,7 +204,7 @@ let perpetuate_initialisation_data matching_state op =
             VersionReferenceSet.add ref init_old
         | _ -> init_old
     in
-    { matching_state with initialisation_data }
+    { matching_state with initialisation_data = init_new }
 
 let detect_toString op1 matching_state = match op1 with
     | RRead { ref; value } ->
@@ -247,13 +247,13 @@ let rec matching_engine matching_state trace1 trace2 stack =
         MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
         (None, matching_state)
     end else match trace1, trace2 with
-        | (op1, facts1) :: trace1, (op2, facts2) :: trace2 ->
+        | (op1, f1) :: trace1, (op2, f2) :: trace2 ->
             let id = MatchTracesObserver.log_node op1 op2 stack in
-            let matching_state' = { matching_state with facts1; facts2 } in
-            let ((ops, objeq), failure_details) =
+            let matching_state' = { matching_state with facts1= f1; facts2 = f2 } in
+            let ((ops, objeq'), failure_details) =
                 build_candidates matching_state' op1 op2 (get_state stack) in
-            MatchTracesObserver.log_failure id failure_details;
-            apply_first_working id { matching_state' with objeq } op1 op2 trace1 trace2 stack ops
+            MatchTracesObserver.log_failure id failure_details ;
+            apply_first_working id { matching_state' with objeq = objeq' } op1 op2 trace1 trace2 stack ops
         | _ :: _, [] ->
             MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
             (None, matching_state)

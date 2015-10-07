@@ -162,10 +162,10 @@ let pp_print_array_default_lines fmt =
 (** Again, we provide generic and standard formatters.
  * For actual maps, there is also the formatter
  * [pp_print_ < type > _default] that prints the entries
- * of the map in the form "key ↦ value".
+ * of the map in the form "key => value".
  *)
 let pp_print_map_entry fmtk fmtv pp k v =
-    fprintf pp "@[<hov>%a ↦@ %a@]" fmtk k fmtv v
+    fprintf pp "@[<hov>%a =>@ %a@]" fmtk k fmtv v
 let pp_print_hashtbl sstart send ssep fmt =
     pp_print_map_iterable Hashtbl.iter sstart send ssep fmt
 let pp_print_gen_hashtbl fmt = pp_print_hashtbl "{" "}" ";" fmt

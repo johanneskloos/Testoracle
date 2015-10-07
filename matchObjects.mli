@@ -30,8 +30,8 @@ type recursive_matcher =
     objeq -> jsval * jsval -> objeq * failure_trace
 
 (** ** Matching of the recursive object structure. *)
-(** The algorithm is based around the usual "remove distinguishables"
-* algorithm that is well - known from, e.g., the comparison of automata.
+(** The algorithm is based around the usual "find distinguishables"
+* algorithm that is well-known from, e.g., the comparison of automata.
 *
 * Because we have several layers of indirection, it has been split into
 * multiple functions.
@@ -48,8 +48,9 @@ type recursive_matcher =
 * checking algorithm.
 *
 * It returns a pair [(objeq', result)], where [result] is an option
-* stating whether the objects are isomorphic (if None) or why they
-* are not isomorphic, and [objeq'] memoizes matching results.
+* stating whether the objects are isomorphic (if [None]) or why they
+* are not isomorphic ([Some <reason>]),
+* and [objeq'] memoizes matching results.
 *)
 val match_objects_raw :
 recursive_matcher ->
