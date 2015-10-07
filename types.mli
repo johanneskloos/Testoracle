@@ -50,15 +50,6 @@ type functions = funcspec array
 (** The values of all (known) global variables. *)
 type globals = jsval Misc.StringMap.t
 
-val pp_jsval : Format.formatter -> jsval -> unit
-val pp_fieldspec : Format.formatter -> fieldspec -> unit
-val pp_objectspec : Format.formatter -> objectspec -> unit
-val pp_objects : Format.formatter -> objects -> unit
-val pp_local_funcspec : Format.formatter -> local_funcspec -> unit
-val pp_funcspec : Format.formatter -> funcspec -> unit
-val pp_functions : Format.formatter -> functions -> unit
-val pp_globals : Format.formatter -> globals -> unit
-
 (** Object identifiers *)
 type objectid =
     | Object of int
@@ -78,5 +69,14 @@ val get_object_id: objectid -> int
 val objectid_of_jsval: jsval -> objectid
 val objectid_to_jsval: objectid -> jsval
 
+(** Pretty-printers *)
 val pp_objectid: Format.formatter -> objectid -> unit
 val pp_fieldref: Format.formatter -> fieldref -> unit
+val pp_jsval : Format.formatter -> jsval -> unit
+val pp_fieldspec : Format.formatter -> fieldspec -> unit
+val pp_objectspec : Format.formatter -> objectspec -> unit
+val pp_objects : Format.formatter -> objects -> unit
+val pp_local_funcspec : Format.formatter -> local_funcspec -> unit
+val pp_funcspec : Format.formatter -> funcspec -> unit
+val pp_functions : Format.formatter -> functions -> unit
+val pp_globals : Format.formatter -> globals -> unit
