@@ -131,9 +131,7 @@ type objeq = failure_trace Misc.IntIntMap.t
 type matching_state = {
     rt1: rich_tracefile;
     rt2: rich_tracefile;
-    facts1: LocalFacts.local_facts;
-    facts2: LocalFacts.local_facts;
-    objeq: objeq;
+    objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
     toString_data: jsval list;
     nonequivalent_functions: Misc.IntIntSet.t;

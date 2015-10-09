@@ -55,13 +55,13 @@ let pp_named_failure_trace pp (_, tr) =
 let projected_match rt1 rt2 (op1, facts1) (op2, facts2) =
     let empty = Misc.IntIntMap.empty in
     let match_val key val1 val2 =
-        match MatchObjects.match_values key rt1 rt2 facts1 facts2 Misc.IntIntSet.empty val1 val2 empty with
-        | (_, None) -> true
-        | (_, Some err) -> Format.eprintf "%s doesn't match: %a@." key pp_named_failure_trace err; false in
+        match MatchObjects.match_values key rt1 rt2 facts1 facts2 Misc.IntIntSet.empty val1 val2 (ref empty) with
+        | None -> true
+        | Some err -> Format.eprintf "%s doesn't match: %a@." key pp_named_failure_trace err; false in
     let match_ref key ref1 ref2 =
-        match MatchObjects.match_refs key rt1 rt2 facts1 facts2 Misc.IntIntSet.empty ref1 ref2 empty with
-        | (_, None) -> true
-        | (_, Some err) -> Format.eprintf "%s doesn't match: %a@." key pp_named_failure_trace err; false in
+        match MatchObjects.match_refs key rt1 rt2 facts1 facts2 Misc.IntIntSet.empty ref1 ref2 (ref empty) with
+        | None -> true
+        | Some err -> Format.eprintf "%s doesn't match: %a@." key pp_named_failure_trace err; false in
     match op1, op2 with
     | WriteGlobal { ref = ref1; value = val1 }, WriteGlobal { ref = ref2; value = val2 } ->
         match_ref "ref" ref1 ref2 && match_val "val" val1 val2

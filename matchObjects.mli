@@ -27,7 +27,7 @@ val match_functions_associated : data -> int -> int -> bool
 type recursive_matcher =
     data ->
     Misc.IntIntSet.t ->
-    objeq -> jsval * jsval -> objeq * failure_trace
+    objeq ref -> jsval * jsval -> failure_trace
 
 (** ** Matching of the recursive object structure. *)
 (** The algorithm is based around the usual "find distinguishables"
@@ -57,9 +57,9 @@ recursive_matcher ->
 Misc.StringMap.key list ->
 data ->
 Misc.IntIntSet.t ->
-objeq ->
+objeq ref ->
 jsval Misc.StringMap.t ->
-jsval Misc.StringMap.t -> objeq * failure_trace
+jsval Misc.StringMap.t -> failure_trace
 
 (** [match_objects_memo matchobj ignored data seen objeq id1 id2]
 * checks whether two objects, refered to by their ids [id1] and [id2],
@@ -79,8 +79,8 @@ jsval Misc.StringMap.t -> objeq * failure_trace
 val match_objects_memo :
 recursive_matcher ->
 Misc.StringMap.key list ->
-data -> Misc.IntIntSet.t -> objeq ->
-objectid -> objectid -> objeq * failure_trace
+data -> Misc.IntIntSet.t -> objeq ref ->
+objectid -> objectid -> failure_trace
 
 (** [match_values_raw cmpname data seen objeq (v1, v2)] checks
 * whether two values [v1] and [v2] are isomorphic. For base values,
@@ -109,7 +109,7 @@ Richtrace.rich_tracefile ->
 LocalFacts.local_facts ->
 LocalFacts.local_facts ->
 Misc.IntIntSet.t ->
-jsval -> jsval -> objeq -> objeq * named_failure_trace
+jsval -> jsval -> objeq ref -> named_failure_trace
 
 (** [match_references rt1 rt2 facts1 facts2 r1 r2 objeq]
 * checks whether the versioned references [r1] and [r2] point to
@@ -122,4 +122,4 @@ LocalFacts.local_facts ->
 LocalFacts.local_facts ->
 Misc.IntIntSet.t ->
 Reference.VersionReferenceMap.key ->
-Reference.VersionReferenceMap.key -> objeq -> objeq * named_failure_trace
+Reference.VersionReferenceMap.key -> objeq ref -> named_failure_trace

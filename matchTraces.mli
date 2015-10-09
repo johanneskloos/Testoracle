@@ -21,23 +21,20 @@ open Types
 * on the right.
 *)
 
-val add_objeq :
-rich_operation -> objeq -> 'a -> 'a * objeq
-
 val interpret_rules :
 (match_condition list * match_operation) list ->
 matching_state ->
-rich_operation ->
-rich_operation ->
-(match_operation list * objeq) *
+rich_event ->
+rich_event ->
+match_operation list *
 ((match_condition * mismatch) list * match_operation) list
 
 val build_candidates :
 matching_state ->
-rich_operation ->
-rich_operation ->
+rich_event ->
+rich_event ->
 match_state ->
-(match_operation list * objeq) *
+match_operation list *
 ((match_condition * mismatch) list * match_operation) list
 
 (**
@@ -58,7 +55,7 @@ match_mode list -> mismatch option
 * given a matching event [op].
 *)
 val adapt_first :
-match_operation -> 'a -> 'b -> ('a * 'b) list -> ('a * 'b) list
+match_operation -> ('a * 'b) -> ('a * 'b) list -> ('a * 'b) list
 
 (** [adapt_stack op stack]
 * applies the required stack manipulation for [op]. *)
@@ -73,15 +70,15 @@ rich_operation -> event_match list -> event_match list
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
-matching_state -> objectid -> Reference.versioned_reference list
+matching_state -> LocalFacts.local_facts -> objectid -> Reference.versioned_reference list
 (** Collect the references belonging to a value. *)
 val collect_references :
-matching_state ->
+matching_state -> LocalFacts.local_facts ->
 jsval -> Reference.versioned_reference list
 (** Perpetuate initialisation-produced data. *)
 val perpetuate_initialisation_data :
 matching_state ->
-rich_operation -> matching_state
+rich_event -> matching_state
 (** Detect calls to "toString" *)
 val detect_toString :
 rich_operation ->
@@ -89,8 +86,8 @@ matching_state -> matching_state
 (** Adapt the matching state according to the given event *)
 val adapt_matching_state :
 match_operation ->
-rich_operation ->
-rich_operation ->
+rich_event ->
+rich_event ->
 matching_state -> matching_state
 (** The matching engine.
 *
@@ -109,8 +106,8 @@ event_match list option * matching_state
 val apply_first_working :
 int ->
 matching_state ->
-rich_operation ->
-rich_operation ->
+rich_event ->
+rich_event ->
 rich_trace ->
 rich_trace ->
 match_mode list -> match_operation list ->

@@ -11,7 +11,7 @@ open MatchTypes
 * A helper for candidate generators.
 *)
 let add_objeq op objeq cands =
-    (cands, if is_write op then IntIntMap.empty else objeq )
+    (cands, if is_write op = None then ref IntIntMap.empty else objeq )
 
 let rules_toplevel =
     [
@@ -90,7 +90,7 @@ let rules_tostring_update =
     ]
 
 let interpret_rules (rules: (match_condition list * match_operation) list) matching_state op1 op2 =
-    let (objeq, match12) = match_operations matching_state op1 op2 in
+    let match12 = match_operations matching_state op1 op2 in
     let interpret_cond = function
         | MatchSides -> match12
         | MayMatchSimple -> may_insert_in_matching_simple op2
@@ -99,17 +99,17 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | MatchCallToString -> is_matching_toString_call matching_state op1 op2
         | MatchCallWrap -> may_be_wrapper_entry matching_state op1 op2
         | MayInit -> may_insert_in_init matching_state op2
-        | IsToplevel -> is_toplevel op2 |> explain NotToplevel
-        | IsNotFunction -> is_not_function op2 |> explain NotFunction
-        | IsExit -> is_exit op2 |> explain NotExit
-        | IsPostExit -> is_post_exit op2 |> explain NotExit
-        | IsEnter -> is_enter op2 |> explain NotEnter
+        | IsToplevel -> is_toplevel op2
+        | IsNotFunction -> is_not_function op2
+        | IsExit -> is_exit op2
+        | IsPostExit -> is_post_exit op2
+        | IsEnter -> is_enter op2
         | IsCallInt -> is_internal_call matching_state.rt2 op2
-        | IsUnobservable -> is_unobservable op2 |> explain Observable
+        | IsUnobservable -> is_unobservable op2
         | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
-        | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd
-        | UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict
-        | IsCatch -> is_catch op2 |> explain NotCatch
+        | MatchEnter -> is_matching_entry matching_state op1 op2
+        | UseStrictRHS -> is_use_strict op2
+        | IsCatch -> is_catch op2
         | IsFunLiteral -> is_fun_literal op2
         | IsLocalDecl -> is_local_decl op2
         | IsFunRead -> is_fun_read op2
@@ -123,7 +123,7 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
     |> List.map (fun (cond, res) -> (interpret_conds cond, res))
     |> split
     |> fun (applicable, not_applicable) ->
-        (applicable |> List.map snd |> add_objeq op2 objeq, not_applicable)
+        (applicable |> List.map snd, not_applicable)
 
 let build_candidates matching_state op1 op2 state =
     let find_rules = function
@@ -146,11 +146,11 @@ let build_candidates matching_state op1 op2 state =
 *)
 let can_be_added_as_initialisation matching_state trace stack =
     if get_state stack <> InToplevel then Some NotAtToplevel
-    else if List.for_all (fun (op, facts) ->
-                may_insert_in_init { matching_state with facts2 = facts } op = None) trace
+    else if List.for_all (fun ev ->
+                may_insert_in_init matching_state ev = None) trace
     then None else Some NotInitCode
 
-let adapt_first op op1 facts1 trace1 =
+let adapt_first op (op1, facts1) trace1 =
     match op with
     | MatchSimple | MatchPush _ | MatchPop | MatchReplace _ -> trace1
     | WrapperPush _ | WrapperPop | WrapperSimple | MatchDroppable | WrapperReplace _
@@ -169,17 +169,17 @@ let extend_matching op op1 op2 matching =
     | WrapperSimple | WrapperPush _ | WrapperPop | WrapperReplace _ -> Wrap op2 :: matching
     | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
-let collect_object_references { facts2 = facts; rt2 = { objs } } id =
+let collect_object_references { rt2 = { objs } } facts id =
     objs.(get_object_id id)
     |> StringMap.bindings
     |> List.map (fun (field, _) -> reference_of_fieldref (id, field) |> make_versioned facts)
 
-let collect_references matching_state obj = match obj with
+let collect_references matching_state facts obj = match obj with
         OObject _ | OFunction _ | OOther _ ->
-        collect_object_references matching_state (objectid_of_jsval obj)
+        collect_object_references matching_state facts (objectid_of_jsval obj)
     | _ -> []
 
-let perpetuate_initialisation_data matching_state op =
+let perpetuate_initialisation_data matching_state (op, facts) =
     let { initialisation_data = init_old } = matching_state in
     let init_new =
         match op with
@@ -188,7 +188,7 @@ let perpetuate_initialisation_data matching_state op =
             VersionReferenceSet.add ref init_old
         | RLiteral { value } ->
             List.fold_left (fun init ref -> VersionReferenceSet.add ref init)
-                init_old (collect_references matching_state value)
+                init_old (collect_references matching_state facts value)
         | RLocal { ref } ->
             VersionReferenceSet.add ref init_old
         | _ -> init_old
@@ -209,13 +209,13 @@ let adapt_matching_state op op1 op2 matching_state =
     begin match op with
         | MatchSimple | MatchPush _ | MatchPop | MatchDroppable -> matching_state
         | _ -> perpetuate_initialisation_data matching_state op2
-    end |> detect_toString op1
+    end |> detect_toString (fst op1)
 
 (** Merge back results that need to be propagated. *)
 let merge
-    { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data }
+    { rt1; rt2; objeq; initialisation_data; toString_data }
     { nonequivalent_functions; known_blocked } =
-    { rt1; rt2; facts1; facts2; objeq; initialisation_data; toString_data; nonequivalent_functions; known_blocked }
+    { rt1; rt2; objeq; initialisation_data; toString_data; nonequivalent_functions; known_blocked }
 
 let mark_blocked ({ known_blocked } as matching_state) trace1 trace2 stack =
     let key = (List.length trace1, List.length trace2) in
@@ -236,13 +236,12 @@ let rec matching_engine matching_state trace1 trace2 stack =
         MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
         (None, matching_state)
     end else match trace1, trace2 with
-        | (op1, f1) :: trace1, (op2, f2) :: trace2 ->
-            let id = MatchTracesObserver.log_node op1 op2 stack in
-            let matching_state' = { matching_state with facts1= f1; facts2 = f2 } in
-            let ((ops, objeq'), failure_details) =
-                build_candidates matching_state' op1 op2 (get_state stack) in
+        | ev1 :: trace1, ev2 :: trace2 ->
+            let id = MatchTracesObserver.log_node (fst ev1) (fst ev2) stack in
+            let (ops, failure_details) =
+                build_candidates matching_state ev1 ev2 (get_state stack) in
             MatchTracesObserver.log_failure id failure_details ;
-            apply_first_working id { matching_state' with objeq = objeq' } op1 op2 trace1 trace2 stack ops
+            apply_first_working id matching_state ev1 ev2 trace1 trace2 stack ops
         | _ :: _, [] ->
             MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
             (None, matching_state)
@@ -261,26 +260,23 @@ and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
     | op :: ops ->
         MatchTracesObserver.log_edge parent op;
         let matching_state_adapted = adapt_matching_state op op1 op2 matching_state
-        and trace1_adapted = adapt_first op op1 matching_state.facts1 trace1
+        and trace1_adapted = adapt_first op op1 trace1
         and stack_adapted = adapt_stack op stack in
         let (result, matching_state') =
             matching_engine matching_state_adapted
                 trace1_adapted trace2 stack_adapted in
         let matching_state_merged = merge matching_state matching_state' in match result with
         | Some matching ->
-            (Some (extend_matching op op1 op2 matching), matching_state_merged)
+            (Some (extend_matching op (fst op1) (fst op2) matching), matching_state_merged)
         | None ->
             apply_first_working parent
                 (mark_blocked matching_state_merged trace1_adapted trace2 stack_adapted)
                 op1 op2 trace1 trace2 stack ops
 
 let match_traces rt1 rt2 =
-  let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = Misc.StringMap.empty } in
     matching_engine
         { rt1; rt2;
-            facts1 = empty_local_facts;
-            facts2 = empty_local_facts;
-            objeq = IntIntMap.empty;
+            objeq = ref IntIntMap.empty;
             initialisation_data = VersionReferenceSet.empty;
             toString_data = [];
             nonequivalent_functions = Misc.IntIntSet.empty;

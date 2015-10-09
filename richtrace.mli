@@ -68,8 +68,10 @@ type rich_operation =
     | REndExpression
     | RConditional of jsval
 
+(** A rich event is a pair of a rich operation and the associated local facts *)
+type rich_event = rich_operation * LocalFacts.local_facts
 (** A rich trace contains rich operations and local facts. *)
-type rich_trace = (rich_operation * LocalFacts.local_facts) list
+type rich_trace = rich_event list
 (** A rich trace file contains the original function and object descriptions,
 * as well as global object information and the [globals_are_properties] flag.
 * Furthermore, it contains a rich trace and a points - to map for the references

@@ -47,7 +47,9 @@ type rich_operation =
     | REndExpression
     | RConditional of jsval
 
-type rich_trace = (rich_operation * local_facts) list
+type rich_event = rich_operation * LocalFacts.local_facts
+type rich_trace = rich_event list
+
 type rich_tracefile = {
     funcs: functions;
     objs: objects;
