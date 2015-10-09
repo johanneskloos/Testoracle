@@ -116,7 +116,7 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | IsEndOfExpr -> is_end_of_expr op2 in
     let interpret_conds conds =
         conds
-        |> List.map (fun c -> match interpret_cond c with Some reason -> [(c, reason)] | None -> [])
+        |> List.map (fun c -> match interpret_cond matching_state op1 op2 c with Some reason -> [(c, reason)] | None -> [])
         |> List.flatten
     and split = List.partition (function ([], _) -> true | _ -> false) in
     rules

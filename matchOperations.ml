@@ -378,3 +378,28 @@ let is_fun_read = function
 let is_end_of_expr = function
     | (REndExpression, _) -> None
     | _ -> Some OtherOperation
+
+(** DSL interface to matching functionality *)
+let interpret_cond matching_state op1 op2 = function
+    | MatchSides -> match_operations matching_state op1 op2
+    | MayMatchSimple -> may_insert_in_matching_simple op2
+    | MatchCallInt -> is_matching_internal_call matching_state op1 op2
+    | MatchCallExt -> is_matching_external_call matching_state op1 op2
+    | MatchCallToString -> is_matching_toString_call matching_state op1 op2
+    | MatchCallWrap -> may_be_wrapper_entry matching_state op1 op2
+    | MayInit -> may_insert_in_init matching_state op2
+    | IsToplevel -> is_toplevel op2
+    | IsNotFunction -> is_not_function op2
+    | IsExit -> is_exit op2
+    | IsPostExit -> is_post_exit op2
+    | IsEnter -> is_enter op2
+    | IsCallInt -> is_internal_call matching_state.rt2 op2
+    | IsUnobservable -> is_unobservable op2
+    | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
+    | MatchEnter -> is_matching_entry matching_state op1 op2
+    | UseStrictRHS -> is_use_strict op2
+    | IsCatch -> is_catch op2
+    | IsFunLiteral -> is_fun_literal op2
+    | IsLocalDecl -> is_local_decl op2
+    | IsFunRead -> is_fun_read op2
+    | IsEndOfExpr -> is_end_of_expr op2

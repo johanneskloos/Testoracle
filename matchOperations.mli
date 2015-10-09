@@ -36,3 +36,5 @@ val is_enter : simple_predicate
 val is_use_strict : simple_predicate
 val is_not_function : simple_predicate
 val is_catch : simple_predicate
+
+val interpret_cond : matching_state -> rich_event -> rich_event -> match_condition -> mismatch option
