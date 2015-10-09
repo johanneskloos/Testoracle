@@ -6,7 +6,11 @@ open Types
 * Because of aliasing issues, the transformation from variables to
 * references is somewhat tricky. Therefore, we do not expose the
 * constructors of [reference]. *)
-type reference
+type reference = private
+    | LocalVariable of string
+    | GlobalVariable of string
+    | Field of objectid * string;;
+
 
 (** Maps on references. *)
 module ReferenceMap: Map.S with type key = reference
@@ -39,16 +43,6 @@ val reference_of_fieldref: fieldref -> reference
 * Beware: Unless you are certain that no aliasing occurs for this name,
 * use [reference_of_name]! *)
 val reference_of_local_name: string -> reference
-(** Return the field reference corresponding to the given reference,
-* if such a field reference exists. *)
-val get_fieldref: reference -> fieldref option
-(** Return the variable name corresponding to the given reference,
-* if such a variable name exists. Note that for aliases, this will return [None]. *)
-val get_name: reference -> string option
-(** Check if this is a reference to a proper global variable. *)
-val is_global: reference -> bool
-(** Parse a reference from a string. *)
-val parse_reference: string -> reference
 
 (** Versioned references are references with an integer version. *)
 type versioned_reference = reference * int

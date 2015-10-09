@@ -18,8 +18,10 @@ type projected_trace = {
     points_to: PointsTo.points_to_map
 }
 let project_trace { funcs; objs; trace; globals; globals_are_properties; points_to } =
-    let is_global (ref, _) =
-        Reference.is_global ref || Reference.get_fieldref ref <> None
+    let is_global (ref, _) = match ref with
+      | GlobalVariable _ -> true
+      | Field _ -> true
+      | LocalVariable _ -> false
     and is_external = function
         | OFunction(_, fid) ->
             begin match funcs.(fid) with

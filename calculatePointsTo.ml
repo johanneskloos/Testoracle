@@ -52,14 +52,14 @@ let add_literal (objects: objects) (facts: local_facts)
                 if VersionReferenceMap.mem vref state then
                     state
                 else
-                    match Reference.get_fieldref ref with
-                    | Some (obj, field) ->
+                    match ref with
+                    | Field (obj, field) ->
                         let objid = get_object_id obj in
                         let { Types.value } =
                             StringMap.find field objects.(objid)
                         in
                         VersionReferenceMap.add vref value state
-                    | None -> failwith "Unexpected unmapped variable")
+                    | _ -> failwith "Unexpected unmapped variable")
         facts.versions state
 
 let is_alias { aliases } name = StringMap.mem name aliases
@@ -101,15 +101,15 @@ let globals_points_to (objects: objects) globals_are_properties
     | (_, { versions }) :: _ ->
         let step ref ver pt =
             let vref = (ref, ver)
-            and value = match Reference.get_fieldref ref with
-                | Some (obj, field) ->
+            and value = match ref with
+                | Field (obj, field) ->
                     begin try (StringMap.find field objects.(get_object_id obj)).value
                     with Not_found -> failwith ("Can't find field " ^ field ^ " of " ^ (Misc.to_string pp_objectid obj)) end
-                | None ->
-                    assert (Reference.is_global ref);
-                    let name = (Reference.get_name ref |> Misc.Option.some) in
-                    try StringMap.find name globals
-                    with Not_found -> failwith ("Can't  find global variable "^ name) in
+                | GlobalVariable name ->
+                    begin try StringMap.find name globals
+                    with Not_found -> failwith ("Can't  find global variable "^ name) end
+                | LocalVariable _ ->
+                    failwith "Unexpected local variable" in
             VersionReferenceMap.add vref value pt
         in
         ReferenceMap.fold step versions pt

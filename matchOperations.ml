@@ -170,8 +170,8 @@ let is_function_update { rt2 } = function
 
 let is_function_property_update = function
     | RWrite { ref = (ref, _) } ->
-        begin match get_fieldref ref with
-            | Some (Function _, _) -> None
+        begin match ref with
+            | Field (Function _, _) -> None
             | _ -> Some NotFunctionUpdate
         end
     | _ -> Some OtherOperation

@@ -208,8 +208,8 @@ let perpetuate_initialisation_data matching_state op =
 
 let detect_toString op1 matching_state = match op1 with
     | RRead { ref; value } ->
-        begin match get_fieldref (fst ref) with
-            | Some (_, name) when name = "toString" ->
+        begin match (fst ref) with
+            | Field (_, name) when name = "toString" ->
                 { matching_state with
                     toString_data = value :: matching_state.toString_data }
             | _ -> matching_state

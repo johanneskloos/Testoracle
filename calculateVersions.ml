@@ -78,8 +78,8 @@ let provide_read ref state =
 
 let provide_write (objects: objects) ref state =
     if ReferenceMap.mem ref state.versions_current then
-        match get_fieldref ref with
-        | Some (obj, fld) ->
+        match ref with
+        | Field (obj, fld) ->
         (* If the field is not writable, do nothing. *)
             begin try
                 let objid = get_object_id obj in
@@ -102,17 +102,15 @@ let provide_write (objects: objects) ref state =
             (* A new field. TODO: Can objects prevent this from happening? *)
                 increment_reference state ref
             end
-        | None ->
-        (* Apparently, global variables may be read-only (e.g., console in
-         * node.js. Since we cannot detect this as of now, just assume
-         * it goes through and warn about possible unsoundness. *)
-            if is_global ref then begin
-                let name = get_name ref |> Misc.Option.some in
-                let msg =
-                    Format.sprintf "Writing to global variable %s" name in
-                warnings := msg :: !warnings
-            end;
-            increment_reference state ref
+        | GlobalVariable name ->
+          (* Apparently, global variables may be read-only (e.g., console in
+           * node.js. Since we cannot detect this as of now, just assume
+           * it goes through and warn about possible unsoundness. *)
+          let msg = Format.sprintf "Writing to global variable %s" name in
+          warnings := msg :: !warnings;
+          increment_reference state ref
+        | LocalVariable _ ->
+          increment_reference state ref
     else
         increment_reference state ref
 

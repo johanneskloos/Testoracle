@@ -13,8 +13,8 @@ let pp_points_to_map =
 
 let find_object_facts id ver pt =
     let vrefs = ReferenceMap.fold (fun ref ver acc ->
-                    match get_fieldref ref with
-                    | Some (id', fld) when id = id' -> ((ref, ver), fld) :: acc
+                    match ref with
+                    | Field (id', fld) when id = id' -> ((ref, ver), fld) :: acc
                     | _ -> acc) ver.versions [] in
     List.fold_left (fun acc (vref, fld) ->
                 if VersionReferenceMap.mem vref pt then
