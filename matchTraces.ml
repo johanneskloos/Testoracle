@@ -13,107 +13,8 @@ open MatchTypes
 let add_objeq op objeq cands =
     (cands, if is_write op = None then ref IntIntMap.empty else objeq )
 
-let rules_toplevel =
-    [
-    ([MatchSides; MayMatchSimple; IsToplevel], MatchSimple);
-    ([MatchSides; MatchCallInt], MatchPush RegularEnter);
-    ([MatchSides; MatchCallExt], MatchPush RegularEnter);
-    ([MatchCallToString], MatchPush ToString);
-    ([MatchSides; MatchCallWrap], MatchPush WrapperEnter);
-    ([MayInit; IsToplevel; IsNotFunction], Initialization);
-    ([IsCallInt (* TODO add "local function" check *)], InitializationPush Init)
-    ]
 
-let rules_regular =
-    [
-    ([MatchSides; MayMatchSimple], MatchSimple);
-    ([MatchSides; MatchCallInt], MatchPush RegularEnter);
-    ([MatchSides; MatchCallExt], MatchPush RegularEnter);
-    ([MatchCallToString], MatchPush ToString);
-    ([MatchSides; MatchCallWrap], MatchPush Wrapper);
-    ([MatchSides; IsExit], MatchPop);
-    ([UseStrictRHS], MatchDroppable);
-    ([MatchSides; IsFunLiteral], MatchPush IndirectDefinitionPattern);
-    ([IsFunLiteral], WrapperPush ExtraFunctionPattern);
-    ([IsFunRead], WrapperPush ToStringUpdatePattern);
-    ]
-
-let rules_regular_enter =
-    [
-    ([MatchEnter], MatchReplace Regular);
-    ([MatchSides; IsPostExit], MatchPop);
-    ([MatchSides; IsCatch], MatchPop);
-    ]
-
-let rules_wrapper_enter =
-    [
-    ([IsEnter], WrapperReplace Wrapper);
-    ([IsPostExit], WrapperPop);
-    ([IsCatch], WrapperPop);
-    ]
-let rules_wrap =
-    [
-    ([IsCallInt], WrapperPush RegularEnter);
-    ([IsCallInt], WrapperPush WrapperEnter);
-    ([IsExit], WrapperPop);
-    ([MayInsertInWrapSimple], WrapperSimple)
-    ]
-
-let rules_toString =
-    [
-    ([IsCallInt], WrapperPush ToString);
-    ([IsExit], WrapperPop);
-    ([IsUnobservable], WrapperSimple)
-    ]
-
-let rules_external =
-    [ ([MatchSides; IsExit], MatchPop) ]
-
-let rules_init =
-    [ ([MayInit], Initialization);
-    ([IsCallInt], InitializationPush Init);
-    ([IsExit], InitializationPop) ]
-
-let rules_indirect_definition =
-    [ ([IsCallInt], WrapperPush Wrapper);
-    ([IsPostExit], WrapperPop) ]
-
-let rules_extra_function =
-    [ ([IsFunLiteral], WrapperSimple);
-    ([IsLocalDecl], WrapperSimple);
-    ([MayInit], WrapperPop);
-    ]
-let rules_tostring_update =
-    [ ([MayInit], WrapperSimple);
-    ([IsCallInt], WrapperPush Init);
-    ([IsEndOfExpr], WrapperPop)
-    ]
-
-let interpret_rules (rules: (match_condition list * match_operation) list) matching_state op1 op2 =
-    let match12 = match_operations matching_state op1 op2 in
-    let interpret_cond = function
-        | MatchSides -> match12
-        | MayMatchSimple -> may_insert_in_matching_simple op2
-        | MatchCallInt -> is_matching_internal_call matching_state op1 op2
-        | MatchCallExt -> is_matching_external_call matching_state op1 op2
-        | MatchCallToString -> is_matching_toString_call matching_state op1 op2
-        | MatchCallWrap -> may_be_wrapper_entry matching_state op1 op2
-        | MayInit -> may_insert_in_init matching_state op2
-        | IsToplevel -> is_toplevel op2
-        | IsNotFunction -> is_not_function op2
-        | IsExit -> is_exit op2
-        | IsPostExit -> is_post_exit op2
-        | IsEnter -> is_enter op2
-        | IsCallInt -> is_internal_call matching_state.rt2 op2
-        | IsUnobservable -> is_unobservable op2
-        | MayInsertInWrapSimple -> may_insert_in_wrap_simple matching_state op2
-        | MatchEnter -> is_matching_entry matching_state op1 op2
-        | UseStrictRHS -> is_use_strict op2
-        | IsCatch -> is_catch op2
-        | IsFunLiteral -> is_fun_literal op2
-        | IsLocalDecl -> is_local_decl op2
-        | IsFunRead -> is_fun_read op2
-        | IsEndOfExpr -> is_end_of_expr op2 in
+let interpret_rules (rules: MatchRules.match_rules) matching_state op1 op2 =
     let interpret_conds conds =
         conds
         |> List.map (fun c -> match interpret_cond matching_state op1 op2 c with Some reason -> [(c, reason)] | None -> [])
@@ -126,20 +27,7 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         (applicable |> List.map snd, not_applicable)
 
 let build_candidates matching_state op1 op2 state =
-    let find_rules = function
-        | InToplevel -> rules_toplevel
-        | InRegular -> rules_regular
-        | InRegularEnter -> rules_regular_enter
-        | InWrap -> rules_wrap
-        | InToString -> rules_toString
-        | InExternal -> rules_external
-        | InInit -> rules_init
-        | InWrapperEnter -> rules_wrapper_enter
-        | InIndirectDefinitionPattern -> rules_indirect_definition
-        | InExtraFunctionPattern -> rules_extra_function
-        | InToStringUpdatePattern -> rules_tostring_update
-    in
-    interpret_rules (find_rules state) matching_state op1 op2
+    interpret_rules (MatchRules.find_rules state) matching_state op1 op2
 
 (**
 * Helpers for the matching engine.
