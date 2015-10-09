@@ -5,6 +5,9 @@ open Types
 
 let (|>) = Pervasives.(|>)
 
+let no_aliases = Misc.StringMap.empty
+let print_string_opt = Misc.to_string (FormatHelper.pp_print_option Format.pp_print_string)
+
 let test_reference_of_name_1 =
     Test.make_simple_test ~title:"reference to global, globals as vars"
         (fun () ->

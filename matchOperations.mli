@@ -22,7 +22,6 @@ type simple_predicate = rich_operation -> mismatch option
 val is_internal_call_impl : rich_tracefile -> int -> mismatch option
 val is_internal_call : rich_tracefile -> rich_operation -> mismatch option
 
-val match_source : alias_source comparator
 val match_operations : rich_operation comparator
 val is_instrumentation_write : predicate
 val is_function_update : predicate
@@ -35,7 +34,6 @@ val is_matching_external_call : call_comparator
 val is_matching_toString_call : call_comparator
 val may_be_wrapper_entry : call_comparator
 val is_matching_entry: rich_operation comparator
-val match_higher_order : call_comparator
 val is_fun_literal : simple_predicate
 val is_local_decl : simple_predicate
 val is_fun_read : simple_predicate

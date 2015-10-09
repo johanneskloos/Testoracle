@@ -2,6 +2,7 @@ open Kaputt
 open Cleantrace
 open Trace
 open Abbreviations
+open Types
 
 let (|>) = Pervasives.(|>)
 

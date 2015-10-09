@@ -2,7 +2,7 @@ open MatchObjects;;
 open Kaputt;;
 open Abbreviations;;
 open LocalFacts;;
-open Trace;;
+open Types;;
 open Richtrace;;
 open PointsTo;;
 open Reference;;
@@ -13,18 +13,18 @@ let (|>) = Pervasives.(|>)
 
 (** Tests for the function matcher. *)
 let funs1 =
-    [| Local { from_toString ="random stuff 1"; from_jalangi ="function name (args) 1" };
-    Local { from_toString ="random stuff 2"; from_jalangi ="function name (args) 2" };
-    Local { from_toString ="random stuff 3"; from_jalangi ="(unknown)" };
-    Local { from_toString ="random stuff 4"; from_jalangi ="(unknown)" };
+    [| Local { from_toString ="random stuff 1"; from_jalangi = Some "function name (args) 1" };
+    Local { from_toString ="random stuff 2"; from_jalangi = Some "function name (args) 2" };
+    Local { from_toString ="random stuff 3"; from_jalangi = Some "(unknown)" };
+    Local { from_toString ="random stuff 4"; from_jalangi = Some "(unknown)" };
     External 0;
     External 1 |];;
 let funs2 =
     [| External 1;
-    Local { from_toString ="random stuff 1"; from_jalangi ="function name (args) 1'" };
-    Local { from_toString ="random stuff 2"; from_jalangi ="function name' (args) 2" };
-    Local { from_toString ="random stuff 3"; from_jalangi ="(unknown)" };
-    Local { from_toString ="random stuff 4"; from_jalangi ="(unknown)" };
+    Local { from_toString ="random stuff 1"; from_jalangi = Some "function name (args) 1'" };
+    Local { from_toString ="random stuff 2"; from_jalangi = Some "function name' (args) 2" };
+    Local { from_toString ="random stuff 3"; from_jalangi = Some "(unknown)" };
+    Local { from_toString ="random stuff 4"; from_jalangi = Some "(unknown)" };
     External 0 |];;
 
 let fundata =
