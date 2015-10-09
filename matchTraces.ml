@@ -10,8 +10,6 @@ open MatchTypes
 (**
 * A helper for candidate generators.
 *)
-let add_objeq op objeq cands =
-    (cands, if is_write op = None then ref IntIntMap.empty else objeq )
 
 
 let interpret_rules (rules: MatchRules.match_rules) matching_state op1 op2 =
