@@ -45,7 +45,9 @@ let tm1 = [ rfp_1; rfe_1; rfx; rfo_1; ree2; run; ree3 ]
 let tu2 = [ rfp_0; rfe_0; run; rfx; rfo_0; rse ]
 let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2; rse ]
 
-let enrich = List.map (fun x -> (x, empty_local_facts))
+let enrich = 
+  let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = Misc.StringMap.empty } in
+  List.map (fun x -> (x, empty_local_facts))
 
 let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"

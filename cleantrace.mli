@@ -99,7 +99,5 @@ val pp_call_type : Format.formatter -> call_type -> unit
 val pp_clean_operation : Format.formatter -> clean_operation -> unit
 val pp_clean_trace : Format.formatter -> clean_trace -> unit
 val pp_clean_tracefile : Format.formatter -> clean_tracefile -> unit
-(** Transform a trace to a clean trace. *)
-val clean_trace: globals -> functions -> objects -> Trace.trace -> clean_trace
 (** Transform a trace file to a clean trace file. *)
 val clean_tracefile: Trace.tracefile -> clean_tracefile

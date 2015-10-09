@@ -58,29 +58,6 @@ let get_name = function
     | GlobalVariable name | LocalVariable name -> Some name
     | _ -> None
 
-let regex_field = Str.regexp "^\\(.*\\)@\\(.*\\)$"
-let regex_global = Str.regexp "^global:\\(.*\\)$"
-let regex_function = Str.regexp "^\\([0-9]*\\)/\\([0-9]*\\)$"
-let regex_other = Str.regexp "^\\(.*\\)/\\([0-9]*\\)$"
-
-let fieldref_of_string str =
-    if Str.string_match regex_function str 0 then
-        Function (Str.matched_group 1 str |> int_of_string,
-            Str.matched_group 2 str |> int_of_string)
-    else if Str.string_match regex_other str 0 then
-        Other(Str.matched_group 1 str, Str.matched_group 2 str |> int_of_string)
-    else
-        Object (Str.matched_group 1 str |> int_of_string)
-
-let parse_reference str =
-    if Str.string_match regex_field str 0 then
-        Field (Str.matched_group 1 str |> fieldref_of_string,
-            Str.matched_group 2 str)
-    else if Str.string_match regex_global str 0 then
-        GlobalVariable (Str.matched_group 1 str)
-    else
-        LocalVariable str
-
 type versioned_reference = reference * int
 let pp_versioned_reference pp (ref, ver) =
     Format.fprintf pp "%a:%d" pp_reference ref ver

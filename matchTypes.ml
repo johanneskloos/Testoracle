@@ -9,7 +9,6 @@ type match_mode =
     | Init
     | RegularEnter
     | WrapperEnter
-    | HigherOrder
     | IndirectDefinitionPattern
     | ExtraFunctionPattern
     | ToStringUpdatePattern
@@ -51,7 +50,6 @@ type match_condition =
     | MayInsertInWrapSimple
     | UseStrictRHS
     | IsCatch
-    | MatchHigherOrder
     | IsFunLiteral
     | IsLocalDecl
     | IsFunRead
@@ -67,7 +65,6 @@ type match_state =
     | InExternal
     | InInit
     | InWrapperEnter
-    | InHigherOrder
     | InIndirectDefinitionPattern
     | InExtraFunctionPattern
     | InToStringUpdatePattern
@@ -152,7 +149,6 @@ let pp_match_mode pp = function
     | ToString -> Format.pp_print_string pp "toString"
     | Init -> Format.pp_print_string pp "init"
     | WrapperEnter -> Format.pp_print_string pp "wrapper-enter"
-    | HigherOrder -> Format.pp_print_string pp "higher-order"
     | IndirectDefinitionPattern -> Format.pp_print_string pp "indirect-def"
     | ExtraFunctionPattern -> Format.pp_print_string pp "extra-func"
     | ToStringUpdatePattern -> Format.pp_print_string pp "tostring-update"
@@ -180,7 +176,6 @@ let pp_print_stack pp =
             | Init -> pp_print_char pp 'I'
             | RegularEnter -> pp_print_char pp 'r'
             | WrapperEnter -> pp_print_char pp 'r'
-            | HigherOrder -> pp_print_char pp 'H'
             | IndirectDefinitionPattern -> pp_print_char pp 'i'
             | ExtraFunctionPattern -> pp_print_char pp 'e'
             | ToStringUpdatePattern -> pp_print_char pp 'u')
@@ -204,7 +199,6 @@ let pp_cond pp cond = pp_print_string pp (match cond with
             | MatchEnter -> "matching function entries"
             | UseStrictRHS -> "\"use strict\" on RHS"
             | IsCatch -> "is a catch"
-            | MatchHigherOrder -> "is a higher order function call"
             | IsFunLiteral -> "is a function literal"
             | IsLocalDecl -> "is a local variable declaration"
             | IsFunRead -> "is a function read"
@@ -278,7 +272,6 @@ let get_state = function
     | External :: _ -> InExternal
     | ToString :: _ -> InToString
     | Init :: _ -> InInit
-    | HigherOrder :: _ -> InHigherOrder
     | IndirectDefinitionPattern :: _ -> InIndirectDefinitionPattern
     | ExtraFunctionPattern :: _ -> InExtraFunctionPattern
     | ToStringUpdatePattern :: _ -> InToStringUpdatePattern

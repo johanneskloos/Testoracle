@@ -16,6 +16,10 @@ type 'a enriched_trace = (clean_operation * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
 type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
+type unit_trace = unit enriched_trace
+type unit_tracefile = unit enriched_tracefile
+type arguments_trace = int option enriched_trace
+type arguments_tracefile = int option enriched_tracefile
 
 let pp_local_facts pp
     { last_arguments; last_update; versions; aliases } =
@@ -55,8 +59,10 @@ let empty_local_facts = {
     aliases = StringMap.empty
 }
 
-let trace_initialize globals funcs objects tr =
-    tr |> clean_trace globals funcs objects |> List.map (fun op -> (op, empty_local_facts))
+let trace_initialize  tracefile =
+    clean_tracefile tracefile |>
+    fun (funcs, objs, trace, globals, gap) ->
+      (funcs, objs, List.map (fun op -> (op, ())) trace, globals, gap) 
 
 let trace_collect
     (f: 'state -> 'olddata -> clean_operation -> 'newdata * 'state)
@@ -75,23 +81,22 @@ let trace_fold (f: 'acc -> 'data -> clean_operation -> 'acc):
     List.fold_left (fun acc (event, data) -> f acc data event)
 
 let collect_arguments_and_parameters_step
-    last_arguments facts op =
+    last_arguments () op =
     let arguments = match op with
         | CFunEnter { args } -> args :: last_arguments
         | CFunExit _ -> List.tl last_arguments
         | _ -> last_arguments
-    in ({ facts with last_arguments = hd_err arguments >|? get_object },
-        arguments)
+    in (hd_err arguments >|? get_object, arguments)
         
 let collect_arguments_and_parameters tr =
     trace_enrich collect_arguments_and_parameters_step [] tr
 
-let calculate_arguments_and_parameters
-    (funs, objs, trace, globals, globals_are_properties) =
-    (funs, objs, trace_initialize globals funs objs trace |> collect_arguments_and_parameters,
-        globals, globals_are_properties)
+let calculate_arguments_and_parameters tf =
+  trace_initialize tf |>
+  fun (funs, objs, trace, globals, globals_are_properties) ->
+    (funs, objs, collect_arguments_and_parameters trace, globals, globals_are_properties)
 
-let reference_of_variable gap facts global name =
+    let reference_of_variable gap facts global name =
     reference_of_name gap facts.aliases global name
 
 let make_versioned state ref =

@@ -9,7 +9,6 @@ type match_mode =
     | Init
     | RegularEnter
     | WrapperEnter
-    | HigherOrder
     | IndirectDefinitionPattern
     | ExtraFunctionPattern
     | ToStringUpdatePattern
@@ -51,7 +50,6 @@ type match_condition =
     | MayInsertInWrapSimple
     | UseStrictRHS
     | IsCatch
-    | MatchHigherOrder
     | IsFunLiteral
     | IsLocalDecl
     | IsFunRead
@@ -67,7 +65,6 @@ type match_state =
     | InExternal
     | InInit
     | InWrapperEnter
-    | InHigherOrder
     | InIndirectDefinitionPattern
     | InExtraFunctionPattern
     | InToStringUpdatePattern

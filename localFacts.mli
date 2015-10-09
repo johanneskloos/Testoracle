@@ -16,8 +16,6 @@ type local_facts = {
     (** All currently-existing aliases. *)
     aliases: fieldref Misc.StringMap.t;
 }
-(** An empty set of local facts. *)
-val empty_local_facts: local_facts
 
 val pp_local_facts: Format.formatter -> local_facts -> unit
 
@@ -26,6 +24,10 @@ type 'a enriched_trace = (clean_operation * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
 type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
+type unit_trace = unit enriched_trace
+type unit_tracefile = unit enriched_tracefile
+type arguments_trace = int option enriched_trace
+type arguments_tracefile = int option enriched_tracefile
 
 val pp_enriched_trace: (Format.formatter -> 'a -> unit) ->
 Format.formatter -> 'a enriched_trace -> unit
@@ -63,13 +65,13 @@ val trace_fold:
 ('acc -> 'data -> clean_operation -> 'acc) -> 'acc ->
 'data enriched_trace -> 'acc
 (** Transform a trace to a trace enriched with empty local facts. *)
-val trace_initialize : globals -> functions -> objects -> trace -> facts_trace
+val trace_initialize : tracefile -> unit_tracefile 
 (** Fill the arguments and parameters fields of an enriched trace. *)
-val collect_arguments_and_parameters: facts_trace -> facts_trace
+val collect_arguments_and_parameters: unit_trace -> arguments_trace
 
 (** Transform a trace file into an enriched trace file with
  * information about arguments and parameters filled in. *)
-val calculate_arguments_and_parameters: tracefile -> facts_tracefile
+val calculate_arguments_and_parameters: tracefile -> arguments_tracefile
 
 (** Create a reference for a variable.
  * [reference_of_variable globals_are_properties facts is_global name]

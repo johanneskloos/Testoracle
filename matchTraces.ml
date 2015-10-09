@@ -21,7 +21,6 @@ let rules_toplevel =
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush WrapperEnter);
     ([MayInit; IsToplevel; IsNotFunction], Initialization);
-    ([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([IsCallInt (* TODO add "local function" check *)], InitializationPush Init)
     ]
 
@@ -30,7 +29,6 @@ let rules_regular =
     ([MatchSides; MayMatchSimple], MatchSimple);
     ([MatchSides; MatchCallInt], MatchPush RegularEnter);
     ([MatchSides; MatchCallExt], MatchPush RegularEnter);
-    ([MatchSides; MatchHigherOrder], MatchPush HigherOrder);
     ([MatchCallToString], MatchPush ToString);
     ([MatchSides; MatchCallWrap], MatchPush Wrapper);
     ([MatchSides; IsExit], MatchPop);
@@ -38,13 +36,6 @@ let rules_regular =
     ([MatchSides; IsFunLiteral], MatchPush IndirectDefinitionPattern);
     ([IsFunLiteral], WrapperPush ExtraFunctionPattern);
     ([IsFunRead], WrapperPush ToStringUpdatePattern);
-    ]
-
-let rules_higher_order =
-    [
-    ([MatchSides; IsEnter], MatchPush Regular);
-    ([IsEnter], WrapperPush Wrapper);
-    ([MatchSides; IsPostExit], MatchPop)
     ]
 
 let rules_regular_enter =
@@ -119,7 +110,6 @@ let interpret_rules (rules: (match_condition list * match_operation) list) match
         | MatchEnter -> is_matching_entry matching_state op1 op2 |> snd
         | UseStrictRHS -> is_use_strict op2 |> explain NotUseStrict
         | IsCatch -> is_catch op2 |> explain NotCatch
-        | MatchHigherOrder -> match_higher_order matching_state op1 op2
         | IsFunLiteral -> is_fun_literal op2
         | IsLocalDecl -> is_local_decl op2
         | IsFunRead -> is_fun_read op2
@@ -145,7 +135,6 @@ let build_candidates matching_state op1 op2 state =
         | InExternal -> rules_external
         | InInit -> rules_init
         | InWrapperEnter -> rules_wrapper_enter
-        | InHigherOrder -> rules_higher_order
         | InIndirectDefinitionPattern -> rules_indirect_definition
         | InExtraFunctionPattern -> rules_extra_function
         | InToStringUpdatePattern -> rules_tostring_update
@@ -286,6 +275,7 @@ and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
                 op1 op2 trace1 trace2 stack ops
 
 let match_traces rt1 rt2 =
+  let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = Misc.StringMap.empty } in
     matching_engine
         { rt1; rt2;
             facts1 = empty_local_facts;

@@ -130,9 +130,9 @@ let provide_object (objects: objects) state obj =
         | _ -> state in
     recurse obj state
 
-let provide_argument_alias objects state name facts i =
+let provide_argument_alias objects state name arguments i =
     let field = string_of_int i in
-    match facts.last_arguments with
+    match arguments with
     | Some params when StringMap.mem field objects.(params) ->
         { state with aliases =
                 StringMap.add name (Object params, field) state.aliases }
@@ -149,7 +149,7 @@ let provide_literal (objs: objects) state = function
         provide_object objs state (objectid_of_jsval o)
     | _ -> state
 
-let collect_versions_step (objects: objects) globals_are_properties state facts op =
+let collect_versions_step (objects: objects) globals_are_properties state arguments op =
     let nameref isGlobal =
         reference_of_name globals_are_properties state.aliases isGlobal in
     let res = match op with
@@ -158,7 +158,7 @@ let collect_versions_step (objects: objects) globals_are_properties state facts 
         | CLiteral { value } ->
             provide_literal objects state value
         | CDeclare { name; declaration_type = ArgumentBinding i } ->
-            provide_argument_alias objects (save_version state name) name facts i
+            provide_argument_alias objects (save_version state name) name arguments i
         | CDeclare { name } ->
             save_version state name |>
             provide_write objects (reference_of_local_name name)
@@ -178,10 +178,10 @@ let collect_versions_step (objects: objects) globals_are_properties state facts 
             pop state
         | _ ->
             state in
-    ( { facts with
-            versions = res.versions_current;
-            aliases = res.aliases;
-            last_update = res.last_update },
+    ( { last_arguments = arguments;
+        versions = res.versions_current;
+        aliases = res.aliases;
+        last_update = res.last_update },
         res )
 
 let initial_refs objects globals_are_properties globals =

@@ -125,8 +125,6 @@ type trace = event list
 type tracefile = functions * objects * trace * globals * bool
 (** [parse_tracefile c] parses a JSON trace file from input channel [c] and returns it. *)
 val parse_tracefile : in_channel -> tracefile
-(** [dump_tracefile c t] dumps [t] as a JSON trace file to channel [c]. *)
-val dump_tracefile: out_channel -> tracefile -> unit
 (** Pretty printers. *)
 val pp_operation : Format.formatter -> event -> unit
 val pp_trace : Format.formatter -> event list -> unit

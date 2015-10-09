@@ -114,7 +114,6 @@ let output_stack st =
     | ToString -> "T"
     | RegularEnter -> "r"
 		| WrapperEnter -> "w"
-		| HigherOrder -> "H"
 		| IndirectDefinitionPattern -> "i"
 		| ExtraFunctionPattern -> "e"
 		| ToStringUpdatePattern -> "u" in
@@ -262,7 +261,6 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
     | MatchEnter -> <:html<$output_op op1$ and $output_op op2$ are not matching function entries>>
 		| UseStrictRHS -> <:html<RHS not "use strict">>
     | IsCatch -> <:html<$output_op op2$ is not a catch>>
-		| MatchHigherOrder -> <:html<$output_op op2$ is not a higher-order call>>
 		| IsFunLiteral -> <:html<$output_op op2$ is not a function literal>>
 		| IsLocalDecl -> <:html<$output_op op2$ is not a local declaration>>
 		| IsFunRead -> <:html<$output_op op2$ is not a function read>>
