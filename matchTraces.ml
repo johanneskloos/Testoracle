@@ -91,11 +91,21 @@ let detect_toString op1 matching_state = match op1 with
         end
     | _ -> matching_state
 
+let performs_write = function
+  | RWrite _ -> true
+  | _ -> false
+
+let invalidate_cache op1 op2 matching_state =
+  if performs_write op1 || performs_write op2 then
+    { matching_state with objeq = ref IntIntMap.empty }
+  else
+    matching_state
+
 let adapt_matching_state op op1 op2 matching_state =
     begin match op with
         | MatchSimple | MatchPush _ | MatchPop | MatchDroppable -> matching_state
         | _ -> perpetuate_initialisation_data matching_state op2
-    end |> detect_toString (fst op1)
+    end |> detect_toString (fst op1) |> invalidate_cache (fst op1) (fst op2)
 
 (** Merge back results that need to be propagated. *)
 let merge
