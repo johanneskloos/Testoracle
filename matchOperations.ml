@@ -83,7 +83,6 @@ let (|||) res1 res2 = match res1 with Some _ -> res1 | None -> res2
 let wrap_reason = function
     | Some (name, reason) -> Some (DifferentObjects (name, reason))
     | None -> None
-let explain reason = function true -> None | false -> Some reason
 
 (**
 * Check if two operations match. This does not take
@@ -171,20 +170,24 @@ let is_uninitialized_dummy_write = explain_wrapper OtherOperation (function
     | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
     | _ -> false)
 
+let better_explanation explanation = Option.map (fun _ -> explanation)
+
 (**
 * The folloing three predicates detect operations that can
 * be used without any special handling in various contexts. *)
 let may_insert_in_init matching_state op =
-  is_unobservable op |||
+  (is_unobservable op |||
   is_instrumentation_write matching_state op |||
   is_function_update matching_state op |||
   is_uninitialized_dummy_write op |||
-  is_function_property_update op
+  is_function_property_update op)
+  |> better_explanation NotInitCode
 
-  let may_insert_in_matching_simple op =
-    is_unobservable op |||
-    is_write op |||
-    is_throw op
+let may_insert_in_matching_simple op =
+  (is_unobservable op |||
+  is_write op |||
+  is_throw op)
+  |> better_explanation NotSimpleMatchable
 
 let may_insert_in_wrap_simple matching_state op =
     may_insert_in_init matching_state op (* for now *)

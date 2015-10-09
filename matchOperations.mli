@@ -2,8 +2,6 @@ open Richtrace
 open MatchTypes
 
 
-val explain: mismatch -> bool -> mismatch option
-
 type 'a comparator = matching_state -> 'a -> 'a -> mismatch option
 type predicate = matching_state -> rich_event -> mismatch option
 type call_comparator = rich_event comparator
