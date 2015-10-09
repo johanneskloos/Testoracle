@@ -1,8 +1,7 @@
 open LocalFacts
-open Misc
 open Reference
 open Types
-open Cleantrace
+module StringMap = Misc.StringMap
 
 type saved_variable =
     | Unknown
@@ -152,7 +151,7 @@ let provide_literal (objs: objects) state = function
 let collect_versions_step (objects: objects) globals_are_properties state arguments op =
     let nameref isGlobal =
         reference_of_name globals_are_properties state.aliases isGlobal in
-    let res = match op with
+    let res = let open Cleantrace in match op with
         | CFunPre { args } ->
             provide_literal objects state args
         | CLiteral { value } ->

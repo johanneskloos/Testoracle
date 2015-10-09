@@ -1,4 +1,3 @@
-open Richtrace
 open MatchTypes
 
 let observer: out_channel option ref = ref None
@@ -17,12 +16,12 @@ let with_chan f =
 let next_node () = let res = !node_id in incr node_id; res
 
 type record =
-    | RNode of int * rich_operation * rich_operation * match_mode list
+    | RNode of int * Richtrace.rich_operation * Richtrace.rich_operation * match_mode list
     | REdge of int * int * match_operation
     | RFailure of int * ((match_condition * mismatch) list * match_operation) list
-    | RXfrmConsumed of int * rich_operation list
-    | ROrigConsumedOk of int * rich_operation list * match_mode list
-    | ROrigConsumedFailure of int * rich_operation list * match_mode list
+    | RXfrmConsumed of int * Richtrace.rich_operation list
+    | ROrigConsumedOk of int * Richtrace.rich_operation list * match_mode list
+    | ROrigConsumedFailure of int * Richtrace.rich_operation list * match_mode list
     | RBlockedShared of int * int * int * match_mode list
 
 let write_record (data: record) chan =
@@ -30,7 +29,7 @@ let write_record (data: record) chan =
     output_binary_int chan (Bytes.length sdata);
     output_bytes chan sdata
 
-let log_node (op1: rich_operation) (op2: rich_operation) (stack: match_mode list) =
+let log_node op1 op2 (stack: match_mode list) =
     let res = next_node () in
     with_chan (write_record (RNode (res, op1, op2, stack)));
     res

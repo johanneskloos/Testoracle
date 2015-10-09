@@ -1,6 +1,3 @@
-open Trace
-open LocalFacts
-open PointsTo
 open MatchTypes
 open Types
 
@@ -10,10 +7,10 @@ val is_base : jsval -> bool
 type data = {
     funs1 : functions;
     funs2 : functions;
-    facts1 : local_facts;
-    facts2 : local_facts;
-    pt1 : points_to_map;
-    pt2 : points_to_map;
+    facts1 : LocalFacts.local_facts;
+    facts2 : LocalFacts.local_facts;
+    pt1 : PointsTo.points_to_map;
+    pt2 : PointsTo.points_to_map;
     noneq: Misc.IntIntSet.t;
 }
 (** Strict matching of functions. Two functions match strictly

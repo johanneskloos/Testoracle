@@ -1,5 +1,4 @@
 open Types
-open Trace
 
 type call_type = Function | Method | Constructor | ConstructorMethod
 type declaration_type =
@@ -88,11 +87,11 @@ let check_global locals globals name =
     else if List.mem name globals then (locals, globals, true)
     else (locals, name:: globals, true)
 
-let encode_pre ({ f; base; args; isMethod; isConstructor }: Trace.funpre) =
+let encode_pre ({ Trace.f; Trace.base; Trace.args; Trace.isMethod; Trace.isConstructor }: Trace.funpre) =
   CFunPre { f; base; args; call_type = encode_type isMethod isConstructor }
-let encode_post { f; base; args; result; isMethod; isConstructor } =
+let encode_post { Trace.f; Trace.base; Trace.args; Trace.result; Trace.isMethod; Trace.isConstructor } =
   CFunPost { f; base; args; result; call_type = encode_type isMethod isConstructor }
-let encode_decl { name; value; argument; isCatchParam } =
+let encode_decl { Trace.name; Trace.value; Trace.argument; Trace.isCatchParam } =
   assert (argument = None || isCatchParam = false);
   CDeclare { name; value; declaration_type =
     match argument with
@@ -100,7 +99,7 @@ let encode_decl { name; value; argument; isCatchParam } =
       | Some _ -> ArgumentArray
       | None -> if isCatchParam then CatchParam else Var }
 
-let rec clean_impl stack locals globals = function
+let rec clean_impl stack locals globals = let open Trace in function
     | FunPre fpre :: tr ->
         encode_pre fpre :: clean_impl (locals:: stack) locals globals tr
     | FunPost fpost :: tr ->

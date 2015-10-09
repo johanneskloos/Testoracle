@@ -1,8 +1,5 @@
 (** Facts that are local to a position in the trace. *)
 open Types
-open Trace
-open Reference
-open Cleantrace
 
 (** Local facts are facts that change depending on the position
  * in the trace. *)
@@ -10,17 +7,17 @@ type local_facts = {
     (** The last argument object that was created by a function call. *)
     last_arguments: int option;
     (** The last reference that was modified. *)
-    last_update: versioned_reference option;
+    last_update: Reference.versioned_reference option;
     (** The current version of all known references. *)
-    versions: int ReferenceMap.t;
+    versions: int Reference.ReferenceMap.t;
     (** All currently-existing aliases. *)
-    aliases: fieldref Misc.StringMap.t;
+    aliases: Types.fieldref Misc.StringMap.t;
 }
 
 val pp_local_facts: Format.formatter -> local_facts -> unit
 
 (** Traces and tracefiles enrichted with local facts. *)
-type 'a enriched_trace = (clean_operation * 'a) list
+type 'a enriched_trace = (Cleantrace.clean_operation * 'a) list
 type 'a enriched_tracefile = functions * objects * 'a enriched_trace * globals * bool
 type facts_trace = local_facts enriched_trace
 type facts_tracefile = local_facts enriched_tracefile
@@ -50,28 +47,28 @@ val pp_facts_tracefile: Format.formatter -> facts_tracefile -> unit
  * [trace_collect] returns the trace enriched with new data, and the
  * final state. *)
 val trace_collect :
-('state -> 'olddata -> clean_operation -> 'newdata * 'state) ->
+('state -> 'olddata -> Cleantrace.clean_operation -> 'newdata * 'state) ->
 'state -> 'olddata enriched_trace -> 'newdata enriched_trace * 'state
 (** [trace_enrich step initial_state trace] works exactly
  * like [trace_collect step initial_state trace], except that it only
  * returns the trace enriched with new data. *)
 val trace_enrich :
-('state -> 'olddata -> clean_operation -> 'newdata * 'state) ->
+('state -> 'olddata -> Cleantrace.clean_operation -> 'newdata * 'state) ->
 'state -> 'olddata enriched_trace -> 'newdata enriched_trace
 (** [trace_fold f init] runs over [trace], as if executing it,
  * calling [f] at each step to update some state (initially [init]).
  * It returns the final state after the execution. *)
 val trace_fold:
-('acc -> 'data -> clean_operation -> 'acc) -> 'acc ->
+('acc -> 'data -> Cleantrace.clean_operation -> 'acc) -> 'acc ->
 'data enriched_trace -> 'acc
 (** Transform a trace to a trace enriched with empty local facts. *)
-val trace_initialize : tracefile -> unit_tracefile 
+val trace_initialize : Trace.tracefile -> unit_tracefile 
 (** Fill the arguments and parameters fields of an enriched trace. *)
 val collect_arguments_and_parameters: unit_trace -> arguments_trace
 
 (** Transform a trace file into an enriched trace file with
  * information about arguments and parameters filled in. *)
-val calculate_arguments_and_parameters: tracefile -> arguments_tracefile
+val calculate_arguments_and_parameters: Trace.tracefile -> arguments_tracefile
 
 (** Create a reference for a variable.
  * [reference_of_variable globals_are_properties facts is_global name]
@@ -79,10 +76,10 @@ val calculate_arguments_and_parameters: tracefile -> arguments_tracefile
  * which is global iff [is_global] holds, taking all relevant facts
  * into account. Note that this requires the [aliases] field of
  * [facts] to be filled in. *)
-val reference_of_variable: bool -> local_facts -> bool -> string -> reference
+val reference_of_variable: bool -> local_facts -> bool -> string -> Reference.reference
 
 (** Turn a reference into a versioned reference using the current
  * version from the given facts. Note that this required the [versions] field
  * to be filled in. *)
-val make_versioned : local_facts -> reference -> versioned_reference
+val make_versioned : local_facts -> Reference.reference -> Reference.versioned_reference
 

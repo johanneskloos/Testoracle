@@ -1,11 +1,6 @@
-open Misc
-open LocalFacts
-open CalculateVersions
-open CalculatePointsTo
-open PointsTo
 open Types
-open Reference
-open Cleantrace
+type call_type = Cleantrace.call_type
+type versioned_reference = Reference.versioned_reference
 
 type alias_source = Argument of int | With of versioned_reference
 type rfunpre = { f: jsval; base: jsval; args: jsval; call_type: call_type }
@@ -56,19 +51,17 @@ type rich_tracefile = {
     trace: rich_trace;
     globals: globals;
     globals_are_properties: bool;
-    points_to: points_to_map
+    points_to: PointsTo.points_to_map
 }
 
-open Format
-
-let pp_alias_source pp = function
+let pp_alias_source pp = let open Format in function
     | Argument i -> fprintf pp "declaration of argument %d" i
-    | With ref -> fprintf pp "with statement on %a" pp_versioned_reference ref
+    | With ref -> fprintf pp "with statement on %a" Reference.pp_versioned_reference ref
 
-let pp_rich_operation pp = function
+let pp_rich_operation pp = let open Format in function
     | RFunPre { f; base; args; call_type } ->
         fprintf pp "RFunPre(f=%a, base=%a, args=%a, call_type=%a)"
-            pp_jsval f pp_jsval base pp_jsval args pp_call_type call_type
+            pp_jsval f pp_jsval base pp_jsval args Cleantrace.pp_call_type call_type
     | RFunPost { f; base; args; result } ->
         fprintf pp "RFunPost(f=%a, base=%a, args=%a, result=%a)"
             pp_jsval f pp_jsval base pp_jsval args pp_jsval result
@@ -76,19 +69,19 @@ let pp_rich_operation pp = function
         fprintf pp "RLiteral(value=%a, hasGetterSetter=%B)" pp_jsval value hasGetterSetter;
     | RForIn obj -> fprintf pp "RForIn(value=%a)" pp_jsval obj
     | RLocal { name; ref } ->
-        fprintf pp "RLocal(name=%s, ref=%a)" name pp_versioned_reference ref
+        fprintf pp "RLocal(name=%s, ref=%a)" name Reference.pp_versioned_reference ref
     | RCatch { name; ref } ->
-        fprintf pp "RCatch(name=%s, ref=%a)" name pp_versioned_reference ref
+        fprintf pp "RCatch(name=%s, ref=%a)" name Reference.pp_versioned_reference ref
     | RAlias { name; source; ref } ->
         fprintf pp "RAlias(name=%s, ref=%a, source=%a)"
-            name pp_versioned_reference ref pp_alias_source source
+            name Reference.pp_versioned_reference ref pp_alias_source source
     | RRead { ref; value } ->
         fprintf pp "RRead(ref=%a, value=%a)"
-            pp_versioned_reference ref pp_jsval value
+            Reference.pp_versioned_reference ref pp_jsval value
     | RWrite { ref; value; oldref; success } ->
         fprintf pp "RWrite(ref=%a, value=%a, oldref=%a, success=%B"
-            pp_jsval value pp_versioned_reference ref
-            pp_versioned_reference oldref success
+            pp_jsval value Reference.pp_versioned_reference ref
+            Reference.pp_versioned_reference oldref success
     | RReturn obj -> fprintf pp "RReturn(value=%a)" pp_jsval obj
     | RThrow obj -> fprintf pp "RThrow(value=%a)" pp_jsval obj
     | RWith obj -> fprintf pp "RWith(value=%a)" pp_jsval obj
@@ -112,7 +105,7 @@ let dump_facts = ref false
 
 let pp_rich_operation_with_facts pp (op, facts) =
     if !dump_facts then
-        fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op pp_local_facts facts
+        Format.fprintf pp "@[<v 2>%a@.%a@]" pp_rich_operation op LocalFacts.pp_local_facts facts
     else
         pp_rich_operation pp op
 let pp_rich_trace pp trace =
@@ -120,7 +113,7 @@ let pp_rich_trace pp trace =
 
 let pp_rich_tracefile pp
     { funcs; objs; trace; globals; globals_are_properties; points_to } =
-    fprintf pp "@[< v > Globals are properties: %b@ \
+    Format.fprintf pp "@[< v > Globals are properties: %b@ \
         @[< hov >%a@]@ \
         @[< hov >%a@]@ \
         @[< hov > Globals:@ %a@]@ \
@@ -131,37 +124,37 @@ let pp_rich_tracefile pp
         pp_objects objs
         pp_globals globals
         pp_rich_trace trace
-        pp_points_to_map points_to
+        PointsTo.pp_points_to_map points_to
 
 let enrich_step globals_are_properties funcs (op, facts) =
     let mkfieldref base offset =
-        reference_of_field base offset |> make_versioned facts
+        Reference.reference_of_field base offset |> LocalFacts.make_versioned facts
     and mkvarref isGlobal name =
-        reference_of_name globals_are_properties facts.aliases isGlobal name
-        |> make_versioned facts in
-    let res = match op with
+        Reference.reference_of_name globals_are_properties facts.LocalFacts.aliases isGlobal name
+        |> LocalFacts.make_versioned facts in
+    let res = let open Cleantrace in match op with
         | CFunPre { f; base; args; call_type } ->
             [RFunPre { f; base; args; call_type } ]
         | CFunPost { f; base; args; result } -> [RFunPost { f; base; args; result }]
         | CLiteral { value; hasGetterSetter } -> [RLiteral { value; hasGetterSetter }]
         | CForIn value -> [RForIn value]
         | CDeclare { name; declaration_type = ArgumentBinding idx } ->
-            if Misc.StringMap.mem name facts.aliases then
+            if Misc.StringMap.mem name facts.LocalFacts.aliases then
                 [RAlias { name;
-                    ref = Misc.StringMap.find name facts.aliases
-                        |> reference_of_fieldref
-                        |> make_versioned facts;
+                    ref = Misc.StringMap.find name facts.LocalFacts.aliases
+                        |> Reference.reference_of_fieldref
+                        |> LocalFacts.make_versioned facts;
                     source = Argument idx }]
             else
-                let ref = reference_of_local_name name |> make_versioned facts in
+                let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
                 [RLocal { name; ref };
                 RWrite { ref; oldref = ref; value = OUndefined; success = true } ]
         | CDeclare { name; value; declaration_type = CatchParam } ->
-            let ref = reference_of_local_name name |> make_versioned facts in
+            let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
             [RCatch { name; ref };
             RWrite { ref; oldref = ref; value; success = true } ]
         | CDeclare { name; value } ->
-            let ref = reference_of_local_name name |> make_versioned facts in
+            let ref = Reference.reference_of_local_name name |> LocalFacts.make_versioned facts in
             [RLocal { name; ref };
             RWrite { ref; oldref = ref; value; success = true } ]
         | CGetField { base; offset; value } ->
@@ -170,7 +163,7 @@ let enrich_step globals_are_properties funcs (op, facts) =
         (* FIXME success handling *)
             [RWrite {
                 ref = mkfieldref base offset;
-                oldref = Option.some facts.last_update;
+                oldref = Misc.Option.some facts.LocalFacts.last_update;
                 value; success = true
             }]
         | CRead { name; value; isGlobal } ->
@@ -179,7 +172,7 @@ let enrich_step globals_are_properties funcs (op, facts) =
         (* FIXME success handling *)
             [RWrite {
                 ref = mkvarref isGlobal name;
-                oldref = Option.some facts.last_update;
+                oldref = Misc.Option.some facts.LocalFacts.last_update;
                 value;
                 success = true
             }]
@@ -199,11 +192,11 @@ let enrich_step globals_are_properties funcs (op, facts) =
 
 let calculate_rich_tracefile tracefile =
     tracefile |>
-    calculate_arguments_and_parameters |>
-    calculate_versions |>
+    LocalFacts.calculate_arguments_and_parameters |>
+    CalculateVersions.calculate_versions |>
     fun tf ->
         let (funcs, objs, etrace, globals, globals_are_properties) = tf
-        and points_to = calculate_pointsto tf in
+        and points_to = CalculatePointsTo.calculate_pointsto tf in
         { funcs; objs; globals; globals_are_properties; points_to;
             trace = etrace
                 |> List.map (enrich_step globals_are_properties funcs)

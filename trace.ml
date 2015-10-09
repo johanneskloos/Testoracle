@@ -1,4 +1,3 @@
-open Misc
 open Types
 
 type funpre = { iid: int; f: jsval; base: jsval; args: jsval; isConstructor: bool; isMethod: bool }
@@ -102,8 +101,8 @@ let parse_objectspec json =
     json |> to_assoc |>
     List.fold_left
         (fun spec (name, content) ->
-                StringMap.add name (parse_fieldspec content) spec)
-        StringMap.empty
+                Misc.StringMap.add name (parse_fieldspec content) spec)
+        Misc.StringMap.empty
     with ParseError -> report "Context" "objectspec" json
 
 let parse_operation json =

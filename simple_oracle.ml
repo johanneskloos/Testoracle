@@ -1,11 +1,9 @@
 open Types
-open Trace
-open Richtrace
 open Arg
-open Reference
 open MatchTypes
+open Richtrace
 
-type write_global = { ref: versioned_reference; value: jsval }
+type write_global = { ref: Reference.versioned_reference; value: jsval }
 type call_external = { f: jsval; this: jsval; args: jsval; result: jsval }
 type projected_op =
     | WriteGlobal of write_global
@@ -19,9 +17,9 @@ type projected_trace = {
 }
 let project_trace { funcs; objs; trace; globals; globals_are_properties; points_to } =
     let is_global (ref, _) = match ref with
-      | GlobalVariable _ -> true
-      | Field _ -> true
-      | LocalVariable _ -> false
+      | Reference.GlobalVariable _ -> true
+      | Reference.Field _ -> true
+      | Reference.LocalVariable _ -> false
     and is_external = function
         | OFunction(_, fid) ->
             begin match funcs.(fid) with
@@ -87,10 +85,10 @@ let debug_print msg pp data =
 
 let rich_tracefile_from_path path =
     let chan = open_in path in
-    let rt = parse_tracefile chan
-        >> debug_print ("Read trace file " ^ path) pp_tracefile
-        |> calculate_rich_tracefile
-        >> debug_print "Enrichted trace file" pp_rich_tracefile in
+    let rt = Trace.parse_tracefile chan
+        >> debug_print ("Read trace file " ^ path) Trace.pp_tracefile
+        |> Richtrace.calculate_rich_tracefile
+        >> debug_print "Enrichted trace file" Richtrace.pp_rich_tracefile in
     close_in chan; rt
 
 let parse_args () =

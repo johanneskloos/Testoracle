@@ -1,9 +1,4 @@
-open PointsTo
-open LocalFacts
 open Types
-open Misc
-open Richtrace
-open Reference
 open MatchTypes
 
 type failure_trace = obj_match_failure option
@@ -17,11 +12,11 @@ let is_base = function
 type data = {
     funs1: functions;
     funs2: functions;
-    facts1: local_facts;
-    facts2: local_facts;
-    pt1: points_to_map;
-    pt2: points_to_map;
-    noneq: IntIntSet.t
+    facts1: LocalFacts.local_facts;
+    facts2: LocalFacts.local_facts;
+    pt1: PointsTo.points_to_map;
+    pt2: PointsTo.points_to_map;
+    noneq: Misc.IntIntSet.t
 }
 
 type cmpname = string
@@ -91,11 +86,11 @@ let match_functions { funs1; funs2 } fun1 fun2 =
  * over-approximation. *)
 let match_functions_associated { funs1; funs2; noneq } fun1 fun2 =
     match funs1.(fun1), funs2.(fun2) with
-    | (Local _, Local _) -> not (IntIntSet.mem (fun1, fun2) noneq)
+    | (Local _, Local _) -> not (Misc.IntIntSet.mem (fun1, fun2) noneq)
     | (External id1, External id2) -> id1 = id2
     | _ -> false
 
-module StringMapExtra = MapExtra(StringMap);;
+module StringMapExtra = Misc.MapExtra(Misc.StringMap);;
 
 let match_objects_raw
     (matchobj: recursive_matcher)
@@ -137,15 +132,15 @@ let match_objects_raw
 
 let match_objects_memo matchobj ignored data seen objeq id1 id2 =
     let id1' = get_object_id id1 and id2' = get_object_id id2 in
-    if IntIntSet.mem (id1', id2') seen then begin
+    if Misc.IntIntSet.mem (id1', id2') seen then begin
         None
-    end else if IntIntMap.mem (id1', id2') !objeq then begin
-        IntIntMap.find (id1', id2') !objeq
+    end else if Misc.IntIntMap.mem (id1', id2') !objeq then begin
+        Misc.IntIntMap.find (id1', id2') !objeq
     end else begin
-        let m1 = find_object_facts id1 data.facts1 data.pt1
-        and m2 = find_object_facts id2 data.facts2 data.pt2
-        and seen' = IntIntSet.add (id1', id2') seen
-        and extend_cache res = objeq := IntIntMap.add (id1', id2') res !objeq; res in
+        let m1 = PointsTo.find_object_facts id1 data.facts1 data.pt1
+        and m2 = PointsTo.find_object_facts id2 data.facts2 data.pt2
+        and seen' = Misc.IntIntSet.add (id1', id2') seen
+        and extend_cache res = objeq := Misc.IntIntMap.add (id1', id2') res !objeq; res in
         match_objects_raw matchobj ignored data seen' objeq m1 m2
         |> extend_cache
     end
@@ -176,13 +171,13 @@ let rec match_values_raw data seen objeq = function
     | (o1, o2) ->
         Some (NonMatching ([], o1, o2) )
 
-let match_values name
+let match_values name = let open Richtrace in fun
     { funcs = funs1; points_to = pt1 }
     { funcs = funs2; points_to = pt2 }
-    facts1 facts2 noneq obj1 obj2 objeq: named_failure_trace =
+    facts1 facts2 noneq obj1 obj2 objeq ->
     match
     match_values_raw { funs1; funs2; facts1; facts2; pt1; pt2; noneq }
-        IntIntSet.empty
+        Misc.IntIntSet.empty
         objeq
         (obj1, obj2)
     with
@@ -192,7 +187,7 @@ let match_values name
 let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
     try
         match_values name rt1 rt2 facts1 facts2 noneq
-            (VersionReferenceMap.find r1 rt1.points_to)
-            (VersionReferenceMap.find r2 rt2.points_to)
+            (Reference.VersionReferenceMap.find r1 rt1.Richtrace.points_to)
+            (Reference.VersionReferenceMap.find r2 rt2.Richtrace.points_to)
             objeq
     with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found

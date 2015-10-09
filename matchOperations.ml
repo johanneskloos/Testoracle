@@ -1,10 +1,7 @@
 open Richtrace
 open Types
-open Reference
-open LocalFacts
-open Misc
-open MatchObjects
 open MatchTypes
+module Option = Misc.Option
 
 (**
  * Basic predicates.
@@ -149,22 +146,22 @@ let match_operations matching_state (op1, facts1) (op2, facts2) =
 * These two predicates classify certain types of writes.
 *)
 let is_instrumentation_write { initialisation_data } = explain_wrapper NotInitData (function
-    | RWrite { oldref } -> VersionReferenceSet.mem oldref initialisation_data
+    | RWrite { oldref } -> Reference.VersionReferenceSet.mem oldref initialisation_data
     | _ -> false)
 
 let is_function_update { rt2 } = explain_wrapper NotFunctionUpdate (function
     | RWrite { ref } ->
-        begin try match VersionReferenceMap.find ref rt2.points_to with
+        begin try match Reference.VersionReferenceMap.find ref rt2.points_to with
             | OFunction _ -> true
             | _ -> false
         with Not_found ->
-            Format.eprintf "%a not found in is_function_update@." pp_versioned_reference ref;
+            Format.eprintf "%a not found in is_function_update@." Reference.pp_versioned_reference ref;
             failwith "is_function_update failed"
         end
     | _ -> false)
 
 let is_function_property_update = explain_wrapper NotFunctionUpdate (function
-    | RWrite { ref = (Field (Function _, _), _) } -> true
+    | RWrite { ref = (Reference.Field (Function _, _), _) } -> true
     | _ -> false)
 let is_uninitialized_dummy_write = explain_wrapper OtherOperation (function
     | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
@@ -207,7 +204,7 @@ let convert
         rt1 ={ funcs = funs1; points_to = pt1 };
         rt2 ={ funcs = funs2; points_to = pt2 };
         nonequivalent_functions = noneq
-    } facts1 facts2 = { funs1; funs2; pt1; pt2; facts1; facts2; noneq }
+    } facts1 facts2 = let open MatchObjects in { funs1; funs2; pt1; pt2; facts1; facts2; noneq }
 
 let is_internal_call_impl { funcs } f =
     try
@@ -231,7 +228,7 @@ let is_matching_call may_be_literally_equal local matching_data op1 op2 =
     match op1, op2 with
     | (RFunPre { f = OFunction(_, f1) }, facts1),
       (RFunPre { f = OFunction(_, f2) }, facts2) ->
-        let is_matching = match match_functions (convert matching_data facts1 facts2) f1 f2 with
+        let is_matching = match MatchObjects.match_functions (convert matching_data facts1 facts2) f1 f2 with
             | Some _ -> false | None -> true in
         if (not is_matching) || may_be_literally_equal then
           match is_internal_call_impl matching_data.rt1 f1, local with
@@ -299,7 +296,7 @@ let is_not_function = explain_otherop (function
 let is_matching_entry matching_data (op1, facts1) (op2, facts2) =
     let { rt1; rt2; objeq; toString_data; nonequivalent_functions } = matching_data in
     let match_val key obj1 obj2 =
-        match_values key rt1 rt2 facts1 facts2 nonequivalent_functions obj1 obj2 objeq |> wrap_reason in
+        MatchObjects.match_values key rt1 rt2 facts1 facts2 nonequivalent_functions obj1 obj2 objeq |> wrap_reason in
     match op1, op2 with
     | RFunEnter { f = OFunction(_, f1); args = args1; this = this1 },
     RFunEnter { f = OFunction(_, f2); args = args2; this = this2 } ->
@@ -315,7 +312,7 @@ let is_call_to { funcs; objs; points_to } name: Richtrace.rfunpre -> bool = func
         begin
             let rec lookup base name = match name with
                 | component :: rest ->
-                    lookup (StringMap.find component objs.(get_object base)).value rest
+                    lookup (Misc.StringMap.find component objs.(get_object base)).value rest
                 | [] -> base
             in try
                 let get path = lookup (OObject 0) path in

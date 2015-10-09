@@ -1,5 +1,6 @@
-open Types
-open Richtrace
+(*open Types
+open Richtrace*)
+
 (** The mode to switch to, on a push. *)
 type match_mode =
     | Wrapper
@@ -77,13 +78,13 @@ type match_state =
 * or initialisation.
 *)
 type event_match =
-        Pair of rich_operation * rich_operation
-    | Wrap of rich_operation
-    | Init of rich_operation
+        Pair of Richtrace.rich_operation * Richtrace.rich_operation
+    | Wrap of Richtrace.rich_operation
+    | Init of Richtrace.rich_operation
 
 (** Match failure explanation *)
 type obj_match_failure =
-        NonMatching of string list * jsval * jsval
+        NonMatching of string list * Types.jsval * Types.jsval
     | MissingOrig of string * string list
     | MissingXfrm of string * string list
     | Other of string
@@ -128,11 +129,11 @@ type named_failure_trace = (string * obj_match_failure) option
 type objeq = failure_trace Misc.IntIntMap.t
 
 type matching_state = {
-    rt1: rich_tracefile;
-    rt2: rich_tracefile;
+    rt1: Richtrace.rich_tracefile;
+    rt2: Richtrace.rich_tracefile;
     objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
-    toString_data: jsval list;
+    toString_data: Types.jsval list;
     nonequivalent_functions: Misc.IntIntSet.t;
     known_blocked: match_mode list list Misc.IntIntMap.t
 }
@@ -211,7 +212,7 @@ let pp_path pp = function
 
 let pp_obj_match_failure pp = function
         NonMatching (path, val1, val2) -> fprintf pp "at %a, %a differs from %a"
-            pp_path path pp_jsval val1 pp_jsval val2
+            pp_path path Types.pp_jsval val1 Types.pp_jsval val2
     | MissingOrig (fld, path) -> fprintf pp "%s at %a missing in orig" fld pp_path path
     | MissingXfrm (fld, path) -> fprintf pp "%s at %a missing in xfrm" fld pp_path path
     | Other reason -> pp_print_string pp reason
@@ -275,7 +276,7 @@ let get_state = function
     | ToStringUpdatePattern :: _ -> InToStringUpdatePattern
     | [] -> InToplevel
 
-let pp_event_match pp = function
+let pp_event_match pp = let open Richtrace in function
     | Pair(r1, r2) -> fprintf pp "Pair\t%a\t%a@." pp_rich_operation r1 pp_rich_operation r2
     | Init i -> fprintf pp "Init\t\t%a@." pp_rich_operation i
     | Wrap i -> fprintf pp "Wrap\t\t%a@." pp_rich_operation i

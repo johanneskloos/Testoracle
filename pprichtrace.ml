@@ -1,13 +1,9 @@
-open Trace;;
-open Richtrace;;
-open Printexc;;
-
-record_backtrace true;;
+Printexc.record_backtrace true;;
 let file = ref "";;
-Arg.parse [("-f", Arg.Set dump_facts, "dump full information")] (fun name -> file := name) "pprichtrace [-f] file";;
+Arg.parse [("-f", Arg.Set Richtrace.dump_facts, "dump full information")] (fun name -> file := name) "pprichtrace [-f] file";;
 
 !file
 |> open_in
-|> parse_tracefile
-|> calculate_rich_tracefile
-|> print (Format.printf "%a@." pp_rich_tracefile)
+|> Trace.parse_tracefile
+|> Richtrace.calculate_rich_tracefile
+|> Printexc.print (Format.printf "%a@." Richtrace.pp_rich_tracefile)

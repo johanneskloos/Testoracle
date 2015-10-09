@@ -1,5 +1,4 @@
 open Format
-open Complex
 
 (* BISECT-IGNORE-BEGIN *)
 (** * Helper functions. *)
@@ -18,7 +17,7 @@ let iteri f a =
 (** * Formatters for standard library types. *)
 (** Simple formatters for various straightforward types. *)
 let pp_print_unit pp _ = pp_print_string pp "()"
-let pp_print_complex pp x = fprintf pp "@[<h>%f,@ %f@]" x.re x.im
+let pp_print_complex pp x = let open Complex in fprintf pp "@[<h>%f,@ %f@]" x.re x.im
 let pp_print_buffer pp buf = pp_print_string pp (Buffer.contents buf)
 
 (** ** Formatters for exceptions. *)

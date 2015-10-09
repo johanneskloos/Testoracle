@@ -1,13 +1,7 @@
-open Types
-open Richtrace
-open MatchTraces
-open MatchTypes
-open Cleantrace
-open Reference
-open CertifierData
+(*open MatchTypes*)
 
 let bad_path_page path =
-  (HTML, <:html<
+  (CertifierData.HTML, <:html<
   <html>
     <head><title>Invalid request</title></head>
     <body>
@@ -16,7 +10,7 @@ let bad_path_page path =
   </html>
   >> |> Cow.Html.to_string)
 
-let output_val = function 
+let output_val = let open Types in function 
   | OUndefined -> <:html<(undefined)>>
   | ONull -> <:html<(null)>>
   | OBoolean x -> <:html<$str:string_of_bool x$>>
@@ -28,16 +22,18 @@ let output_val = function
   | OFunction(id, fid) -> <:html<fun#$int:id$/$int:fid$>>
   | OOther (ty, id) -> <:html<$str:ty$#$int:id$>>
 
-let output_objectid obj = output_val (objectid_to_jsval obj)
+let output_objectid obj = output_val (Types.objectid_to_jsval obj)
 
 let output_ref (ref, ver) =
-  match ref with
+  let open Reference in match ref with
     | Field (obj, field) -> <:html<$output_objectid obj$.$str:field$@$int:ver$>>
     | LocalVariable name -> <:html<$str:name$@$int:ver$>>
     | GlobalVariable name -> <:html<global:$str:name$@$int:ver$>>
 
 
 let output_op =
+  let open Cleantrace in
+  let open Richtrace in
   let output_call_type = function
     | Cleantrace.Function -> <:html<function>>
     | Method -> <:html<method>>
@@ -106,7 +102,7 @@ let output_trace tr =
   >>
 
 let output_stack st =
-  let mode_to_string = function
+  let mode_to_string = let open MatchTypes in function
     |  Regular -> "R"
     | Init -> "I"
     | Wrapper -> "W"
@@ -125,7 +121,7 @@ let error_page e base query =
   <html><body><strong>Error</strong></body></html>
   >>
 
-let match_entry_common = function
+let match_entry_common = let open MatchTypes in function
     | Pair(op1, op2) ->
       <:html<
           <td class="original">$output_op op1$</td>
@@ -148,7 +144,7 @@ let match_entry e = <:html< <tr>$match_entry_common e$</tr> >>
 let match_entry_ext (link: int -> string) (id, st, e) =
   <:html< <tr><td class="num"><a href="$str:link id$">$int:id$</a></td><td class="stack">$output_stack st$</td>$match_entry_common e$</tr> >>
 
-let shared_css = (CSS, <:css<
+let shared_css = (CertifierData.CSS, <:css<
         th { text-align: left; }
         .num { width: "7em"; }
         .stack { width: "20em"; }
@@ -190,10 +186,10 @@ let trace_main_page_trace self rtrace =
   $list:List.map fmt_node rtrace$
   </table> >>
 
-let trace_main_page_leaves self { nodes } =
-  TraceNodes.bindings nodes |>
-  List.filter (function (_, NodeData _) -> false | _ -> true) |>
-  List.partition (function (_, BlockedData _) -> false | _ -> true) |>
+let trace_main_page_leaves self { CertifierData.nodes } =
+  CertifierData.TraceNodes.bindings nodes |>
+  List.filter (function (_, CertifierData.NodeData _) -> false | _ -> true) |>
+  List.partition (function (_, CertifierData.BlockedData _) -> false | _ -> true) |>
   Misc.bmap (List.map fst) |>
   Misc.bmap (List.sort compare) |>
   (fun (l1, l2) -> l1 @ l2) |>
@@ -207,13 +203,13 @@ let trace_main_page self base data =
   <h1>Leaves</h1>
   $trace_main_page_leaves self data$
   <h1><a id="trace1">Original trace</a></h1>
-  $trace_main_page_trace self (reconstruct_first data)$
+  $trace_main_page_trace self (CertifierData.reconstruct_first data)$
   <a href="#trace1">To first trace</a>
   <h1><a id="trace2">Modified trace</a></h1>
-  $trace_main_page_trace self (reconstruct_second data)$  
+  $trace_main_page_trace self (CertifierData.reconstruct_second data)$  
   </body></html> >>
 
-let trace_details_summary = function
+let trace_details_summary = let open CertifierData in function
   | FinalNodeData _ -> <:html< <strong>No extensions at inner node available!</strong> >>
   | NodeData _ -> <:html< Regular inner node >>
   | EndtraceData _ -> <:html< <strong>Transformed trace has ended before original trace was exhausted!</strong> >>
@@ -221,9 +217,9 @@ let trace_details_summary = function
   | SuccessNode -> <:html< <strong>Match successful</strong> >>
   | BlockedData _ -> <:html< <strong>Shared block</strong> >> 
 
-let output_mode m = <:html< $str:Misc.to_string pp_match_mode m$>>
+let output_mode m = <:html< $str:Misc.to_string MatchTypes.pp_match_mode m$>>
  
-let output_matchop = function
+let output_matchop = let open MatchTypes in function
     | MatchSimple -> <:html< Simple match>>
     | MatchPush m -> <:html< Match and push $output_mode m$>>
     | MatchReplace m -> <:html< Match and replace $output_mode m$>>
@@ -237,7 +233,7 @@ let output_matchop = function
     | InitializationPop -> <:html< Init and pop >>
 		| MatchDroppable -> <:html<Drop RHS>>
 
-let trace_details_reasons { op1; op2; stack; trace_trace } =
+let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.stack; CertifierData.trace_trace } =
   let open MatchObjects in let open MatchTypes in let open MatchOperations in
   let output_path = function
     | path0 :: path -> List.fold_left (fun x y -> x ^ "," ^ y) path0 path
@@ -331,9 +327,9 @@ let trace_details_reasons { op1; op2; stack; trace_trace } =
 let trace_details_cases self tree idx =
   let output_follower e =
     <:html<
-      <li><a href="$str:self [("event", "details"); ("index", string_of_int (TraceTree.E.dst e))]$">$output_matchop (TraceTree.E.label e)$</a></li>
+      <li><a href="$str:self [("event", "details"); ("index", string_of_int (CertifierData.TraceTree.E.dst e))]$">$output_matchop (CertifierData.TraceTree.E.label e)$</a></li>
     >>
-  in function
+  in let open CertifierData in function
   | FinalNodeData data ->
     <:html< <h2>Reasons why no more matching is possible:</h2>$trace_details_reasons data$ >>
   | NodeData data ->
@@ -352,10 +348,10 @@ let trace_details_cases self tree idx =
   | BlockedData (len1, len2, stack) ->
     <:html< Blocked: A suffix pair of lengths $int:len1$, $int:len2$ is known not to match for stack $output_stack stack$>> 
 
-let trace_details self base { tree; nodes } idx =
-  let node_class = TraceNodes.find idx nodes
+let trace_details self base { CertifierData.tree; CertifierData.nodes } idx =
+  let node_class = CertifierData.TraceNodes.find idx nodes
   and link i = self [("event", "details"); ("index", string_of_int i)] in
-  let output_matchop = function
+  let output_matchop = let open MatchTypes in function
     | Pair(op1, op2) ->
       <:html< <td>$output_op op1$</td><td>$output_op op2$</td><td></td> >>
     | Init op ->
@@ -363,7 +359,7 @@ let trace_details self base { tree; nodes } idx =
     | Wrap op ->
       <:html< <td></td><td>$output_op op$</td><td>Wrap</td> >> in
   let build_partial_trace idx =
-    collect_trace idx tree nodes
+    CertifierData.collect_trace idx tree nodes
     |> List.map (fun (idx, stack, matchop) -> 
       <:html< <tr>
         <td><a href="$str:link idx$">$int:idx$</a></td>
@@ -398,10 +394,10 @@ let trace_multiplex self base data query =
   match query "event" with
     | Some "details" ->
         begin match query "index" with
-          | Some idx -> (HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
+          | Some idx -> (CertifierData.HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
           | None -> raise (Invalid_argument "Needs exactly one index")
         end
-    | None ->  (HTML, trace_main_page self base data |> Cow.Html.to_string)
+    | None ->  (CertifierData.HTML, trace_main_page self base data |> Cow.Html.to_string)
     | _ -> raise (Invalid_argument "Unknown event given")
 
 let list_certs self certs =
@@ -414,12 +410,12 @@ let list_certs self certs =
     let link_cert (name, result) =
       <:html< <a href="$str:self name$">$str:name$</a> $str:fmt_result result$<br/> >>
     in
-    (HTML, <:html<
+    (CertifierData.HTML, <:html<
     <html><head><title>List of certificates</title></head>
     <body>$list:List.map link_cert certs$</body></html> >> |> Cow.Html.to_string)
     
 let bad_path path =
-  (HTML, <:html<
+  (CertifierData.HTML, <:html<
   <html>
     <head><title>Invalid request</title></head>
     <body>

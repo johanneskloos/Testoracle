@@ -1,20 +1,6 @@
-open Lwt
-open Cohttp
-open Cohttp_lwt_unix
-open Trace
-open Richtrace
-open MatchTraces
-open MatchTypes
-open Cleantrace
-open Reference
-open Graph
-open CertifierData
-open CertifierUI
-
-(** Part 4: The server. *)
 let read_result key =
     let data = MatchTracesObserver.read ("." ^ key ^ ".cert") in
-    extract_data data
+    CertifierData.extract_data data
 
 let get_certs () =
     let rec getdir handle list =
@@ -39,7 +25,7 @@ let get_certs () =
 let good_path = Str.regexp "^/[^/]*$"
 
 let server_callback cache conn req body =
-    let uri = req |> Request.uri in
+    let uri = Cohttp.Request.uri req in
     Format.eprintf "Handling %s@." (Uri.to_string uri);
     let path = Uri.path uri
     and query key = Uri.get_query_param uri key
@@ -48,22 +34,22 @@ let server_callback cache conn req body =
     try
         begin
             match path with
-            | "/stylesheet.css" -> shared_css
-            | "" | "/" -> list_certs page (get_certs())
+            | "/stylesheet.css" -> CertifierUI.shared_css
+            | "" | "/" -> CertifierUI.list_certs page (get_certs())
             | _ when Str.string_match good_path path 0 ->
                 let data = cache path in
-                trace_multiplex self path data query
-            | _ -> bad_path path
+                CertifierUI.trace_multiplex self path data query
+            | _ -> CertifierUI.bad_path path
         end |> begin function
-            | (HTML, body) -> ("text/html", body)
-            | (JSON, body) -> ("application/json", body)
-            | (CSS, body) -> ("text/css", body)
+            | (CertifierData.HTML, body) -> ("text/html", body)
+            | (CertifierData.JSON, body) -> ("application/json", body)
+            | (CertifierData.CSS, body) -> ("text/css", body)
         end |> fun (ctype, body) ->
-            Server.respond_string ~status:`OK ~headers: (Header.init_with "Content-type" ctype) ~body ()
+            Cohttp_lwt_unix.Server.respond_string ~status:`OK ~headers: (Cohttp.Header.init_with "Content-type" ctype) ~body ()
     with e -> Format.eprintf "%s@." (Printexc.to_string e); raise e
 
 let () =
     Format.eprintf "Starting...@.";
     let cache = BatCache.lru_cache ~gen: read_result ~cap:10 in
-    Server.create (Server.make ~callback: (server_callback cache) ())
+    Cohttp_lwt_unix.Server.create (Cohttp_lwt_unix.Server.make ~callback: (server_callback cache) ())
     |> Lwt_main.run

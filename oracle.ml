@@ -1,6 +1,3 @@
-open Trace
-open Richtrace
-open MatchTraces
 open Arg
 
 let debug = ref false
@@ -16,10 +13,10 @@ let debug_print msg pp data =
 
 let rich_tracefile_from_path path =
     let chan = open_in path in
-    let rt = parse_tracefile chan
-        >> debug_print ("Read trace file " ^ path) pp_tracefile
-        |> calculate_rich_tracefile
-        >> debug_print "Enrichted trace file" pp_rich_tracefile in
+    let rt = Trace.parse_tracefile chan
+        >> debug_print ("Read trace file " ^ path) Trace.pp_tracefile
+        |> Richtrace.calculate_rich_tracefile
+        >> debug_print "Enrichted trace file" Richtrace.pp_rich_tracefile in
     close_in chan; rt
 
 let parse_args () =
@@ -45,7 +42,7 @@ let parse_args () =
 let calculate_matching path_orig path_xfrm =
     let rt1 = rich_tracefile_from_path path_orig
     and rt2 = rich_tracefile_from_path path_xfrm in
-    match_traces rt1 rt2
+    MatchTraces.match_traces rt1 rt2
 
 let main () =
     let (path_orig, path_xfrm) = parse_args() in

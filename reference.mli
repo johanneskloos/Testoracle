@@ -1,4 +1,3 @@
-open Types
 (** A unified reference type for variables and fields. *)
 
 (** A reference to mutable state.
@@ -9,7 +8,7 @@ open Types
 type reference = private
     | LocalVariable of string
     | GlobalVariable of string
-    | Field of objectid * string;;
+    | Field of Types.objectid * string;;
 
 
 (** Maps on references. *)
@@ -29,14 +28,14 @@ Format.formatter -> 'a ReferenceMap.t -> unit
 * and the current alias map ([alias_map]).
 *)
 val reference_of_name:
-bool -> fieldref Misc.StringMap.t -> bool -> string -> reference
+bool -> Types.fieldref Misc.StringMap.t -> bool -> string -> reference
 (** Transform a field access to a reference.
 *
 * Call as [reference_of_field base offset], where [base] must be a
 * value having an object identifier. *)
 val reference_of_field: Types.jsval -> string -> reference
 (** Transform a field reference to a reference. *)
-val reference_of_fieldref: fieldref -> reference
+val reference_of_fieldref: Types.fieldref -> reference
 (** Transform a variable name that is known to be local and non-aliased to
 * a reference.
 *

@@ -1,10 +1,4 @@
-open Trace
-open Richtrace
-open MatchTraces
 open MatchTypes
-open Cleantrace
-open Reference
-open Graph
 
 type output_type = HTML | JSON | CSS
 
@@ -23,8 +17,8 @@ module TraceTree = Graph.Persistent.Digraph.ConcreteLabeled(IntSig)(MatchOp);;
 module TraceNodes = Map.Make(IntSig);;
 
 type trace_inner_node_data = {
-    op1: rich_operation;
-    op2: rich_operation;
+    op1: Richtrace.rich_operation;
+    op2: Richtrace.rich_operation;
     stack: match_mode list;
     trace_trace: ((match_condition * mismatch) list * match_operation) list
 }
@@ -32,8 +26,8 @@ type trace_inner_node_data = {
 type trace_node =
         FinalNodeData of trace_inner_node_data
     | NodeData of trace_inner_node_data
-    | EndtraceData of rich_operation list
-    | InitTailtraceData of rich_operation list * match_mode list
+    | EndtraceData of Richtrace.rich_operation list
+    | InitTailtraceData of Richtrace.rich_operation list * match_mode list
     | SuccessNode
     | BlockedData of int * int * match_mode list
 
@@ -86,7 +80,7 @@ let collect_trace idx tree nodes =
         | _ -> failwith "Bad tree structure"
     in collect_edge idx []
 
-let extend_pm idx stack pm (tr1: rich_trace) (tr2: rich_trace) op =
+let extend_pm idx stack pm (tr1: Richtrace.rich_trace) (tr2: Richtrace.rich_trace) op =
     let split = function (x, _):: l -> (x, l) | [] -> failwith "How can this be an empty list?" in
     let (op2, tr2) = split tr2 in
     let stack' = match op with

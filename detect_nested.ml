@@ -1,16 +1,12 @@
-open Trace
-open Pcre
-open Types
-
 let nested_pattern =
-    regexp ~study: true ~flags:[`MULTILINE] "function.*function\\w*[({]"
+    Pcre.regexp ~study: true ~flags:[`MULTILINE] "function.*function\\w*[({]"
 
 let detect_nested name (funcs, _, _, _, _) =
     try
         for i = 0 to Array.length funcs - 1 do
             match funcs.(i) with
-            | Local { from_jalangi = Some body } ->
-                if pmatch ~rex: nested_pattern body then begin
+            | Types.Local { Types.from_jalangi = Some body } ->
+                if Pcre.pmatch ~rex: nested_pattern body then begin
                     print_endline name;
                     raise Exit
                 end
@@ -20,7 +16,7 @@ let detect_nested name (funcs, _, _, _, _) =
 
 let check name =
     let chan = open_in name in
-    chan |> parse_tracefile |> detect_nested name;
+    chan |> Trace.parse_tracefile |> detect_nested name;
     close_in chan
 
 let () =

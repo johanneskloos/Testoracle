@@ -1,5 +1,3 @@
-open Types
-open Richtrace
 (** The mode to switch to, on a push. *)
 type match_mode =
     | Wrapper
@@ -77,13 +75,13 @@ type match_state =
 * or initialisation.
 *)
 type event_match =
-        Pair of rich_operation * rich_operation
-    | Wrap of rich_operation
-    | Init of rich_operation
+        Pair of Richtrace.rich_operation * Richtrace.rich_operation
+    | Wrap of Richtrace.rich_operation
+    | Init of Richtrace.rich_operation
 
 (** Match failure explanation *)
 type obj_match_failure =
-        NonMatching of string list * jsval * jsval
+        NonMatching of string list * Types.jsval * Types.jsval
     | MissingOrig of string * string list
     | MissingXfrm of string * string list
     | Other of string
@@ -129,11 +127,11 @@ type objeq = failure_trace Misc.IntIntMap.t
 
 (** State information for matching *)
 type matching_state = {
-    rt1: rich_tracefile;
-    rt2: rich_tracefile;
+    rt1: Richtrace.rich_tracefile;
+    rt2: Richtrace.rich_tracefile;
     objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
-    toString_data: jsval list;
+    toString_data: Types.jsval list;
     nonequivalent_functions: Misc.IntIntSet.t;
     known_blocked: match_mode list list Misc.IntIntMap.t
 }
