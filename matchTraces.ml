@@ -2,10 +2,6 @@ open MatchTypes
 module VersionReferenceSet = Reference.VersionReferenceSet
 module IntIntMap = Misc.IntIntMap
 
-(**
-* A helper for candidate generators.
-*)
-
 let interpret_conds matching_state op1 op2 conds =
     Misc.List.filtermap (fun cond ->
                 match MatchOperations.interpret_cond matching_state op1 op2 cond with
@@ -126,16 +122,23 @@ let rec matching_engine matching_state trace1 trace2 stack =
         MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
         None
     end else match trace1, trace2 with
+        (* Consider the different cases of how much of each trace remains *)
         | ev1 :: trace1, ev2 :: trace2 ->
+            (* Neither trace is exhausted - match one step using the main rules *)
             let id = MatchTracesObserver.log_node (fst ev1) (fst ev2) stack in
             let (ops, failure_details) =
                 build_candidates matching_state ev1 ev2 (get_state stack) in
             MatchTracesObserver.log_failure id failure_details ;
             apply_first_working id matching_state ev1 ev2 trace1 trace2 stack ops
         | _ :: _, [] ->
+            (* The original trace has events, while the transformed trace is exhausted -
+             * this means there is no match, because this is clearly not a subtrace. *)
             MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
             None
         | [], trace2 ->
+            (* The original trace is exhausted. For a successful matching,
+             * the modified trace must consist of initialisation events and
+             * leave an empty stack. *)
             match can_be_added_as_initialisation matching_state trace2 stack with
             | None ->
                 MatchTracesObserver.log_orig_consumed_ok (List.map fst trace2) stack;
@@ -144,17 +147,18 @@ let rec matching_engine matching_state trace1 trace2 stack =
                 MatchTracesObserver.log_orig_consumed_failed (List.map fst trace2) stack;
                 None
 and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
+    (* Try to continue the match using one of the applicable matching rules. *)
     function
     | [] ->
         None
-    | op :: ops ->
-        MatchTracesObserver.log_edge parent op;
-        let matching_state_adapted = adapt_matching_state op op1 op2 matching_state
-        and trace1_adapted = adapt_first op op1 trace1
-        and stack_adapted = adapt_stack op stack in
+    | matchop :: matchops ->
+        MatchTracesObserver.log_edge parent matchop;
+        let matching_state_adapted = adapt_matching_state matchop op1 op2 matching_state
+        and trace1_adapted = adapt_first matchop op1 trace1
+        and stack_adapted = adapt_stack matchop stack in
         match matching_engine matching_state_adapted trace1_adapted trace2 stack_adapted with
         | Some matching ->
-            Some (extend_matching op (fst op1) (fst op2) matching)
+            Some (extend_matching matchop (fst op1) (fst op2) matching)
         | None ->
             mark_blocked matching_state trace1_adapted trace2 stack_adapted;
             apply_first_working parent matching_state op1 op2 trace1 trace2 stack matchops
