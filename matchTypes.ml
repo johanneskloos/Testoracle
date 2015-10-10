@@ -134,8 +134,8 @@ type matching_state = {
     objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
     toString_data: Types.jsval list;
-    nonequivalent_functions: Misc.IntIntSet.t;
-    known_blocked: match_mode list list Misc.IntIntMap.t
+    mutable nonequivalent_functions: Misc.IntIntSet.t;
+    mutable known_blocked: match_mode list list Misc.IntIntMap.t
 }
 
 (** Pretty-printers *)

@@ -125,15 +125,22 @@ type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
 type objeq = failure_trace Misc.IntIntMap.t
 
-(** State information for matching *)
+(** State information for matching.
+ * There are three kinds of information:
+ * - Static ([rt1] and [rt2]): This information is constant throughout matching.
+ * - Monotonically changing ([nonequivalent_functions] and [known_blocked]):
+ *    These fields only get information added, never removed. Therefore, making
+ *    them mutable is reasonable - we never need to restore an old state.
+ * - Nonmonotonically chaning (all others).
+ *)
 type matching_state = {
     rt1: Richtrace.rich_tracefile;
     rt2: Richtrace.rich_tracefile;
     objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
     toString_data: Types.jsval list;
-    nonequivalent_functions: Misc.IntIntSet.t;
-    known_blocked: match_mode list list Misc.IntIntMap.t
+    mutable nonequivalent_functions: Misc.IntIntSet.t;
+    mutable known_blocked: match_mode list list Misc.IntIntMap.t
 }
 
 (** Pretty-printers *)

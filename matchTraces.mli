@@ -101,7 +101,7 @@ matching_state -> matching_state
 val matching_engine :
 matching_state ->
 rich_trace -> rich_trace -> match_mode list ->
-event_match list option * matching_state
+event_match list option
 
 val apply_first_working :
 int ->
@@ -111,7 +111,7 @@ rich_event ->
 rich_trace ->
 rich_trace ->
 match_mode list -> match_operation list ->
-event_match list option * matching_state
+event_match list option
 (** The main entry point for trace matching. *)
 val match_traces :
 rich_tracefile -> rich_tracefile -> event_match list option

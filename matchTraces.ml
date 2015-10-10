@@ -107,12 +107,6 @@ let adapt_matching_state op op1 op2 matching_state =
         | _ -> perpetuate_initialisation_data matching_state op2
     end |> detect_toString (fst op1) |> invalidate_cache (fst op1) (fst op2)
 
-(** Merge back results that need to be propagated. *)
-let merge
-    { rt1; rt2; objeq; initialisation_data; toString_data }
-    { nonequivalent_functions; known_blocked } =
-    { rt1; rt2; objeq; initialisation_data; toString_data; nonequivalent_functions; known_blocked }
-
 let mark_blocked ({ known_blocked } as matching_state) trace1 trace2 stack =
     let key = (List.length trace1, List.length trace2) in
     let known_blocked_here =
@@ -130,7 +124,7 @@ let rec matching_engine matching_state trace1 trace2 stack =
     (* Short-circuit matching if we have shown this case to be blocked. *)
     if is_blocked matching_state trace1 trace2 stack then begin
         MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
-        (None, matching_state)
+        None
     end else match trace1, trace2 with
         | ev1 :: trace1, ev2 :: trace2 ->
             let id = MatchTracesObserver.log_node (fst ev1) (fst ev2) stack in
@@ -140,33 +134,30 @@ let rec matching_engine matching_state trace1 trace2 stack =
             apply_first_working id matching_state ev1 ev2 trace1 trace2 stack ops
         | _ :: _, [] ->
             MatchTracesObserver.log_xfrm_consumed (List.map fst trace1);
-            (None, matching_state)
+            None
         | [], trace2 ->
             match can_be_added_as_initialisation matching_state trace2 stack with
             | None ->
                 MatchTracesObserver.log_orig_consumed_ok (List.map fst trace2) stack;
-                (Some (List.map (fun (op, _) -> Init op) trace2), matching_state)
+                Some (List.map (fun (op, _) -> Init op) trace2)
             | Some err ->
                 MatchTracesObserver.log_orig_consumed_failed (List.map fst trace2) stack;
-                (None, matching_state)
+                None
 and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
     function
     | [] ->
-        (None, matching_state)
+        None
     | op :: ops ->
         MatchTracesObserver.log_edge parent op;
         let matching_state_adapted = adapt_matching_state op op1 op2 matching_state
         and trace1_adapted = adapt_first op op1 trace1
         and stack_adapted = adapt_stack op stack in
-        let (result, matching_state') =
-            matching_engine matching_state_adapted
-                trace1_adapted trace2 stack_adapted in
-        let matching_state_merged = merge matching_state matching_state' in match result with
+        match matching_engine matching_state_adapted trace1_adapted trace2 stack_adapted with
         | Some matching ->
-            (Some (extend_matching op (fst op1) (fst op2) matching), matching_state_merged)
+            Some (extend_matching op (fst op1) (fst op2) matching)
         | None ->
             apply_first_working parent
-                (mark_blocked matching_state_merged trace1_adapted trace2 stack_adapted)
+                (mark_blocked matching_state trace1_adapted trace2 stack_adapted)
                 op1 op2 trace1 trace2 stack ops
 
 let match_traces rt1 rt2 =
@@ -179,4 +170,3 @@ let match_traces rt1 rt2 =
             nonequivalent_functions = Misc.IntIntSet.empty;
             known_blocked = IntIntMap.empty
         } rt1.trace rt2.trace []
-    |> fst
