@@ -107,4 +107,13 @@ end;;
 let to_string fmt x =
     let str = Format.asprintf "%a" fmt x in
     ignore (flush_str_formatter ()); str
+    
+(** More list functions. *)
+module List = struct
+  let rec filtermap f = function
+    | [] -> []
+    | x::l -> match f x with
+      | Some y -> y :: filtermap f l
+      | None -> filtermap f l
+end;;
 (* BISECT-IGNORE-END *)

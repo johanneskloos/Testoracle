@@ -6,18 +6,22 @@ module IntIntMap = Misc.IntIntMap
 * A helper for candidate generators.
 *)
 
-
-let interpret_rules (rules: MatchRules.match_rules) matching_state op1 op2 =
-    let interpret_conds conds =
+let interpret_conds matching_state op1 op2 conds =
+    Misc.List.filtermap (fun cond ->
+                match MatchOperations.interpret_cond matching_state op1 op2 cond with
+                | Some reason -> Some (cond, reason)
+                | None -> None)
         conds
-        |> List.map (fun c -> match MatchOperations.interpret_cond matching_state op1 op2 c with Some reason -> [(c, reason)] | None -> [])
-        |> List.flatten
-    and split = List.partition (function ([], _) -> true | _ -> false) in
+
+let interpret_rule matching_state op1 op2 (conds, matchop) =
+  (interpret_conds matching_state op1 op2 conds, matchop)
+    
+let interpret_rules (rules: MatchRules.match_rules) matching_state op1 op2 =
+    let split = List.partition (function ([], _) -> true | _ -> false) in
     rules
-    |> List.map (fun (cond, res) -> (interpret_conds cond, res))
+    |> List.map (interpret_rule matching_state op1 op2)
     |> split
-    |> fun (applicable, not_applicable) ->
-        (applicable |> List.map snd, not_applicable)
+    |> fun (applicable, not_applicable) -> (List.map snd applicable, not_applicable)
 
 let build_candidates matching_state op1 op2 state =
     interpret_rules (MatchRules.find_rules state) matching_state op1 op2
