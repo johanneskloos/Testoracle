@@ -113,7 +113,7 @@ let mark_blocked ({ known_blocked } as matching_state) trace1 trace2 stack =
         if IntIntMap.mem key known_blocked then IntIntMap.find key known_blocked else [] in
     let known_blocked_new =
         if List.mem stack known_blocked_here then known_blocked_here else stack :: known_blocked_here in
-    { matching_state with known_blocked = IntIntMap.add key known_blocked_new known_blocked }
+    matching_state.known_blocked <- IntIntMap.add key known_blocked_new known_blocked
 
 let is_blocked { known_blocked } trace1 trace2 stack =
     let key = (List.length trace1, List.length trace2) in
@@ -156,9 +156,8 @@ and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
         | Some matching ->
             Some (extend_matching op (fst op1) (fst op2) matching)
         | None ->
-            apply_first_working parent
-                (mark_blocked matching_state trace1_adapted trace2 stack_adapted)
-                op1 op2 trace1 trace2 stack ops
+            mark_blocked matching_state trace1_adapted trace2 stack_adapted;
+            apply_first_working parent matching_state op1 op2 trace1 trace2 stack matchops
 
 let match_traces rt1 rt2 =
     let open Richtrace in
