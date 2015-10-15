@@ -1,6 +1,6 @@
 open MatchTypes
 
-type output_type = HTML | JSON | CSS
+type output_type = HTML | JSON | CSS | PNG
 
 module IntSig = struct
     type t = int

@@ -23,4 +23,10 @@ let funcstd = Local { from_toString = "func std toString"; from_jalangi = None }
 let funcext1 = External 1
 let funcext2 = External 2
 
- 
+let functab1 = [| funcin1; funcin2; funcstd; funcext1 |]
+(** functab2 is a cyclic permutation of functab1 *)
+let functab2 = [| funcin2; funcstd; funcext1; funcin1 |]
+(** functab3 is distinct from functab1 and functab2 *)
+let functab3 = [| funcin1; funcin3; funcstd; funcext2 |]
+
+(** Three versions of object tables, two equivalent but permuted, and one different. *)

@@ -394,10 +394,12 @@ let trace_multiplex self base data query =
   match query "event" with
     | Some "details" ->
         begin match query "index" with
-          | Some idx -> (CertifierData.HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
+          | Some idx -> Lwt.return (CertifierData.HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
           | None -> raise (Invalid_argument "Needs exactly one index")
         end
-    | None ->  (CertifierData.HTML, trace_main_page self base data |> Cow.Html.to_string)
+    | Some "graph" ->
+        CertifierGraph.format (base ^ ".png") (fun v -> self [("event", "details"); ("index", string_of_int v)]) data
+    | None -> Lwt.return (CertifierData.HTML, trace_main_page self base data |> Cow.Html.to_string)
     | _ -> raise (Invalid_argument "Unknown event given")
 
 let list_certs self certs =

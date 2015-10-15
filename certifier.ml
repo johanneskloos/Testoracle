@@ -30,22 +30,28 @@ let server_callback cache conn req body =
     let path = Uri.path uri
     and query key = Uri.get_query_param uri key
     and self query' = Uri.with_query' uri query' |> Uri.to_string
-    and page base = Uri.with_path uri base |> Uri.to_string in
+    and page base = Uri.with_path uri base |> Uri.to_string
+    and small_response mimetype body =
+      Cohttp_lwt_unix.Server.respond_string ~status:`OK
+        ~headers: (Cohttp.Header.init_with "Content-type" mimetype) ~body ()
+    and file_response mimetype fname =
+      Cohttp_lwt_unix.Server.respond_file ~fname
+        ~headers: (Cohttp.Header.init_with "Content-type" mimetype) () in
     try
         begin
             match path with
-            | "/stylesheet.css" -> CertifierUI.shared_css
-            | "" | "/" -> CertifierUI.list_certs page (get_certs())
+            | "/stylesheet.css" -> Lwt.return CertifierUI.shared_css
+            | "" | "/" -> Lwt.return (CertifierUI.list_certs page (get_certs()))
             | _ when Str.string_match good_path path 0 ->
                 let data = cache path in
-                CertifierUI.trace_multiplex self path data query
-            | _ -> CertifierUI.bad_path path
-        end |> begin function
-            | (CertifierData.HTML, body) -> ("text/html", body)
-            | (CertifierData.JSON, body) -> ("application/json", body)
-            | (CertifierData.CSS, body) -> ("text/css", body)
-        end |> fun (ctype, body) ->
-            Cohttp_lwt_unix.Server.respond_string ~status:`OK ~headers: (Cohttp.Header.init_with "Content-type" ctype) ~body ()
+                Lwt.return (CertifierUI.trace_multiplex self path data query)
+            | _ -> Lwt.return (CertifierUI.bad_path path)
+        end |> fun futute -> Lwt.bind future begin function
+            | (CertifierData.HTML, body) -> small_response "text/html" body
+            | (CertifierData.JSON, body) -> small_response "application/json" body
+            | (CertifierData.CSS, body) -> small_response "text/css" body
+            | (CertifierData.PNG, filename) -> file_response "image/png" fname
+        end
     with e -> Format.eprintf "%s@." (Printexc.to_string e); raise e
 
 let () =
