@@ -399,6 +399,7 @@ let trace_multiplex self base data query =
         end
     | Some "graph" ->
         CertifierGraph.format (base ^ ".png") (fun v -> self [("event", "details"); ("index", string_of_int v)]) data
+				|> Lwt.map (fun out -> (CertifierData.PNG, out))
     | None -> Lwt.return (CertifierData.HTML, trace_main_page self base data |> Cow.Html.to_string)
     | _ -> raise (Invalid_argument "Unknown event given")
 

@@ -44,13 +44,13 @@ let server_callback cache conn req body =
             | "" | "/" -> Lwt.return (CertifierUI.list_certs page (get_certs()))
             | _ when Str.string_match good_path path 0 ->
                 let data = cache path in
-                Lwt.return (CertifierUI.trace_multiplex self path data query)
+                CertifierUI.trace_multiplex self path data query
             | _ -> Lwt.return (CertifierUI.bad_path path)
-        end |> fun futute -> Lwt.bind future begin function
+        end |> fun future -> Lwt.bind future begin function
             | (CertifierData.HTML, body) -> small_response "text/html" body
             | (CertifierData.JSON, body) -> small_response "application/json" body
             | (CertifierData.CSS, body) -> small_response "text/css" body
-            | (CertifierData.PNG, filename) -> file_response "image/png" fname
+            | (CertifierData.PNG, filename) -> file_response "image/png" filename
         end
     with e -> Format.eprintf "%s@." (Printexc.to_string e); raise e
 
