@@ -99,7 +99,8 @@ let encode_decl { Trace.name; Trace.value; Trace.argument; Trace.isCatchParam } 
       | Some _ -> ArgumentArray
       | None -> if isCatchParam then CatchParam else Var }
 
-let rec clean_impl stack locals globals = let open Trace in function
+let rec clean_impl stack locals globals =
+    let open Trace in function
     | FunPre fpre :: tr ->
         encode_pre fpre :: clean_impl (locals:: stack) locals globals tr
     | FunPost fpost :: tr ->
@@ -249,29 +250,14 @@ let synthesize_external funcs next = function
   | _ -> failwith "Unexpected event in external function"
 
 let synthesize_events funcs trace =
-  List.fold_left (fun (stack, trace) op -> match stack with
-    | Some _ :: next :: _ ->
-      let (stackop, ops') = synthesize_external funcs next op in
-       (apply_stackop stack stackop, ops' @ trace)
-    | [Some _] ->
-      let (stackop, ops') = synthesize_external funcs None op in
-       (apply_stackop stack stackop, ops' @ trace)    
-    | None :: next :: _ ->    
-      let (stackop, ops') = synthesize_internal funcs next op in
-       (apply_stackop stack stackop, ops' @ trace)
-    | _ ->
-      let (stackop, ops') = synthesize_internal funcs None op in
-       (apply_stackop stack stackop, ops' @ trace) )
+  List.fold_left (fun (stack, trace) op ->
+    let (stackop, ops') = match stack with
+    | Some _ :: next :: _ -> synthesize_external funcs next op
+    | [Some _] -> synthesize_external funcs None op
+    | None :: next :: _ -> synthesize_internal funcs next op
+    | _ -> synthesize_internal funcs None op in
+       (apply_stackop stack stackop, List.rev_append ops' trace))
       ([], []) trace |> snd |> List.rev
-
-let clean_trace globals funcs (objs: objects) trace =
-    trace
-    |> clean_impl [] ["this"] []
-    |> normalize_calls globals objs
-    |> synthesize_events funcs
-
-let clean_tracefile (funs, objs, rawtr, globals, gap) =
-    (funs, objs, clean_trace globals funs objs rawtr, globals, gap)
 
 open Format
 let pp_call_type pp = function
@@ -341,3 +327,13 @@ let pp_clean_trace = FormatHelper.pp_print_list_lines pp_clean_operation
 let pp_clean_tracefile pp (f, o, t, g, gap) =
     fprintf pp "@[<v>Globals are properties: %b@ @[<hov>%a@]@ @[<hov>%a@]@ @[<hov>Globals:@ %a@]@ Trace:@ @[<hov>%a@]@]"
         gap pp_functions f pp_objects o pp_globals g pp_clean_trace t
+
+let clean_trace globals funcs (objs: objects) trace =
+    trace
+    |> clean_impl [] ["this"] []
+    |> normalize_calls globals objs
+    |> synthesize_events funcs
+    
+    
+let clean_tracefile (funs, objs, rawtr, globals, gap) =
+    (funs, objs, clean_trace globals funs objs rawtr, globals, gap)
