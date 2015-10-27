@@ -6,6 +6,7 @@ if [ ! -e $OPAM ]; then
 	exit 2
 fi
 
+$OPAM init
 $OPAM switch 4.02.1
 eval $($OPAM config env)
 $OPAM install yojson pcre kaputt csv cow lwt ocamlgraph batteries cohttp camomile bolt
