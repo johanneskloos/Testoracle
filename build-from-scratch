@@ -7,6 +7,6 @@ if [ ! -e $OPAM ]; then
 fi
 
 $OPAM switch 4.02.1
-eval $($OPAM env)
-$OPAM install yojson pcre kaputt csv cow lwt ocamlgraph batteries cohttp
+eval $($OPAM config env)
+$OPAM install yojson pcre kaputt csv cow lwt ocamlgraph batteries cohttp camomile bolt
 exec ocamlbuild -use-ocamlfind testoracle.otarget
