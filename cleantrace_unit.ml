@@ -179,7 +179,7 @@ let test4 =
       CFunPre { f = obj1_fun2; base = v0; args = v1; call_type = Method };
       CFunEnter { f = obj1_fun2; this = v0; args = v1 };
       CFunExit { ret = vnull; exc = vundef };
-      CFunPost  { f = obj1_fun2; base = v0; args = v1; result = vundef; call_type = Method };
+      CFunPost  { f = obj1_fun2; base = v0; args = v1; result = vnull; call_type = Method };
       CFunExit { ret = vtrue; exc = vundef };
       CFunPost  { f = obj1_fun4; base = v0; args = v1; result = vtrue; call_type = Function };
       ] cleantrace)
