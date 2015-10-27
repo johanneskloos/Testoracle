@@ -75,6 +75,74 @@ type clean_operation =
     | CConditional of jsval
 type clean_trace = clean_operation list
 type clean_tracefile = functions * objects * clean_trace * globals * bool
+open Format
+let pp_call_type pp = function
+    | Function -> fprintf pp "function"
+    | Method -> fprintf pp "method"
+    | Constructor -> fprintf pp "constructor"
+    | ConstructorMethod -> fprintf pp "constructor method"
+
+let pp_declaration_type pp = function
+  | Var -> pp_print_string pp "LocalVariable"
+  | ArgumentArray -> pp_print_string pp "ArgumentArray"
+  | ArgumentBinding i -> fprintf pp "Argument(%d)" i
+  | CatchParam -> pp_print_string pp "CatchParameter"
+
+let pp_clean_operation pp = function
+    | CFunPre { f; base; args; call_type } ->
+        fprintf pp "CFunPre(f=%a, base=%a, args=%a, call_type=%a)"
+            pp_jsval f pp_jsval base pp_jsval args pp_call_type call_type
+    | CFunPost { f; base; args; result; call_type } ->
+        fprintf pp "CFunPost(f=%a, base=%a, args=%a, result=%a, call_type=%a"
+            pp_jsval f pp_jsval base pp_jsval args
+            pp_jsval result pp_call_type call_type
+    | CLiteral { value; hasGetterSetter } ->
+        fprintf pp "CLiteral(value=%a,hasGetterSetter=%b" pp_jsval value hasGetterSetter
+    | CForIn value ->
+        fprintf pp "CForIn(%a)" pp_jsval value
+    | CDeclare { name; value; declaration_type } ->
+      fprintf pp "CDeclare(name=%s, value=%a, declaration_type=%a"
+        name pp_jsval value pp_declaration_type declaration_type
+    | CGetField { base; offset; value } ->
+        fprintf pp "CGetField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
+    | CPutField { base; offset; value } ->
+        fprintf pp "CPutField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
+    | CRead { name; value; isGlobal } ->
+        fprintf pp "CRead(name=%s, global=%B, value=%a)" name isGlobal pp_jsval value
+    | CWrite { name; lhs; value; isGlobal; isSuccessful } ->
+        fprintf pp "CWrite(name=%s, global=%B, oldValue=%a, newValue=%a, successful=%B)"
+            name isGlobal pp_jsval lhs pp_jsval value isSuccessful
+    | CReturn value ->
+        fprintf pp "CReturn(value=%a)" pp_jsval value
+    | CThrow value ->
+        fprintf pp "CThrow(value=%a)" pp_jsval value
+    | CWith value ->
+        fprintf pp "CWith(value=%a)" pp_jsval value
+    | CFunEnter { f; this; args } ->
+        fprintf pp "CEnter(f=%a, base=%a, args=%a)"
+            pp_jsval f pp_jsval this pp_jsval args
+    | CFunExit { ret; exc } ->
+        fprintf pp "CExit(value=%a, exception=%a)"
+            pp_jsval ret pp_jsval exc
+    | CScriptEnter ->
+        fprintf pp "CScriptEnter"
+    | CScriptExit ->
+        fprintf pp "CScriptExit"
+    | CScriptExc exc ->
+        fprintf pp "CScriptExit(value=%a)" pp_jsval exc
+    | CBinary { op; left; right; result } ->
+        fprintf pp "CBinary(left=%a, op=%s, right=%a, result=%a)" pp_jsval left op pp_jsval right pp_jsval result
+    | CUnary { op; arg; result } ->
+        fprintf pp "CUnar(op=%s, arg=%a, result=%a)" op pp_jsval arg pp_jsval result
+    | CEndExpression ->
+        fprintf pp "CEndExpression"
+    | CConditional value ->
+        fprintf pp "CConditonal(value=%a)" pp_jsval value
+
+let pp_clean_trace = FormatHelper.pp_print_list_lines pp_clean_operation
+let pp_clean_tracefile pp (f, o, t, g, gap) =
+    fprintf pp "@[<v>Globals are properties: %b@ @[<hov>%a@]@ @[<hov>%a@]@ @[<hov>Globals:@ %a@]@ Trace:@ @[<hov>%a@]@]"
+        gap pp_functions f pp_objects o pp_globals g pp_clean_trace t
 
 let encode_type isMethod isConstructor = match isMethod, isConstructor with
     | true, true -> ConstructorMethod
@@ -258,75 +326,6 @@ let synthesize_events funcs trace =
     | _ -> synthesize_internal funcs None op in
        (apply_stackop stack stackop, List.rev_append ops' trace))
       ([], []) trace |> snd |> List.rev
-
-open Format
-let pp_call_type pp = function
-    | Function -> fprintf pp "function"
-    | Method -> fprintf pp "method"
-    | Constructor -> fprintf pp "constructor"
-    | ConstructorMethod -> fprintf pp "constructor method"
-
-let pp_declaration_type pp = function
-  | Var -> pp_print_string pp "LocalVariable"
-  | ArgumentArray -> pp_print_string pp "ArgumentArray"
-  | ArgumentBinding i -> fprintf pp "Argument(%d)" i
-  | CatchParam -> pp_print_string pp "CatchParameter"
-
-let pp_clean_operation pp = function
-    | CFunPre { f; base; args; call_type } ->
-        fprintf pp "CFunPre(f=%a, base=%a, args=%a, call_type=%a)"
-            pp_jsval f pp_jsval base pp_jsval args pp_call_type call_type
-    | CFunPost { f; base; args; result; call_type } ->
-        fprintf pp "CFunPost(f=%a, base=%a, args=%a, result=%a, call_type=%a"
-            pp_jsval f pp_jsval base pp_jsval args
-            pp_jsval result pp_call_type call_type
-    | CLiteral { value; hasGetterSetter } ->
-        fprintf pp "CLiteral(value=%a,hasGetterSetter=%b" pp_jsval value hasGetterSetter
-    | CForIn value ->
-        fprintf pp "CForIn(%a)" pp_jsval value
-    | CDeclare { name; value; declaration_type } ->
-      fprintf pp "CDeclare(name=%s, value=%a, declaration_type=%a"
-        name pp_jsval value pp_declaration_type declaration_type
-    | CGetField { base; offset; value } ->
-        fprintf pp "CGetField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
-    | CPutField { base; offset; value } ->
-        fprintf pp "CPutField(base=%a, offset=%s, value=%a)" pp_jsval base offset pp_jsval value
-    | CRead { name; value; isGlobal } ->
-        fprintf pp "CRead(name=%s, global=%B, value=%a)" name isGlobal pp_jsval value
-    | CWrite { name; lhs; value; isGlobal; isSuccessful } ->
-        fprintf pp "CWrite(name=%s, global=%B, oldValue=%a, newValue=%a, successful=%B)"
-            name isGlobal pp_jsval lhs pp_jsval value isSuccessful
-    | CReturn value ->
-        fprintf pp "CReturn(value=%a)" pp_jsval value
-    | CThrow value ->
-        fprintf pp "CThrow(value=%a)" pp_jsval value
-    | CWith value ->
-        fprintf pp "CWith(value=%a)" pp_jsval value
-    | CFunEnter { f; this; args } ->
-        fprintf pp "CEnter(f=%a, base=%a, args=%a)"
-            pp_jsval f pp_jsval this pp_jsval args
-    | CFunExit { ret; exc } ->
-        fprintf pp "CExit(value=%a, exception=%a)"
-            pp_jsval ret pp_jsval exc
-    | CScriptEnter ->
-        fprintf pp "CScriptEnter"
-    | CScriptExit ->
-        fprintf pp "CScriptExit"
-    | CScriptExc exc ->
-        fprintf pp "CScriptExit(value=%a)" pp_jsval exc
-    | CBinary { op; left; right; result } ->
-        fprintf pp "CBinary(left=%a, op=%s, right=%a, result=%a)" pp_jsval left op pp_jsval right pp_jsval result
-    | CUnary { op; arg; result } ->
-        fprintf pp "CUnar(op=%s, arg=%a, result=%a)" op pp_jsval arg pp_jsval result
-    | CEndExpression ->
-        fprintf pp "CEndExpression"
-    | CConditional value ->
-        fprintf pp "CConditonal(value=%a)" pp_jsval value
-
-let pp_clean_trace = FormatHelper.pp_print_list_lines pp_clean_operation
-let pp_clean_tracefile pp (f, o, t, g, gap) =
-    fprintf pp "@[<v>Globals are properties: %b@ @[<hov>%a@]@ @[<hov>%a@]@ @[<hov>Globals:@ %a@]@ Trace:@ @[<hov>%a@]@]"
-        gap pp_functions f pp_objects o pp_globals g pp_clean_trace t
 
 let clean_trace globals funcs (objs: objects) trace =
     trace
