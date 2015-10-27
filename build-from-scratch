@@ -1,0 +1,12 @@
+#! /bin/bash
+
+OPAM=${1:-$(which opam)}
+if [ ! -e $OPAM ]; then
+	echo "OPAM not found. Call as install-from-scratch <path to OPAM>"
+	exit 2
+fi
+
+$OPAM switch 4.02.1
+eval $($OPAM env)
+$OPAM install yojson pcre kaputt csv cow lwt ocamlgraph batteries cohttp
+exec ocamlbuild -use-ocamlfind testoracle.otarget
