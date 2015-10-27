@@ -1,5 +1,6 @@
 open Richtrace
 open MatchTypes
+open Types
 
 (** The trace matcher is built in two parts,
 * the match candidate finder and the matching engine.
@@ -72,11 +73,11 @@ rich_operation -> event_match list -> event_match list
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
-matching_state -> Reference.objectid -> Reference.versioned_reference list
+matching_state -> objectid -> Reference.versioned_reference list
 (** Collect the references belonging to a value. *)
 val collect_references :
 matching_state ->
-Trace.jsval -> Reference.versioned_reference list
+jsval -> Reference.versioned_reference list
 (** Perpetuate initialisation-produced data. *)
 val perpetuate_initialisation_data :
 matching_state ->
@@ -104,6 +105,7 @@ val matching_engine :
 matching_state ->
 rich_trace -> rich_trace -> match_mode list ->
 event_match list option * matching_state
+
 val apply_first_working :
 int ->
 matching_state ->

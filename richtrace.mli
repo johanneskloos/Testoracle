@@ -1,3 +1,4 @@
+open Types
 (** * A nicer form of trace, with more uniform events. *)
 
 (** This contains an explanation of where an alias comes from. *)
@@ -5,67 +6,67 @@ type alias_source = Argument of int | With of Reference.versioned_reference
 
 (** Structures that sum up data about certain operations. *)
 type rfunpre = {
-    f : Trace.jsval;
-    base : Trace.jsval;
-    args : Trace.jsval;
+    f : jsval;
+    base : jsval;
+    args : jsval;
     call_type : Cleantrace.call_type;
 }
 type rfunpost = {
-    f : Trace.jsval;
-    base : Trace.jsval;
-    args : Trace.jsval;
-    result : Trace.jsval;
+    f : jsval;
+    base : jsval;
+    args : jsval;
+    result : jsval;
 }
-type rliteral = { value : Trace.jsval; hasGetterSetter : bool; }
+type rliteral = { value : jsval; hasGetterSetter : bool; }
 type rlocal = { name : string; ref : Reference.versioned_reference; }
 type ralias = {
     name : string;
     source : alias_source;
     ref : Reference.versioned_reference;
 }
-type rread = { ref : Reference.versioned_reference; value : Trace.jsval; }
+type rread = { ref : Reference.versioned_reference; value : jsval; }
 type rwrite = {
     ref : Reference.versioned_reference;
     oldref: Reference.versioned_reference;
-    value : Trace.jsval;
+    value : jsval;
     success : bool;
 }
 type rbinary = {
     op : string;
-    left : Trace.jsval;
-    right : Trace.jsval;
-    result : Trace.jsval;
+    left : jsval;
+    right : jsval;
+    result : jsval;
 }
-type runary = { op : string; arg : Trace.jsval; result : Trace.jsval; }
-type rfunenter = { f : Trace.jsval; this : Trace.jsval; args : Trace.jsval; }
-type rfunexit = { ret : Trace.jsval; exc : Trace.jsval; }
+type runary = { op : string; arg : jsval; result : jsval; }
+type rfunenter = { f : jsval; this : jsval; args : jsval; }
+type rfunexit = { ret : jsval; exc : jsval; }
 (** Events that make use of the facts calculated by the [LocalFacts] module
 * and consorts to provide a better representation for trace comparison.
 * Compare with [clean_operation], and note that variable and field accessed
 * have been unified to [RRead] and [RWrite], while [CDeclare] has been split
-* into [RAlias] and [RLocal]. *)
+* into [RAlias], [RLocal] and [RCatch]. *)
 type rich_operation =
         RFunPre of rfunpre
     | RFunPost of rfunpost
     | RLiteral of rliteral
-    | RForIn of Trace.jsval
+    | RForIn of jsval
     | RLocal of rlocal
     | RCatch of rlocal
     | RAlias of ralias
     | RRead of rread
     | RWrite of rwrite
-    | RReturn of Trace.jsval
-    | RThrow of Trace.jsval
-    | RWith of Trace.jsval
+    | RReturn of jsval
+    | RThrow of jsval
+    | RWith of jsval
     | RFunEnter of rfunenter
     | RFunExit of rfunexit
     | RScriptEnter
     | RScriptExit
-    | RScriptExc of Trace.jsval
+    | RScriptExc of jsval
     | RBinary of rbinary
     | RUnary of runary
     | REndExpression
-    | RConditional of Trace.jsval
+    | RConditional of jsval
 
 (** A rich trace contains rich operations and local facts. *)
 type rich_trace = (rich_operation * LocalFacts.local_facts) list
@@ -74,10 +75,10 @@ type rich_trace = (rich_operation * LocalFacts.local_facts) list
 * Furthermore, it contains a rich trace and a points - to map for the references
 * occuring in the program. *)
 type rich_tracefile = {
-    funcs : Trace.functions;
-    objs : Trace.objects;
+    funcs : functions;
+    objs : objects;
     trace : rich_trace;
-    globals : Trace.globals;
+    globals : globals;
     globals_are_properties : bool;
     points_to : PointsTo.points_to_map;
 }

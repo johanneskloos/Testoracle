@@ -3,6 +3,7 @@ open Reference
 open Misc
 open Notations
 open Cleantrace
+open Types
 
 type local_facts = {
     last_arguments: int option;

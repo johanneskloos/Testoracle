@@ -1,3 +1,4 @@
+open Types
 open Trace
 
 type call_type = Function | Method | Constructor | ConstructorMethod
@@ -100,20 +101,6 @@ let encode_decl { name; value; argument; isCatchParam } =
       | None -> if isCatchParam then CatchParam else Var }
 
 let rec clean_impl stack locals globals = function
-    (* Special-case handling for from_jalangi function bodies *)
-    | FunPre ({ f; base; args } as fpre) :: FunPost ({ result } as fpost) :: tr ->
-        encode_pre fpre ::
-        CFunEnter { f; this=base; args } ::
-        CFunExit { ret=result; exc=OUndefined } ::
-        encode_post fpost ::
-        clean_impl stack locals globals tr 
-    | FunPre ({ f; base; args } as fpre) :: Declare ({ value; isCatchParam=true } as decl) :: tr ->
-        encode_pre fpre ::
-        CFunEnter { f; this=base; args } ::
-        CFunExit { ret=OUndefined; exc=value } ::
-        encode_decl decl ::
-        clean_impl stack locals globals tr 
-    (* Regular cleanup *)
     | FunPre fpre :: tr ->
         encode_pre fpre :: clean_impl (locals:: stack) locals globals tr
     | FunPost fpost :: tr ->

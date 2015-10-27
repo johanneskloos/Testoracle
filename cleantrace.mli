@@ -1,4 +1,4 @@
-open Trace
+open Types
 
 (** * Cleaned-up traces. *)
 (** A cleaned-up trace is a version of a trace that has
@@ -100,6 +100,6 @@ val pp_clean_operation : Format.formatter -> clean_operation -> unit
 val pp_clean_trace : Format.formatter -> clean_trace -> unit
 val pp_clean_tracefile : Format.formatter -> clean_tracefile -> unit
 (** Transform a trace to a clean trace. *)
-val clean_trace: trace -> clean_trace
+val clean_trace: globals -> functions -> objects -> Trace.trace -> clean_trace
 (** Transform a trace file to a clean trace file. *)
-val clean_tracefile: tracefile -> clean_tracefile
+val clean_tracefile: Trace.tracefile -> clean_tracefile

@@ -1,13 +1,5 @@
+open Types
 (** A unified reference type for variables and fields. *)
-
-(** Object identifiers *)
-type objectid =
-    | Object of int
-    | Function of int * int
-    | Other of string * int
-
-(** A field reference is given by an object identifier and a field name. *)
-type fieldref = objectid * string
 
 (** A reference to mutable state.
 *
@@ -16,17 +8,10 @@ type fieldref = objectid * string
 * constructors of [reference]. *)
 type reference
 
-(** Objectid helpers *)
-val get_object_id: objectid -> int
-val objectid_of_jsval: Trace.jsval -> objectid
-val objectid_to_jsval: objectid -> Trace.jsval
-
 (** Maps on references. *)
 module ReferenceMap: Map.S with type key = reference
 
 (** Pretty printers. *)
-val pp_objectid: Format.formatter -> objectid -> unit
-val pp_fieldref: Format.formatter -> fieldref -> unit
 val pp_reference: Format.formatter -> reference -> unit
 val pp_reference_map: (Format.formatter -> 'a -> unit) ->
 Format.formatter -> 'a ReferenceMap.t -> unit
@@ -45,7 +30,7 @@ bool -> fieldref Misc.StringMap.t -> bool -> string -> reference
 *
 * Call as [reference_of_field base offset], where [base] must be a
 * value having an object identifier. *)
-val reference_of_field: Trace.jsval -> string -> reference
+val reference_of_field: Types.jsval -> string -> reference
 (** Transform a field reference to a reference. *)
 val reference_of_fieldref: fieldref -> reference
 (** Transform a variable name that is known to be local and non-aliased to

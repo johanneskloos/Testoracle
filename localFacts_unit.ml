@@ -4,6 +4,7 @@ open Abbreviations;;
 open Trace;;
 open Cleantrace;;
 open Reference
+open Types
 
 let print_trace tr =
     Trace.pp_trace Format.str_formatter tr;

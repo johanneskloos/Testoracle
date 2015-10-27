@@ -23,7 +23,7 @@ let versions =
     |> add_field 1 "b" 3
     |> add_field 1 "d" 4
     |> add_field 2 "e" 5
-let local_facts = { empty_local_facts with versions }
+let local_facts = { empty_local_facts with versions=versions }
 
 let points_to_facts =
     VersionReferenceMap.empty

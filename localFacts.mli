@@ -1,4 +1,5 @@
 (** Facts that are local to a position in the trace. *)
+open Types
 open Trace
 open Reference
 open Cleantrace

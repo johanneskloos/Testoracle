@@ -1,3 +1,4 @@
+open Types
 open Trace
 open Richtrace
 open Arg
