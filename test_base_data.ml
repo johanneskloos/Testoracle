@@ -236,3 +236,64 @@ let trace1 = let open Trace in
   ]
 
 let tracefile1: Trace.tracefile = (functab1, objtab1, trace1, globals, true)
+
+let cleantrace1 = let open Cleantrace in [
+    CForIn obj1_simp2;
+    CWith obj1_simp2;
+    CScriptEnter;
+    CThrow obj1_simp2;
+    CScriptExc obj1_simp2;
+    CDeclare { name = "e"; value = obj1_simp2; declaration_type = CatchParam };
+    CEndExpression;
+    CLiteral { value = vtrue; hasGetterSetter = false };
+    CWrite { name = "x"; lhs = vundef; value = vtrue; isGlobal = true; isSuccessful = true };
+    CRead { name = "x"; value = vtrue; isGlobal = true };
+    CFunPre { f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; call_type = Method };
+    CFunEnter { f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1 };
+    CDeclare { name = "arguments"; value = obj1_simp1; declaration_type = ArgumentArray };
+    CDeclare { name = "x"; value = vundef; declaration_type = ArgumentBinding 0 };
+    CReturn vfalse;
+    CFunExit { ret = vfalse; exc = vundef };
+    CFunPost { f = obj1_fun1; args = obj1_simp1; call_type = Method; result = vfalse; base = obj1_cyc1 };
+    CScriptEnter;
+    CBinary { op = "+"; left = v0; right = v1; result = v1 };
+    CUnary { op = "-"; arg = v0; result = v0 };
+    CScriptExit;
+    CGetField { base = obj1_simp1; offset = "marker"; value = vundef };
+    CPutField { base = obj1_simp1; offset = "marker"; value = vundef };
+    CLiteral { value = obj1_simp2; hasGetterSetter = false };
+    CDeclare { name = "y"; value = obj1_simp2; declaration_type = Var };
+    CConditional vfalse
+    ]
+
+let cleantrace1_args = [
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    Some (get_object obj1_simp1);
+    Some (get_object obj1_simp1);
+    Some (get_object obj1_simp1);
+    Some (get_object obj1_simp1);
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None
+    ]
+  
+let argtrace1 = List.combine cleantrace1 cleantrace1_args
+ 

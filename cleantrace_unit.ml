@@ -14,34 +14,7 @@ let test1 =
                 Assert.make_equal (=) (Misc.to_string pp_objects) objtab1 objs;
                 Assert.make_equal (=) (Misc.to_string pp_globals) globals globals';
                 Assert.equal_bool true gap;
-                Assert.make_equal (=) (Misc.to_string pp_clean_trace) [
-                    CForIn obj1_simp2;
-                    CWith obj1_simp2;
-                    CScriptEnter;
-                    CThrow obj1_simp2;
-                    CScriptExc obj1_simp2;
-                    CDeclare { name = "e"; value = obj1_simp2; declaration_type = CatchParam };
-                    CEndExpression;
-                    CLiteral { value = vtrue; hasGetterSetter = false };
-                    CWrite { name = "x"; lhs = vundef; value = vtrue; isGlobal = true; isSuccessful = true };
-                    CRead { name = "x"; value = vtrue; isGlobal = true };
-                    CFunPre { f = obj1_fun1; base = obj1_cyc1; args = obj1_simp1; call_type = Method };
-                    CFunEnter { f = obj1_fun1; this = obj1_cyc1; args = obj1_simp1 };
-                    CDeclare { name = "arguments"; value = obj1_simp1; declaration_type = ArgumentArray };
-                    CDeclare { name = "x"; value = vundef; declaration_type = ArgumentBinding 0 };
-                    CReturn vfalse;
-                    CFunExit { ret = vfalse; exc = vundef };
-                    CFunPost { f = obj1_fun1; args = obj1_simp1; call_type = Method; result = vfalse; base = obj1_cyc1 };
-                    CScriptEnter;
-                    CBinary { op = "+"; left = v0; right = v1; result = v1 };
-                    CUnary { op = "-"; arg = v0; result = v0 };
-                    CScriptExit;
-                    CGetField { base = obj1_simp1; offset = "marker"; value = vundef };
-                    CPutField { base = obj1_simp1; offset = "marker"; value = vundef };
-                    CLiteral { value = obj1_simp2; hasGetterSetter = false };
-                    CDeclare { name = "y"; value = obj1_simp2; declaration_type = Var };
-                    CConditional vfalse
-                    ] cleantrace)
+                Assert.make_equal (=) (Misc.to_string pp_clean_trace) cleantrace1 cleantrace)
 
 (* Second test: Check that global calcuation works correctly. *)
 let test2 =
