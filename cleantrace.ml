@@ -286,44 +286,70 @@ let is_instrumented funcs f =
     | _ -> false
 
 
-let synthesize_funpre funcs (fpre: funpre) =
-    if is_instrumented funcs fpre.f then
-      (Push None, [ CFunPre fpre ])
-    else
-      (Push (Some fpre), [ CFunPre fpre; CFunEnter { f = fpre.f; this = fpre.base; args = fpre.args } ])
+let pp_funpre pp ({ f; base; args; call_type }: funpre) =
+  Format.fprintf pp "f=%a, base=%a, args=%a, call_type=%a"
+    pp_jsval f
+    pp_jsval base
+    pp_jsval args
+    pp_call_type call_type
+    
+let pp_synth_stack = FormatHelper.pp_print_list (FormatHelper.pp_print_option pp_funpre)
 
-let synthesize_funpre_split funcs f this args call_type =
-  synthesize_funpre funcs { f; base=this; args; call_type }
-     
-let synthesize_internal funcs (next: funpre option) = function
-  | CFunPre fpre -> synthesize_funpre funcs fpre
-  | CFunExit e when e.exc = OUndefined ->
-    begin match next with
-      | Some { f; base; args; call_type } ->
-        (Pop, [ CFunExit e; CFunPost { f; base; args; call_type; result = e.ret } ])
-      | None -> (Pop, [CFunExit e])
-    end 
-  | e -> (Keep, [e])
-
-let synthesize_external funcs next = function
-  | CFunEnter ({ f; this; args}) ->
-    synthesize_funpre_split funcs
-      f this args (if this = global_object then Function else Method)
-  | CFunPost fpost ->
-    (Pop, [CFunExit { ret=fpost.result; exc=OUndefined }; CFunPost fpost])
-  | CDeclare ({ declaration_type = CatchParam } as decl) ->
-    (Pop, [CFunExit { ret=OUndefined; exc=decl.value }; CDeclare decl])
-  | CScriptExc exc ->
-    (Pop, [CFunExit { ret=OUndefined; exc=exc }; CScriptExc exc])
-  | _ -> failwith "Unexpected event in external function"
 
 let synthesize_events funcs trace =
-  List.fold_left (fun (stack, trace) op ->
-    let (stackop, ops') = match stack with
-    | Some _ :: next :: _ -> synthesize_external funcs next op
-    | [Some _] -> synthesize_external funcs None op
-    | None :: next :: _ -> synthesize_internal funcs next op
-    | _ -> synthesize_internal funcs None op in
+  List.fold_left (fun ((stack: funpre option list), trace) op ->
+    let (stackop, ops') = match op, stack with
+      (* drop clearly bad traces *)
+      | _, None :: None :: _ ->
+        failwith "Trace witnessing function calls in uninstrumented code, should not happen!"
+      (* Function exit handling - regular or general exits *)
+      (* instrumented -> instrumented *)
+      | CFunExit _, Some _ :: Some _ :: _ ->
+        (Pop, [ op ])
+      (* instrumented -> uninstrumented *)
+      | CFunExit { ret = ret; exc =OUndefined}, Some { f; base=this; args; call_type } :: None :: _ ->
+        (Pop, [ op; CFunPost { f; base=this; args; call_type; result = ret } ])
+      (* bad case *)
+      | CFunExit _, None :: _ ->
+        failwith "Trace witnessing an exit from a uninstrumented function, should not happen!"
+      (* bad case *)
+      | CFunExit _, [] ->
+        failwith "Trace witnessing an exit from the toplevel, should not happen!"
+      (* uninstrumented -> instrumented *)
+      | CFunPost { result }, None :: _ ->
+        (Pop, [ CFunExit { ret = result; exc = OUndefined }; op ])
+      (* post inside instrumented code *)
+      | CFunPost _, Some _ :: _ ->
+        (Keep, [ op ])
+      (* Function call handling *)
+      | CFunPre _, None :: _ ->
+        failwith "Trace witnessing a call in uninstrumented code, should not happen!"
+      | CFunPre ({ f; base=this; args } as e), _ when is_instrumented funcs f ->
+        (Push (Some e), [ op ])
+      | CFunPre ({ f; base=this; args }), _ when not (is_instrumented funcs f) ->
+        (Push None, [ op; CFunEnter { f; this; args } ])
+      | CFunEnter _, [] ->
+        failwith "Trace witnessing function entry into toplevel code, should not happen!"
+      | CFunEnter _, Some _ :: _ ->
+        (Keep, [ op ])
+      | CFunEnter { f; this; args }, None :: _ ->
+        let e = { f; base=this; args; call_type = if this = OObject 0 then Function else Method } in
+        (Push (Some e), [ CFunPre e; op ])
+      (* Function exit handling - exception exits to instrumented code *)
+      | CDeclare { declaration_type = CatchParam; value }, None :: _ ->
+        (Pop, [ CFunExit { ret = OUndefined; exc = value }; op ])
+      | CScriptExc exc, None :: _ ->
+        (Pop, [ CFunExit { ret = OUndefined; exc }; op ])
+      (* Function exit handling - exception exits to uninstrumented code *)
+      | CFunExit _, Some _ :: None :: _ ->
+        failwith "Cannot handle exception exits to higher-order code yet"
+      (* All cases handled for uninstrumented code *)
+      | _, None :: _ ->
+        failwith "Unhandled event in uninstrumented code"
+      (* All other cases non-function handling and inside instrumented code, pass through *)
+      | _, _ ->
+        (Keep, [ op ])
+    in
        (apply_stackop stack stackop, List.rev_append ops' trace))
       ([], []) trace |> snd |> List.rev
 
