@@ -1,109 +1,125 @@
-open LocalFacts;;
-open Kaputt;;
-open Abbreviations;;
-open Trace;;
-open Cleantrace;;
-open Reference
+open LocalFacts
+open Kaputt.Abbreviations
+open Test_base_data
 open Types
 
-let print_trace tr =
-    Trace.pp_trace Format.str_formatter tr;
-    Format.flush_str_formatter()
+let (|>) = Pervasives.(|>)
 
-let test_get_object1 =
-    Test.make_simple_test ~title:"get_object: object"
-        (fun () -> Assert.equal ~prn: string_of_int (get_object (OObject 1)) 1)
-let test_get_object2 =
-    Test.make_simple_test ~title:"get_object: function"
-        (fun () -> Assert.equal ~prn: string_of_int (get_object (OFunction (1, 2))) 1)
-let test_get_object3 =
-    Test.make_simple_test ~title:"get_object: other"
-        (fun () -> Assert.equal ~prn: string_of_int (get_object (OOther ("type", 1))) 1)
-let test_get_object4 =
-    Test.make_simple_test ~title:"get_object: non-object"
-        (fun () -> Assert.raises (fun () -> get_object ONull))
+let step_number_collector num () op = (num, num+1)
+let rec seq start num = if num > 0 then start :: seq (start + 1) (num - 1) else []
+ 
+let test_trace_collect =
+  Test.make_simple_test ~title:"trace_collect"
+    (fun () ->
+      let (enrichedtrace, num) =
+        trace_collect step_number_collector 1 (List.map (fun x -> (x, ())) cleantrace1)
+      in let (cleantrace', nums) = List.split enrichedtrace in
+      Assert.make_equal (=) (Misc.to_string Cleantrace.pp_clean_trace) cleantrace1 cleantrace';
+      Assert.equal_int (List.length cleantrace1 + 1) num;
+      Assert.make_equal (=) (Misc.to_string (FormatHelper.pp_print_list Format.pp_print_int))
+        (seq 1 (List.length cleantrace1)) nums)
 
-let sample_raw_trace = [
-    Return { iid = 1; value = ONull };
-    Throw { iid = 2; value = OUndefined };
-    ScriptExit
-    ]
-let sample_trace = [
-    CReturn ONull;
-    CThrow OUndefined ;
-    CScriptExit
-    ]
-let sample_extended_trace = [
-    (CReturn ONull, 5);
-    (CThrow OUndefined, 17);
-    (CScriptExit, 23)
-    ]
+let test_trace_enrich =
+  Test.make_simple_test ~title:"trace_enrich"
+    (fun () ->
+      let enrichedtrace =
+        trace_enrich step_number_collector 1 (List.map (fun x -> (x, ())) cleantrace1)
+      in let (cleantrace', nums) = List.split enrichedtrace in
+      Assert.make_equal (=) (Misc.to_string Cleantrace.pp_clean_trace) cleantrace1 cleantrace';
+      Assert.make_equal (=) (Misc.to_string (FormatHelper.pp_print_list Format.pp_print_int))
+        (seq 1 (List.length cleantrace1)) nums)
+
+let test_trace_fold =
+  Test.make_simple_test ~title:"trace_fold"
+    (fun () ->
+      Assert.equal_int 1 (trace_fold (fun cnt _ op -> match op with
+        | Cleantrace.CScriptExit -> cnt + 1
+        | _ -> cnt) 0 (List.map (fun x -> (x, ())) cleantrace1)))
 
 let test_trace_initialize =
-    Test.make_simple_test ~title:"trace_initialize"
-        (fun () -> Assert.equal ~prn: (Misc.to_string pp_clean_trace)
-                    (List.map fst (trace_initialize sample_raw_trace)) sample_trace)
-let test_trace_fold =
-    Test.make_simple_test ~title:"trace_fold"
-        (fun () -> Assert.equal ~prn: string_of_int (trace_fold
-                            (fun sum data -> function
-                                    | CReturn _ -> sum + 2 * data
-                                    | CThrow _ -> sum + 3 * data
-                                    | _ -> sum + data) 42 sample_extended_trace)
-                    126)
-let test_trace_collect =
-    Test.make_simple_test ~title:"trace_collect"
-        (fun () ->
-                let (new_trace, res) = trace_collect (fun sum data -> function
-                                | CReturn _ -> ((sum, 2 * data), sum + 2 * data)
-                                | CThrow _ -> ((sum, 3 * data), sum + 3 * data)
-                                | _ -> ((sum, data), sum + data)) 42 sample_extended_trace in
-                Assert.equal ~prn: string_of_int res 126;
-                Assert.equal ~prn: (Misc.to_string pp_clean_trace) (List.map fst new_trace) sample_trace;
-                Assert.equal (List.map snd new_trace) [(42, 10); (52, 51); (103, 23)])
+  Test.make_simple_test ~title:"trace_initialize"
+    (fun () ->
+      let (funcs, objs, cleantrace, globals', gap) = trace_initialize tracefile1 in
+      Assert.same functab1 funcs;
+      Assert.same objtab1 objs;
+      Assert.same globals globals';
+      Assert.is_true gap;
+      Assert.make_equal (=) (fun t -> Misc.to_string (Cleantrace.pp_clean_trace) (List.map fst t))
+        (List.map (fun x -> (x, ())) cleantrace1) cleantrace)
 
-let test_reference_of_variable_1 =
-    Test.make_simple_test ~title:"reference to global, globals as vars"
-        (fun () ->
-                let ref = reference_of_variable false empty_local_facts true "x" in
-                Assert.equal
-                    ~prn: (Misc.to_string (FormatHelper.pp_print_option Format.pp_print_string))
-                    (Some "x") (get_name ref);
-                Assert.is_true ~msg:"Should be global" (is_global ref))
-let test_reference_of_variable_2 =
-    Test.make_simple_test ~title:"reference to global, globals as props"
-        (fun () ->
-                let ref = reference_of_variable true empty_local_facts true "x" in
-                Assert.equal
-                    ~prn: (Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Types.pp_objectid Format.pp_print_string)))
-                    (Some (Object 0, "x")) (get_fieldref ref))
-let test_reference_of_variable_3 =
-    Test.make_simple_test ~title:"reference to local, no alias"
-        (fun () ->
-                let ref = reference_of_variable false empty_local_facts false "x" in
-                Assert.equal
-                    ~prn: (Misc.to_string (FormatHelper.pp_print_option Format.pp_print_string))
-                    (Some "x") (get_name ref);
-                Assert.is_false ~msg:"Should be global" (is_global ref))
-let test_reference_of_variable_4 =
-    Test.make_simple_test ~title:"reference to local, no alias"
-        (fun () ->
-                let ref = reference_of_variable false { empty_local_facts with aliases = Misc.StringMap.add "x" (Object 0, "x") Misc.StringMap.empty } false "x" in
-                Assert.equal
-                    ~prn: (Misc.to_string (FormatHelper.pp_print_option (FormatHelper.pp_print_pair Types.pp_objectid Format.pp_print_string)))
-                    (Some (Object 0, "x")) (get_fieldref ref))
+let test_collect_arguments_and_parameters =
+  Test.make_simple_test ~title:"collect_arguments_and_parameters"
+    (fun () ->
+      let argtrace = collect_arguments_and_parameters (List.map (fun x -> (x, ())) cleantrace1) in
+      let open FormatHelper in
+      Assert.make_equal (=)
+        (Misc.to_string (pp_print_list_lines (pp_print_pair Cleantrace.pp_clean_operation (pp_print_option Format.pp_print_int))))
+        argtrace1 argtrace)
+
+let test_calculate_arguments_and_parameters =
+  Test.make_simple_test ~title:"calculate_arguments_and_parameters"
+    (fun () ->
+      let (funcs, objs, argtrace, globals', gap) = calculate_arguments_and_parameters tracefile1 in
+      let open FormatHelper in
+      Assert.same functab1 funcs;
+      Assert.same objtab1 objs;
+      Assert.same globals globals';
+      Assert.is_true gap;
+      Assert.make_equal (=)
+        (Misc.to_string (pp_print_list_lines (pp_print_pair Cleantrace.pp_clean_operation (pp_print_option Format.pp_print_int))))
+        argtrace1 argtrace)
+
+let ref0 = Reference.reference_of_local_name "z"
+let alias_map = {
+  last_arguments = None;
+  last_update = None;
+  versions = Reference.ReferenceMap.empty |> Reference.ReferenceMap.add ref0 42;
+  aliases = let open Misc.StringMap in empty |> add "y" (Types.Object 1, "a")
+}
+
+let test1 = let open Reference in
+  Test.make_simple_test ~title:"reference_of_variable: global when globals are not properties"
+  (fun () ->
+    let ref = reference_of_variable false alias_map true "x" in
+    Assert.is_true
+      ~msg:(Format.asprintf "Expected 'Global(\"x\")', but got '%a'" pp_reference ref)
+      (match ref with GlobalVariable "x" -> true | _ -> false))
+let test2 = let open Reference in
+  Test.make_simple_test ~title:"reference_of_variable: global when globals are properties"
+  (fun () ->
+    let ref = reference_of_variable true alias_map true "x" in
+    Assert.is_true
+      ~msg:(Format.asprintf "Expected 'Field(Object 0, \"x\")', but got '%a'" pp_reference ref)
+      (match ref with Field(Object 0, "x") -> true | _ -> false))
+let test3 = let open Reference in
+  Test.make_simple_test ~title:"reference_of_variable: global when globals are properties; alias handling"
+  (fun () ->
+    let ref = reference_of_variable true alias_map true "y" in
+    Assert.is_true
+      ~msg:(Format.asprintf "Expected 'Field(Object 0, \"y\")', but got '%a'" pp_reference ref)
+      (match ref with Field(Object 0, "y") -> true | _ -> false))
+let test4 = let open Reference in
+  Test.make_simple_test ~title:"reference_of_variable: local, not an alias"
+  (fun () ->
+    let ref = reference_of_variable true alias_map false "x" in
+    Assert.is_true
+      ~msg:(Format.asprintf "Expected 'Local \"x\"', but got '%a'" pp_reference ref)
+      (match ref with LocalVariable "x" -> true | _ -> false))
+let test5 = let open Reference in
+  Test.make_simple_test ~title:"reference_of_variable: local name; alias handling"
+  (fun () ->
+    let ref = reference_of_variable true alias_map false "y" in
+    Assert.is_true
+      ~msg:(Format.asprintf "Expected 'Field(Object 1, \"a\")', but got '%a'" pp_reference ref)
+      (match ref with Field(Object 1, "a") -> true | _ -> false))
 
 let test_make_versioned =
-    Test.make_simple_test ~title: "make_versioned"
-        (fun () ->
-                let ref = reference_of_variable false empty_local_facts true "x" in
-                let facts = { empty_local_facts with versions = ReferenceMap.add ref 17 ReferenceMap.empty } in
-                Assert.equal ~prn: (Misc.to_string Reference.pp_versioned_reference)
-                    (ref, 17) (make_versioned facts ref))
+  Test.make_simple_test ~title: "make_versioned"
+    (fun () ->  Assert.make_equal (=)
+        (Misc.to_string Reference.pp_versioned_reference)
+        (ref0, 42) (make_versioned alias_map ref0))
 
-let () = Test.run_tests [test_get_object1; test_get_object2; test_get_object3;
-        test_get_object4; test_trace_fold; test_trace_collect;
-        test_reference_of_variable_1; test_reference_of_variable_2;
-        test_reference_of_variable_3; test_reference_of_variable_4;
-        test_make_versioned
-        ]
+let _ = Test.run_tests [
+    test_trace_collect; test_trace_enrich; test_trace_fold; test_trace_initialize;
+    test_collect_arguments_and_parameters; test_calculate_arguments_and_parameters;
+    test1; test2; test3; test4; test5; test_make_versioned ] 

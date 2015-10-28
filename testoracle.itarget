@@ -12,7 +12,7 @@ detect_nested.native
 
 reference_unit.native
 cleantrace_unit.native
-#localFacts_unit.native
+localFacts_unit.native
 #matchTraces_matcher_unit.native
 #reference_unit.native
 #cleantrace_unit.native
