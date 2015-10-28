@@ -294,6 +294,136 @@ let cleantrace1_args = [
     None;
     None
     ]
+
+let ct1_l_e = Reference.reference_of_local_name "e"
+and ct1_g_x = Reference.reference_of_name true Misc.StringMap.empty true "x"
+and ct1_args = Reference.reference_of_local_name "arguments"
+and ct1_arg0 = Reference.reference_of_field obj1_simp1 "0"
+and ct1_arg1 = Reference.reference_of_field obj1_simp1 "1"
+and ct1_l_y = Reference.reference_of_local_name "y"
+and ct1_f_simp1_marker = Reference.reference_of_field obj1_simp1 "marker"
   
-let argtrace1 = List.combine cleantrace1 cleantrace1_args
+let cleantrace1_updates = [
+    None;
+    None;
+    None;
+    None;
+    None;
+    Some (ct1_l_e, 0);
+    Some (ct1_l_e, 0);
+    Some (ct1_l_e, 0);
+    Some (ct1_g_x, 0);
+    Some (ct1_g_x, 0);
+    Some (ct1_g_x, 0);
+    Some (ct1_g_x, 0);
+    Some (ct1_args, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_arg0, 0);
+    Some (ct1_f_simp1_marker, 1);
+    Some (ct1_f_simp1_marker, 1);
+    Some (ct1_l_y, 0);
+    Some (ct1_l_y, 0)
+    ]
+    
+let ct1ver_emp = Reference.ReferenceMap.empty
+let ct1ver_e = Reference.ReferenceMap.add ct1_l_e 0 ct1ver_emp
+let ct1ver_x = Reference.ReferenceMap.add ct1_g_x 0 ct1ver_e
+let ct1ver_args = let open Reference.ReferenceMap in
+  add ct1_args 0 ct1ver_x |> add ct1_arg0 0 |> add ct1_arg1 0
+let ct1ver_arg0 = Reference.ReferenceMap.add ct1_arg0 0 ct1ver_args
+let ct1ver_f = Reference.ReferenceMap.add ct1_f_simp1_marker 0 ct1ver_arg0
+let ct1ver_f' = Reference.ReferenceMap.add ct1_f_simp1_marker 1 ct1ver_f
+let ct1ver_simp2 = ct1ver_f'
+let ct1ver_y = Reference.ReferenceMap.add ct1_l_y 0 ct1ver_simp2
+
+let cleantrace1_versions =
+    let open Reference in [
+    ct1ver_emp;
+    ct1ver_emp;
+    ct1ver_emp;
+    ct1ver_emp;
+    ct1ver_emp;
+    ct1ver_e;
+    ct1ver_e;
+    ct1ver_e;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_args;
+    ct1ver_arg0;
+    ct1ver_arg0;
+    ct1ver_arg0;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_x;
+    ct1ver_f;
+    ct1ver_f';
+    ct1ver_simp2;
+    ct1ver_y;
+    ct1ver_y
+    ]
+
+let ct1al_emp = Misc.StringMap.empty
+let ct1al_x = Misc.StringMap.add "x" (objectid_of_jsval obj1_simp1, "0") ct1al_emp
+
+let cleantrace1_aliases = let open Cleantrace in [
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_x;
+    ct1al_x;
+    ct1al_x;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp;
+    ct1al_emp
+    ]
+
+let cleantrace1_facts =
+  let fact_tuple = 
+      let t1 = List.combine cleantrace1_args cleantrace1_updates
+      and t2 = List.combine cleantrace1_versions cleantrace1_aliases in
+      List.combine t1 t2
+  in let open LocalFacts in
+  List.map (fun ((la, lu), (v, a)) -> { last_arguments = la; last_update = lu; versions = v; aliases = a }) fact_tuple
  
+let argtrace1 = List.combine cleantrace1 cleantrace1_args
+let facttrace1 = List.combine cleantrace1 cleantrace1_facts
+
+let trace1_pointsto =
+  let open Reference.VersionReferenceMap in
+  empty
+  |> add (ct1_l_e, 0) obj1_simp2
+  |> add (ct1_g_x, 0) vtrue
+  |> add (ct1_args, 0) obj1_simp1
+  |> add (ct1_arg0, 0) vnull
+  |> add (ct1_arg1, 0) vundef
+  |> add (ct1_f_simp1_marker, 0) vundef
+  |> add (ct1_f_simp1_marker, 1) vundef
+  |> add (ct1_l_y, 0) obj1_simp2
