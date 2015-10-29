@@ -13,7 +13,8 @@ let test_find_object_facts =
       (Misc.StringMap.empty
       |> Misc.StringMap.add "0" vnull
       |> Misc.StringMap.add "1" vundef
-      |> Misc.StringMap.add "marker" vundef)
+      |> Misc.StringMap.add "marker" vundef
+      |> Misc.StringMap.add "toString" (OFunction (0,2)))
       facts)
 
 let _ = Test.run_tests [ test_find_object_facts ]

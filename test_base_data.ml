@@ -440,6 +440,7 @@ let cleantrace1_facts =
 let argtrace1 = List.combine cleantrace1 cleantrace1_args
 let facttrace1 = List.combine cleantrace1 cleantrace1_facts
 
+
 let trace1_pointsto =
   let open Reference.VersionReferenceMap in
   empty
@@ -451,3 +452,5 @@ let trace1_pointsto =
   |> add (ct1_f_simp1_marker, 0) vundef
   |> add (ct1_f_simp1_marker, 1) vundef
   |> add (ct1_l_y, 0) obj1_simp2
+  |> add (Reference.reference_of_fieldref (Object 0, "Function"), 0) (OObject 0)
+  |> add (Reference.reference_of_field (obj1_simp1) "toString", 0) (OFunction (0,2))
