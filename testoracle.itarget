@@ -14,6 +14,7 @@ reference_unit.native
 cleantrace_unit.native
 localFacts_unit.native
 pointsTo_unit.native
+calculateVersions_unit.native
 #matchTraces_matcher_unit.native
 #reference_unit.native
 #cleantrace_unit.native

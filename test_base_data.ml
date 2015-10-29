@@ -50,19 +50,19 @@ let objglobal =
 (** Three versions of object tables, two equivalent but permuted, and one different. *)
 (** Object table 1 - it contains one cyclic structure, one list structure, one special object and six
  * simple objects, including the functions defined above. *)
-let obj1_cyc1 = OObject 0
-let obj1_cyc2 = OObject 1
-let obj1_cyc3 = OObject 2
-let obj1_list1 = OObject 3
-let obj1_list2 = OObject 4
-let obj1_list3 = OObject 5
-let obj1_fun1 = OFunction (6, 3)
-let obj1_fun2 = OFunction (7, 4)
-let obj1_fun3 = OFunction (8, 5)
-let obj1_fun4 = OFunction (9, 6)
-let obj1_simp1 = OObject 10
-let obj1_simp2 = OObject 11
-let obj1_special = OOther ("special", 12)
+let obj1_cyc1 = OObject 1
+let obj1_cyc2 = OObject 2
+let obj1_cyc3 = OObject 3
+let obj1_list1 = OObject 4
+let obj1_list2 = OObject 5
+let obj1_list3 = OObject 6
+let obj1_fun1 = OFunction (7, 3)
+let obj1_fun2 = OFunction (8, 4)
+let obj1_fun3 = OFunction (9, 5)
+let obj1_fun4 = OFunction (10, 6)
+let obj1_simp1 = OObject 11
+let obj1_simp2 = OObject 12
+let obj1_special = OOther ("special", 13)
 
 let obj1desc_cyc1 =
   simplefields [ ("next", obj1_cyc2); ("val", v0) ]
@@ -99,19 +99,19 @@ let objtab1 = [|
 
 (** Object table 2 - it contains one cyclic structure, one list structure, one special object and six
  * simple objects, including the functions defined above. *)
-let obj2_cyc1 = OObject 3
-let obj2_cyc2 = OObject 4
-let obj2_cyc3 = OObject 5
-let obj2_list1 = OObject 0
-let obj2_list2 = OObject 1
-let obj2_list3 = OObject 2
-let obj2_fun1 = OFunction (8, 4)
-let obj2_fun2 = OFunction (9, 5)
-let obj2_fun3 = OFunction (6, 6)
-let obj2_fun4 = OFunction (7, 2)
-let obj2_simp1 = OObject 12
-let obj2_simp2 = OObject 11
-let obj2_special = OOther ("special", 10)
+let obj2_cyc1 = OObject 4
+let obj2_cyc2 = OObject 5
+let obj2_cyc3 = OObject 6
+let obj2_list1 = OObject 1
+let obj2_list2 = OObject 2
+let obj2_list3 = OObject 3
+let obj2_fun1 = OFunction (9, 4)
+let obj2_fun2 = OFunction (10, 5)
+let obj2_fun3 = OFunction (7, 6)
+let obj2_fun4 = OFunction (8, 2)
+let obj2_simp1 = OObject 13
+let obj2_simp2 = OObject 12
+let obj2_special = OOther ("special", 11)
 
 let obj2desc_cyc1 =
   simplefields [ ("next", obj2_cyc2); ("val", v0) ]
@@ -148,19 +148,19 @@ let objtab2 = [|
 
 (** Object table 3 - similar to object table 1, but with subtle differences
  * in the objects themselves. *)
-let obj3_cyc1 = OObject 0
-let obj3_cyc2 = OObject 1
-let obj3_cyc3 = OObject 2
-let obj3_list1 = OObject 3
-let obj3_list2 = OObject 4
-let obj3_list3 = OObject 5
-let obj3_fun1 = OFunction (6, 3)
-let obj3_fun2 = OFunction (7, 4)
-let obj3_fun3 = OFunction (8, 5)
-let obj3_fun4 = OFunction (9, 6)
-let obj3_simp1 = OObject 10
-let obj3_simp2 = OObject 11
-let obj3_special = OOther ("special", 12)
+let obj3_cyc1 = OObject 1
+let obj3_cyc2 = OObject 2
+let obj3_cyc3 = OObject 3
+let obj3_list1 = OObject 4
+let obj3_list2 = OObject 5
+let obj3_list3 = OObject 6
+let obj3_fun1 = OFunction (7, 3)
+let obj3_fun2 = OFunction (8, 4)
+let obj3_fun3 = OFunction (9, 5)
+let obj3_fun4 = OFunction (10, 6)
+let obj3_simp1 = OObject 11
+let obj3_simp2 = OObject 12
+let obj3_special = OOther ("special", 13)
 
 let obj3desc_cyc1 =
   simplefields [ ("next", obj3_cyc2); ("val", vtrue) ]
@@ -300,15 +300,19 @@ and ct1_g_x = Reference.reference_of_name true Misc.StringMap.empty true "x"
 and ct1_args = Reference.reference_of_local_name "arguments"
 and ct1_arg0 = Reference.reference_of_field obj1_simp1 "0"
 and ct1_arg1 = Reference.reference_of_field obj1_simp1 "1"
+and ct1_toString = Reference.reference_of_field obj1_simp1 "toString"
+and ct1_toString' = Reference.reference_of_field obj1_simp2 "toString"
 and ct1_l_y = Reference.reference_of_local_name "y"
 and ct1_f_simp1_marker = Reference.reference_of_field obj1_simp1 "marker"
+and ct1_this = Reference.reference_of_local_name "this"
   
-let cleantrace1_updates = [
-    None;
-    None;
-    None;
-    None;
-    None;
+let cleantrace1_updates = 
+  let init = Reference.reference_of_fieldref (Function (0, 2), "toString") in [
+    Some (init, 0);
+    Some (init, 0);
+    Some (init, 0);
+    Some (init, 0);
+    Some (init, 0);
     Some (ct1_l_e, 0);
     Some (ct1_l_e, 0);
     Some (ct1_l_e, 0);
@@ -332,45 +336,65 @@ let cleantrace1_updates = [
     Some (ct1_l_y, 0)
     ]
     
-let ct1ver_emp = Reference.ReferenceMap.empty
-let ct1ver_e = Reference.ReferenceMap.add ct1_l_e 0 ct1ver_emp
+let ct1ver_init =
+    let add_field obj fld map =
+        Reference.ReferenceMap.add (Reference.reference_of_fieldref (obj, fld)) 0 map
+    in let add_basic obj map =
+        map
+        |> add_field obj "Function"
+        |> add_field obj "apply"
+        |> add_field obj "call"
+        |> add_field obj "prototype"
+        |> add_field obj "toString"
+    in
+    Reference.ReferenceMap.empty
+    |> add_basic (Object 0)
+    |> add_basic (Function (0,0))
+    |> add_basic (Function (0,1))
+    |> add_basic (Function (0,2))
+
+let ct1ver_e = Reference.ReferenceMap.add ct1_l_e 0 ct1ver_init
 let ct1ver_x = Reference.ReferenceMap.add ct1_g_x 0 ct1ver_e
-let ct1ver_args = let open Reference.ReferenceMap in
-  add ct1_args 0 ct1ver_x |> add ct1_arg0 0 |> add ct1_arg1 0
+let ct1ver_funpre = let open Reference.ReferenceMap in
+  ct1ver_x |> add ct1_arg0 0 |> add ct1_arg1 0 |> add ct1_toString 0
+let ct1ver_enter = let open Reference.ReferenceMap in
+  ct1ver_funpre |> add ct1_this 0
+let ct1ver_args =  let open Reference.ReferenceMap in
+  ct1ver_enter |> add ct1_args 0
 let ct1ver_arg0 = Reference.ReferenceMap.add ct1_arg0 0 ct1ver_args
-let ct1ver_f = Reference.ReferenceMap.add ct1_f_simp1_marker 0 ct1ver_arg0
+let ct1ver_f = Reference.ReferenceMap.add ct1_f_simp1_marker 0 ct1ver_funpre
 let ct1ver_f' = Reference.ReferenceMap.add ct1_f_simp1_marker 1 ct1ver_f
-let ct1ver_simp2 = ct1ver_f'
+let ct1ver_simp2 = Reference.ReferenceMap.add ct1_toString' 0 ct1ver_f'
 let ct1ver_y = Reference.ReferenceMap.add ct1_l_y 0 ct1ver_simp2
 
 let cleantrace1_versions =
-    let open Reference in [
-    ct1ver_emp;
-    ct1ver_emp;
-    ct1ver_emp;
-    ct1ver_emp;
-    ct1ver_emp;
-    ct1ver_e;
-    ct1ver_e;
-    ct1ver_e;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_args;
-    ct1ver_arg0;
-    ct1ver_arg0;
-    ct1ver_arg0;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_x;
-    ct1ver_f;
-    ct1ver_f';
-    ct1ver_simp2;
-    ct1ver_y;
-    ct1ver_y
+    [
+      ct1ver_init;
+      ct1ver_init;
+      ct1ver_init;
+      ct1ver_init;
+      ct1ver_init;
+      ct1ver_e;
+      ct1ver_e;
+      ct1ver_e;
+      ct1ver_x;
+      ct1ver_x;
+      ct1ver_funpre;
+      ct1ver_enter;
+      ct1ver_args;
+      ct1ver_arg0;
+      ct1ver_arg0;
+      ct1ver_funpre;
+      ct1ver_funpre;
+      ct1ver_funpre;
+      ct1ver_funpre;
+      ct1ver_funpre;
+      ct1ver_funpre;
+      ct1ver_f;
+      ct1ver_f';
+      ct1ver_simp2;
+      ct1ver_y;
+      ct1ver_y
     ]
 
 let ct1al_emp = Misc.StringMap.empty
@@ -392,7 +416,7 @@ let cleantrace1_aliases = let open Cleantrace in [
     ct1al_emp;
     ct1al_x;
     ct1al_x;
-    ct1al_x;
+    ct1al_emp;
     ct1al_emp;
     ct1al_emp;
     ct1al_emp;
