@@ -440,17 +440,26 @@ let cleantrace1_facts =
 let argtrace1 = List.combine cleantrace1 cleantrace1_args
 let facttrace1 = List.combine cleantrace1 cleantrace1_facts
 
-
 let trace1_pointsto =
   let open Reference.VersionReferenceMap in
+  let add_simple_fields (obj: objectid) (fields: (string * jsval) list) ptm =
+    List.fold_left
+      (fun ptm (fld, value) -> add (Reference.reference_of_fieldref (obj, fld), 0) value ptm)
+      ptm fields in
+  let add_func obj ptm =
+    add_simple_fields obj
+      [ ("Function", OObject 0); ("apply", OFunction(0,0)); ("call", OFunction(0,1)); ("prototype", OObject 0); ("toString", OFunction(0,2)) ]
+      ptm in
   empty
+  |> add_func (Function (0, 0))
+  |> add_func (Function (0, 1)) 
+  |> add_func (Function (0, 2))
+  |> add_func (Object 0)
   |> add (ct1_l_e, 0) obj1_simp2
   |> add (ct1_g_x, 0) vtrue
   |> add (ct1_args, 0) obj1_simp1
-  |> add (ct1_arg0, 0) vnull
-  |> add (ct1_arg1, 0) vundef
-  |> add (ct1_f_simp1_marker, 0) vundef
+  |> add_simple_fields (Object 11) [ "0", vnull; "1", vundef; "marker", vundef; "toString", (OFunction (0, 2)) ]
   |> add (ct1_f_simp1_marker, 1) vundef
   |> add (ct1_l_y, 0) obj1_simp2
-  |> add (Reference.reference_of_fieldref (Object 0, "Function"), 0) (OObject 0)
-  |> add (Reference.reference_of_field (obj1_simp1) "toString", 0) (OFunction (0,2))
+  |> add (Reference.reference_of_local_name "this", 0) (OObject 0)
+  |> add_simple_fields (Object 12) [ "toString", (OFunction (0, 2)) ]
