@@ -1,0 +1,19 @@
+TODO items for JSTruthiness
+===========================
+
+1. ES6 handling - major project
+   This needs various changes:
+   - ES6-compatible Jalangi2 (probably a major project)
+   - Adapt trace generator, trace datatypes for new event types
+   - Add new ES6 base objects to globals analysis in the trace generator.
+   - Add handling of new event types to trace enrichment
+   - Add handling of new event types to trace matching (probably straightforward)
+2. Correct handling of with - medium project:
+   - Modify Jalangi2 to provide scope information for with (medium to major project?)
+   - Adapt trace types and trace generator
+   - Add with handling in calculateVersionsAndAliases: Introduce/drop aliases at the right
+     point.
+3. Clear documentation of matching rules.
+4. Fix handling of higher-order code
+5. Handle reflection.
+
