@@ -21,33 +21,6 @@ type matching_state = {
   nonequivalent_functions: Misc.IntIntSet.t;
   known_blocked: match_mode list list Misc.IntIntMap.t
 }
-type mismatch =
-  | DifferentType
-  | DifferentObjects of string * MatchObjects.obj_match_failure
-  | DifferentArguments
-  | DifferentValues of string
-  | DifferentOperations
-  | OtherOperation
-  | NotToString
-  | NotInitData
-  | NotFunctionUpdate
-  | NotInitCode
-  | NotSimpleMatchable
-  | NotWrapCode
-  | NotToStringCode
-  | ExternalCall
-  | InternalCall
-  | NotLiterallyEqual
-  | LiterallyEqual
-  | NotToplevel
-  | NotFunction
-  | NotExit
-  | Observable
-  | NotAtToplevel
-  | NotEnter
-  | FunctionMismatch of MatchObjects.fun_match_failure
-	| NotUseStrict
-  | NotCatch
   
 val explain: mismatch -> bool -> mismatch option
 

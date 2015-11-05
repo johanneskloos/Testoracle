@@ -7,19 +7,6 @@ open Reference
 open MatchTypes
 open CamomileLibraryDefault.Camomile
 
-type obj_match_failure =
-  | NonMatching of string list * jsval * jsval
-  | MissingOrig of string * string list
-  | MissingXfrm of string * string list
-  | Other of string
-
-type fun_match_failure =
-  | DifferentBodies of string * string
-  | DifferentInstrumentedBodies of string * string
-  | InconsistentlyInstrumented
-  | DifferentExternal of int * int
-  | InternalExternal
-
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option 
 type objeq = failure_trace Misc.IntIntMap.t

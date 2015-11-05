@@ -1,6 +1,7 @@
 compil_mode//_build/certifier.native=native
 compil_mode//_build/cleantrace_unit.native=native
 compil_mode//_build/detect_nested.native=native
+compil_mode//_build/dumpgraph.native=native
 compil_mode//_build/dumplog.native=native
 compil_mode//_build/localFacts_unit.native=native
 compil_mode//_build/matchObjects_unit.native=native
@@ -22,6 +23,7 @@ compil_mode//_build/test_calculations.native=native
 compil_mode/certifier.native=native
 compil_mode/cleantrace_unit.native=native
 compil_mode/detect_nested.native=native
+compil_mode/dumpgraph.native=native
 compil_mode/dumplog.native=native
 compil_mode/localFacts_unit.native=native
 compil_mode/matchObjects_unit.native=native

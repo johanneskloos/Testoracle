@@ -65,33 +65,6 @@ type matching_state = {
 (**
 * Check if two alias sources match.
 *)
-type mismatch =
-  | DifferentType
-  | DifferentObjects of string * obj_match_failure
-  | DifferentArguments
-  | DifferentValues of string
-  | DifferentOperations
-  | OtherOperation
-  | NotToString
-  | NotInitData
-  | NotFunctionUpdate
-  | NotInitCode
-  | NotSimpleMatchable
-  | NotWrapCode
-  | NotToStringCode
-  | ExternalCall
-  | InternalCall
-  | NotLiterallyEqual
-  | LiterallyEqual
-  | NotToplevel
-  | NotFunction
-  | NotExit
-  | Observable
-  | NotAtToplevel
-  | NotEnter
-  | FunctionMismatch of fun_match_failure
-	| NotUseStrict
-  | NotCatch
 
 type 'a comparator = matching_state -> 'a -> 'a -> objeq * mismatch option
 type predicate = matching_state -> rich_operation -> mismatch option

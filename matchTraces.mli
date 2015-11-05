@@ -34,7 +34,7 @@ val interpret_rules :
   rich_operation ->
   rich_operation ->
   (match_operation list * MatchObjects.objeq) *
-  ((match_condition * MatchOperations.mismatch) list * match_operation) list
+  ((match_condition * mismatch) list * match_operation) list
 
 val build_candidates :
   MatchOperations.matching_state ->
@@ -42,7 +42,7 @@ val build_candidates :
   rich_operation ->
   match_state ->
   (match_operation list * MatchObjects.objeq) *
-  ((match_condition * MatchOperations.mismatch) list * match_operation) list
+  ((match_condition * mismatch) list * match_operation) list
   
 
 (**
@@ -53,7 +53,7 @@ val build_candidates :
 val can_be_added_as_initialisation :
   MatchOperations.matching_state ->
   (rich_operation * LocalFacts.local_facts) list ->
-  match_mode list -> MatchOperations.mismatch option
+  match_mode list -> mismatch option
 
 (**
 * Effects of the matching operations on various bits of state.
