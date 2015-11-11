@@ -346,16 +346,25 @@ let synthesize_events funcs trace =
       (* All cases handled for uninstrumented code *)
       | _, None :: _ ->
         failwith "Unhandled event in uninstrumented code"
-      (* All other cases non-function handling and inside instrumented code, pass through *)
+      (* All other cases: non-function handling and inside instrumented code, pass through *)
       | _, _ ->
         (Keep, [ op ])
     in
        (apply_stackop stack stackop, List.rev_append ops' trace))
       ([], []) trace |> snd |> List.rev
 
+let remove_use_strict trace =
+	let rec do_remove trace = function
+		| CLiteral { value = OString "use strict"; hasGetterSetter = false } ::
+			CEndExpression :: rest -> do_remove trace rest
+		| ev :: rest -> do_remove (ev:: trace) rest
+		| [] -> List.rev trace
+	in do_remove [] trace
+
 let clean_trace globals funcs (objs: objects) trace =
     trace
     |> clean_impl [] ["this"] []
+		|> remove_use_strict
     |> normalize_calls globals objs
     |> synthesize_events funcs
     
