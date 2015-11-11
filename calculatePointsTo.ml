@@ -11,7 +11,7 @@ let add_write (facts: LocalFacts.local_facts) (state: points_to_map) (ref: Refer
         (* This write was dropped; most likely, the field was marked
          * "not writable". *)
         Format.eprintf
-          "Weirdness detected: Write of %a failed"
+          "Weirdness detected: Write of %a failed@."
           Reference.pp_reference ref;
         state
     end else
