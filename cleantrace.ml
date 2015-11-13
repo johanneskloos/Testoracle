@@ -269,11 +269,12 @@ let normalize_calls globals (objs: objects) =
   | ev -> ev
   )
   
-type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a
+type 'a stackop = Push of 'a | Keep | Pop | Replace of 'a | Pop2
 let apply_stackop stack = function
   | Push tos -> tos :: stack
   | Keep -> stack
   | Pop -> List.tl stack
+	| Pop2 -> List.tl (List.tl stack)
   | Replace tos -> tos :: List.tl stack
 
 let is_instrumented funcs f =
@@ -309,9 +310,9 @@ let synthesize_events funcs trace =
       (* instrumented -> uninstrumented *)
       | CFunExit { ret = ret; exc =OUndefined}, Some { f; base=this; args; call_type } :: None :: _ ->
         (Pop, [ op; CFunPost { f; base=this; args; call_type; result = ret } ])
-      (* bad case *)
-      | CFunExit _, None :: _ ->
-        failwith "Trace witnessing an exit from a uninstrumented function, should not happen!"
+			(* uninstrumented failes with exception into instrumented. Whee! *)
+      | CFunExit { ret = OUndefined; exc = exc }, None :: Some _ :: _ when exc <> OUndefined ->
+        (Pop2, [ op; op ])
       (* bad case *)
       | CFunExit _, [] ->
         failwith "Trace witnessing an exit from the toplevel, should not happen!"
