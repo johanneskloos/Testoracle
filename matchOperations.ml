@@ -184,7 +184,7 @@ let may_insert_in_matching_simple op =
   (is_unobservable op |||
   is_write op |||
   is_throw op)
-  |> better_explanation NotSimpleMatchable
+  (*|> better_explanation NotSimpleMatchable*)
 
 let may_insert_in_wrap_simple matching_state op =
     may_insert_in_init matching_state op (* for now *)
