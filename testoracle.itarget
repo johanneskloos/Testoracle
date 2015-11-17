@@ -17,6 +17,7 @@ pointsTo_unit.native
 calculateVersions_unit.native
 calculatePointsTo_unit.native
 richtrace_unit.native
+matchTypes_unit.native
 matchObjects_unit.native
 #matchTraces_matcher_unit.native
 #matchTraces_unit.native
