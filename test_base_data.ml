@@ -32,6 +32,16 @@ let functab2 = [| funcapply; funccall; functostring; funcin2; funcstd; funcext1;
 (** functab3 is distinct from functab1 and functab2 *)
 let functab3 = [| funcapply; funccall; functostring; funcin1; funcin3; funcstd; funcext2 |]
 
+(* Indices:*
+ * 0		apply			apply			apply
+ * 1		call			call			call
+ * 2		toString	toString	toString
+ * 3		in1				in2				in1
+ * 4		in2				std				in3
+ * 5		std				ext1			std
+ * 6		ext1			in1				ext2
+ *)
+
 (** Helpers for object table generation *) 
 let simplefields fields =
    ("toString", OFunction(0, 2)) :: fields
@@ -198,6 +208,34 @@ let objtab3 = [|
 (** Global maps for the above object arrays. *)
 let globals = let open Misc.StringMap in empty |> add "Function" (OObject 0)
 
+(** Facts and points-to maps that represent the object tables from above. *)
+let foldi f init array =
+	let acc = ref init in
+	for i = 0 to Array.length array - 1 do
+		acc := f i array.(i) !acc
+	done;
+	!acc
+	
+let get_facts_for objtab =
+	let open LocalFacts in
+	let add_facts idx desc acc =
+		Misc.StringMap.fold (fun field desc (local_facts, points_to) ->
+			let ref = Reference.reference_of_field (OObject idx) field in
+			({ local_facts with
+				 versions = Reference.ReferenceMap.add ref 0 local_facts.versions },
+			 Reference.VersionReferenceMap.add (ref, 0) desc.value points_to))
+			desc acc 
+	and empty_facts = {
+		last_arguments = None;
+		last_update = None;
+		aliases = Misc.StringMap.empty;
+		versions = Reference.ReferenceMap.empty
+		} in
+	foldi add_facts (empty_facts, Reference.VersionReferenceMap.empty) objtab 
+
+let (local_facts_1, points_to_1) = get_facts_for objtab1
+let (local_facts_2, points_to_2) = get_facts_for objtab2
+let (local_facts_3, points_to_3) = get_facts_for objtab3
 
 (** A all-inclusive, well-bracketed trace exercising all (significant) cases.
  * It is built for object table 1. *)
@@ -463,3 +501,213 @@ let trace1_pointsto =
   |> add (ct1_l_y, 0) obj1_simp2
   |> add (Reference.reference_of_local_name "this", 0) (OObject 0)
   |> add_simple_fields (Object 12) [ "toString", (OFunction (0, 2)) ]
+
+let ct2_l_e = Reference.reference_of_local_name "e"
+and ct2_g_x = Reference.reference_of_name true Misc.StringMap.empty true "x"
+and ct2_args = Reference.reference_of_local_name "arguments"
+and ct2_arg0 = Reference.reference_of_field obj2_simp1 "0"
+and ct2_arg1 = Reference.reference_of_field obj2_simp1 "1"
+and ct2_toString = Reference.reference_of_field obj2_simp1 "toString"
+and ct2_toString' = Reference.reference_of_field obj2_simp2 "toString"
+and ct2_l_y = Reference.reference_of_local_name "y"
+and ct2_f_simp1_marker = Reference.reference_of_field obj1_simp1 "marker"
+and ct2_this = Reference.reference_of_local_name "this"
+
+let ct2ver_init =
+    let add_field obj fld map =
+        Reference.ReferenceMap.add (Reference.reference_of_fieldref (obj, fld)) 0 map
+    in let add_basic obj map =
+        map
+        |> add_field obj "Function"
+        |> add_field obj "apply"
+        |> add_field obj "call"
+        |> add_field obj "prototype"
+        |> add_field obj "toString"
+    in
+    Reference.ReferenceMap.empty
+    |> add_basic (Object 0)
+    |> add_basic (Function (0,0))
+    |> add_basic (Function (0,1))
+    |> add_basic (Function (0,2))
+
+let ct2ver_e = Reference.ReferenceMap.add ct2_l_e 0 ct2ver_init
+let ct2ver_x = Reference.ReferenceMap.add ct2_g_x 0 ct2ver_e
+let ct2ver_funpre = let open Reference.ReferenceMap in
+  ct2ver_x |> add ct2_arg0 0 |> add ct2_arg1 0 |> add ct2_toString 0
+let ct2ver_enter = let open Reference.ReferenceMap in
+  ct2ver_funpre |> add ct2_this 0
+let ct2ver_args =  let open Reference.ReferenceMap in
+  ct2ver_enter |> add ct2_args 0
+let ct2ver_arg0 = Reference.ReferenceMap.add ct2_arg0 0 ct2ver_args
+let ct2ver_f = Reference.ReferenceMap.add ct2_f_simp1_marker 0 ct2ver_funpre
+let ct2ver_f' = Reference.ReferenceMap.add ct2_f_simp1_marker 1 ct2ver_f
+let ct2ver_simp2 = Reference.ReferenceMap.add ct2_toString' 0 ct2ver_f'
+let ct2ver_y = Reference.ReferenceMap.add ct2_l_y 0 ct2ver_simp2
+
+let cleantrace2_versions =
+    [
+      ct2ver_init;
+      ct2ver_init;
+      ct2ver_init;
+      ct2ver_init;
+      ct2ver_init;
+      ct2ver_e;
+      ct2ver_e;
+      ct2ver_e;
+      ct2ver_x;
+      ct2ver_x;
+      ct2ver_funpre;
+      ct2ver_enter;
+      ct2ver_args;
+      ct2ver_arg0;
+      ct2ver_arg0;
+      ct2ver_funpre;
+      ct2ver_funpre;
+      ct2ver_funpre;
+      ct2ver_funpre;
+      ct2ver_funpre;
+      ct2ver_funpre;
+      ct2ver_f;
+      ct2ver_f';
+      ct2ver_simp2;
+      ct2ver_y;
+      ct2ver_y
+    ]
+
+let ct2al_emp = Misc.StringMap.empty
+let ct2al_x = Misc.StringMap.add "x" (objectid_of_jsval obj2_simp1, "0") ct2al_emp
+
+let cleantrace2_aliases = let open Cleantrace in [
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_x;
+    ct2al_x;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp;
+    ct2al_emp
+    ]
+
+let cleantrace2_args = [
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    Some (get_object obj2_simp1);
+    Some (get_object obj2_simp1);
+    Some (get_object obj2_simp1);
+    Some (get_object obj2_simp1);
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None;
+    None
+    ]
+
+let cleantrace2_updates = 
+  let init = Reference.reference_of_fieldref (Function (0, 2), "toString") in [
+    Some (init, 0);
+    Some (init, 0);
+    Some (init, 0);
+    Some (init, 0);
+    Some (init, 0);
+    Some (ct2_l_e, 0);
+    Some (ct2_l_e, 0);
+    Some (ct2_l_e, 0);
+    Some (ct2_g_x, 0);
+    Some (ct2_g_x, 0);
+    Some (ct2_g_x, 0);
+    Some (ct2_g_x, 0);
+    Some (ct2_args, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_arg0, 0);
+    Some (ct2_f_simp1_marker, 1);
+    Some (ct2_f_simp1_marker, 1);
+    Some (ct2_l_y, 0);
+    Some (ct2_l_y, 0)
+    ]
+
+let cleantrace2_facts =
+  let fact_tuple = 
+      let t1 = List.combine cleantrace2_args cleantrace2_updates
+      and t2 = List.combine cleantrace2_versions cleantrace2_aliases in
+      List.combine t1 t2
+  in let open LocalFacts in
+  List.map (fun ((la, lu), (v, a)) -> { last_arguments = la; last_update = lu; versions = v; aliases = a }) fact_tuple
+
+let trace2_pointsto =
+  let open Reference.VersionReferenceMap in
+  let add_simple_fields (obj: objectid) (fields: (string * jsval) list) ptm =
+    List.fold_left
+      (fun ptm (fld, value) -> add (Reference.reference_of_fieldref (obj, fld), 0) value ptm)
+      ptm fields in
+  let add_func obj ptm =
+    add_simple_fields obj
+      [ ("Function", OObject 0); ("apply", OFunction(0,0)); ("call", OFunction(0,1)); ("prototype", OObject 0); ("toString", OFunction(0,2)) ]
+      ptm in
+  empty
+  |> add_func (Function (0, 0))
+  |> add_func (Function (0, 1)) 
+  |> add_func (Function (0, 2))
+  |> add_func (Object 0)
+  |> add (ct2_l_e, 0) obj1_simp2
+  |> add (ct2_g_x, 0) vtrue
+  |> add (ct2_args, 0) obj1_simp1
+  |> add_simple_fields (Object 12) [ "0", vnull; "1", vundef; "marker", vundef; "toString", (OFunction (0, 2)) ]
+  |> add (ct2_f_simp1_marker, 1) vundef
+  |> add (ct2_l_y, 0) obj1_simp2
+  |> add (Reference.reference_of_local_name "this", 0) (OObject 0)
+  |> add_simple_fields (Object 13) [ "toString", (OFunction (0, 2)) ]
+
+let (|?) x d = match x with Some x -> x | None -> d
+
+let assert_is_None ?prn ?msg =
+	function
+	| Some x ->
+		Kaputt.Assertion.fail "None"
+			(match prn with Some f -> "Some " ^ f x | None -> "Some ...")
+			(msg |? "Values incompatible") 
+	| None -> ()
+
+let assert_is_Some ?prn ?msg =
+	function
+	| Some _ -> ()
+	| None -> Kaputt.Assertion.fail "Some ..." "None" (msg |? "Values incompatible")
