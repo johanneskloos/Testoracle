@@ -149,6 +149,7 @@ val pp_match_operation: Format.formatter -> match_operation -> unit
 val pp_print_stack: Format.formatter -> match_mode list -> unit
 val pp_failed: Format.formatter -> (match_condition * mismatch) list * match_operation -> unit
 val pp_event_match: Format.formatter -> event_match -> unit
+val pp_fun_match_failure: Format.formatter -> fun_match_failure -> unit
 
 (** Get the operating match_state by examining the stack. *)
 val get_state : match_mode list -> match_state
