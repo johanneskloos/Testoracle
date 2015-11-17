@@ -47,17 +47,51 @@ let default_simple_predicate_tester predname pred poslist neglist =
 				(fun () -> assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred neg)))
 			neglist
 
-(* Needs special handling *)
-let tests_is_instrumentation_write =
-	default_predicate_tester "is_instrumentation_write" is_instrumentation_write
-		[]
-		[  ]
-		
-val is_instrumentation_write : predicate
-val is_function_update : predicate
-val may_insert_in_init : predicate
+let xref = Reference.reference_of_local_name "x"
+let test_funpre = RFunPre { f = obj1_fun1; this = vundef; args = obj1_simp1; call_type = Cleantrace.Method } 
+let test_funpost = RFunPost { f = obj1_fun1; this = vundef; args = obj1_simp1; result = v1 }
+let test_literal = RLiteral { value = v2; hasGetterSetter = false }
+let test_forin = RForIn obj1_cyc1
+let test_local = RLocal { name = "x"; ref = (xref, 0) }
+let test_catch = RCatch { name = "x"; ref = (xref, 0) }
+let test_alias = RAlias { name = "x"; ref = (xref, 0); source = Argument 0 }
+let test_read = RRead { ref = (xref, 0); value = v1 }
+let test_write = RWrite { oldref = (xref, 0); ref = (xref, 1); value = v1; success = true }
+let test_return = RReturn obj1_cyc1
+let test_throw = RThrow obj1_cyc1
+let test_with = RWith obj1_cyc1
+let test_enter = RFunEnter { f = obj1_fun1; this = vundef; args = obj1_simp1 }
+let test_exit = RFunExit { ret = v1; exc = vundef }
+let test_senter = RScriptEnter
+let test_sexit = RScriptExit
+let test_sexc = RScriptExc v0
+let test_binary = RBinary { op = "+"; left = v1; right = v2; result = v3 }
+let test_unary = RUnary { op = "-"; arg = v0; result = v0 }
+let test_eend = REndExpression
+let test_cond = RConditional 
+
+let test_all_ops = [
+	test_funpre; test_funpost; test_litera; test_forin; test_local; test_catch; test_alias; test_read; test_write;
+	test_return; test_throw; test_with; test_enter; test_exit; test_senter; test_sexit; test_sexc; test_binary;
+	test_unary; test_eend; test_cond
+	]
+
+let list_delta large small = List.filter (fun x -> not (List.mem x small)) large
+
+let simple_predicate_tester_pos predname pred poslist =
+	default_predicate_tester predname pred poslist (list_delta test_all_ops poslist)
+let simple_predicate_tester_neg predname pred neglist =
+	default_predicate_tester predname pred (list_delta test_all_ops neglist) neglist
+
+let simple_simple_predicate_tester_pos predname pred poslist =
+	default_simple_predicate_tester predname pred poslist (list_delta test_all_ops poslist)
+let simple_simple_predicate_tester_neg predname pred neglist =
+	default_simple_predicate_tester predname pred (list_delta test_all_ops neglist) neglist
+
+let tests_may_insert_in_matching_simple =
+	simple_simple_predicate_tester_pos "may_insert_in_matching_simple" may_insert_in_matching_simple
+		[ ]
 val may_insert_in_matching_simple : simple_predicate
-val may_insert_in_wrap_simple : predicate
 val may_insert_in_toString_simple : simple_predicate
 val is_fun_literal : simple_predicate
 val is_local_decl : simple_predicate
@@ -73,6 +107,12 @@ val is_enter : simple_predicate
 val is_use_strict : simple_predicate
 val is_not_function : simple_predicate
 val is_catch : simple_predicate
+
+(* Needs special handling *)
+val is_instrumentation_write : predicate
+val is_function_update : predicate
+val may_insert_in_init : predicate
+val may_insert_in_wrap_simple : predicate
 
 			(*
 												  
