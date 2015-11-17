@@ -13,3 +13,4 @@
 <certifier.*>: package(cow), package(lwt.unix), package(cohttp.lwt), package(ocamlgraph)
 <detect_nested.*>: package(pcre)
 <certifierGraph.ml>: package(ocamlgraph), package(lwt)
+<test_base_data.*>: package(kaputt)
