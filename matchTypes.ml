@@ -256,6 +256,8 @@ let pp_reason pp = let str = pp_print_string pp in function
     | NotUseStrict -> str "not \"use strict\""
     | NotCatch -> str "not catch"
 
+let pp_mismatch = pp_reason
+
 let pp_failed pp (failed_cons, op) =
     fprintf pp "@[<v 2>%a failed because the following conditions don't hold:@ %a@]@ "
         pp_match_operation op

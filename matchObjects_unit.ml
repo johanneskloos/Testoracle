@@ -26,19 +26,6 @@ let is_base_tests =
 		("other", OOther ("ty", 4))
 		]
 
-let test_lf1 = local_facts_1
-let test_lf2 = local_facts_2
-
-let test_data = {
-	funs1 = functab1;
-	funs2 = functab2;
-	noneq = Misc.IntIntSet.empty;
-	pt1 = points_to_1;
-	pt2 = points_to_2;
-	facts1 = test_lf1;
-	facts2 = test_lf2
-}
-
 module ValPairMap = Map.Make(struct
 	type t = jsval * jsval
 	let compare = Pervasives.compare
@@ -241,25 +228,6 @@ let test_match_objects_memo_cyc3_cyc3_objeq_cache_fail =
 		let objeq = ref (Misc.IntIntMap.empty |> Misc.IntIntMap.add (get_object_id id1, get_object_id id2) (Some msg)) in
 		Assert.same (Some msg) (match_objects_memo (matcher_stub seen) ["toString"] test_data cycle_seen objeq id1 id2)
 	)
-
-open Richtrace
-let test_rt1 = { 
-	funcs = functab1;
-	objs = objtab1;
-	trace = [];
-	globals = globals;
-	globals_are_properties = true;
-	points_to = points_to_1
-}
-
-let test_rt2 = { 
-	funcs = functab2;
-	objs = objtab2;
-	trace = [];
-	globals = globals;
-	globals_are_properties = true;
-	points_to = points_to_2
-}
 
 let test_match_raw_values_v1_v1 =
 	Test.make_simple_test ~title:"match_values_raw - equal ints"

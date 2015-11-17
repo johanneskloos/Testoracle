@@ -711,3 +711,35 @@ let assert_is_Some ?prn ?msg =
 	function
 	| Some _ -> ()
 	| None -> Kaputt.Assertion.fail "Some ..." "None" (msg |? "Values incompatible")
+
+let test_lf1 = local_facts_1
+let test_lf2 = local_facts_2
+
+let test_data = let open MatchObjects in {
+	funs1 = functab1;
+	funs2 = functab2;
+	noneq = Misc.IntIntSet.empty;
+	pt1 = points_to_1;
+	pt2 = points_to_2;
+	facts1 = test_lf1;
+	facts2 = test_lf2
+}
+
+let test_rt1 = let open Richtrace in { 
+	funcs = functab1;
+	objs = objtab1;
+	trace = [];
+	globals = globals;
+	globals_are_properties = true;
+	points_to = points_to_1
+}
+
+let test_rt2 = let open Richtrace in { 
+	funcs = functab2;
+	objs = objtab2;
+	trace = [];
+	globals = globals;
+	globals_are_properties = true;
+	points_to = points_to_2
+}
+

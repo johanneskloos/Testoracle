@@ -131,7 +131,7 @@ type objeq = failure_trace Misc.IntIntMap.t
  * - Monotonically changing ([nonequivalent_functions] and [known_blocked]):
  *    These fields only get information added, never removed. Therefore, making
  *    them mutable is reasonable - we never need to restore an old state.
- * - Nonmonotonically chaning (all others).
+ * - Nonmonotonically changing (all others).
  *)
 type matching_state = {
     rt1: Richtrace.rich_tracefile;
@@ -150,6 +150,7 @@ val pp_print_stack: Format.formatter -> match_mode list -> unit
 val pp_failed: Format.formatter -> (match_condition * mismatch) list * match_operation -> unit
 val pp_event_match: Format.formatter -> event_match -> unit
 val pp_fun_match_failure: Format.formatter -> fun_match_failure -> unit
+val pp_mismatch: Format.formatter -> mismatch -> unit
 
 (** Get the operating match_state by examining the stack. *)
 val get_state : match_mode list -> match_state
