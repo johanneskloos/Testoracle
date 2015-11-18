@@ -75,7 +75,11 @@ let (&&&) cond check =
     match cond with
     | Some err -> Some err
     | None -> check
-let (|||) res1 res2 = match res1 with Some _ -> res1 | None -> res2
+let (|||) res1 res2 =
+	match res1, res2 with
+	| None, _ -> None
+	| _, None -> None
+	| Some res1, Some res2 -> Some (And (res1, res2))
 
 let wrap_reason = function
     | Some (name, reason) -> Some (DifferentObjects (name, reason))
@@ -178,7 +182,7 @@ let may_insert_in_init matching_state op =
   is_function_update matching_state op |||
   is_uninitialized_dummy_write op |||
   is_function_property_update op)
-  |> better_explanation NotInitCode
+  (*|> better_explanation NotInitCode*)
 
 let may_insert_in_matching_simple op =
   (is_unobservable op |||

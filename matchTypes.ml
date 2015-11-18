@@ -123,6 +123,7 @@ type mismatch =
     | FunctionMismatch of fun_match_failure
     | NotUseStrict
     | NotCatch
+		| And of mismatch * mismatch
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
@@ -227,7 +228,7 @@ let pp_fun_match_failure pp = function
     | InconsistentlyInstrumented -> pp_print_string pp "from_toString vs. from_jalangi"
     | InternalExternal -> pp_print_string pp "Internal vs. external"
 
-let pp_reason pp = let str = pp_print_string pp in function
+let rec pp_reason pp = let str = pp_print_string pp in function
     | DifferentType -> str "source types differ"
     | DifferentObjects (where, fail) -> fprintf pp "%s doesn't match: %a"
             where pp_obj_match_failure fail
@@ -255,6 +256,7 @@ let pp_reason pp = let str = pp_print_string pp in function
     | FunctionMismatch reason -> pp_fun_match_failure pp reason
     | NotUseStrict -> str "not \"use strict\""
     | NotCatch -> str "not catch"
+		| And (fst, snd) -> Format.fprintf pp "%a and %a" pp_reason fst pp_reason snd
 
 let pp_mismatch = pp_reason
 

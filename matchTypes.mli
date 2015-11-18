@@ -120,6 +120,7 @@ type mismatch =
     | FunctionMismatch of fun_match_failure
     | NotUseStrict
     | NotCatch
+		| And of mismatch * mismatch
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
