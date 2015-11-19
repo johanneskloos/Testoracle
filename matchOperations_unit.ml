@@ -7,14 +7,15 @@ open Types
 
 let (|>) = Pervasives.(|>)
 
-let yref = Reference.reference_of_local_name "y"
+let obj0_toString = Reference.reference_of_field (OObject 0) "toString"
+
 let default_state = {
 	rt1 = test_rt1;
 	rt2 = test_rt2;
 	objeq = ref Misc.IntIntMap.empty;
 	initialisation_data =
 		Reference.VersionReferenceSet.empty
-		|> Reference.VersionReferenceSet.add (yref, 0);
+		|> Reference.VersionReferenceSet.add (obj0_toString, 0);
 	toString_data = [];
 	nonequivalent_functions = Misc.IntIntSet.empty;
 	known_blocked = Misc.IntIntMap.empty
@@ -53,7 +54,7 @@ let default_simple_predicate_tester predname pred (poslist: Richtrace.rich_event
 				(fun () -> assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred neg)))
 			neglist
 
-let xref = Reference.reference_of_local_name "x"
+let xref = Reference.reference_of_field (OObject 4) "val"
 let test_funpre = (RFunPre { f = obj1_fun1; base = vundef; args = obj1_simp1; call_type = Cleantrace.Method }, local_facts_1) 
 let test_funpost = (RFunPost { f = obj1_fun1; base = vundef; args = obj1_simp1; result = v1 }, local_facts_1)
 let test_literal = (RLiteral { value = v2; hasGetterSetter = false }, local_facts_1)
@@ -62,7 +63,7 @@ let test_local = (RLocal { name = "x"; ref = (xref, 0) }, local_facts_1)
 let test_catch = (RCatch { name = "x"; ref = (xref, 0) }, local_facts_1)
 let test_alias = (RAlias { name = "x"; ref = (xref, 0); source = Argument 0 }, local_facts_1)
 let test_read = (RRead { ref = (xref, 0); value = v1 }, local_facts_1)
-let test_write = (RWrite { oldref = (xref, 0); ref = (xref, 1); value = v1; success = true }, local_facts_1)
+let test_write = (RWrite { oldref = (xref, 0); ref = (xref, 0); value = v1; success = true }, local_facts_1)
 let test_return = (RReturn obj1_cyc1, local_facts_1)
 let test_throw = (RThrow obj1_cyc1, local_facts_1)
 let test_with = (RWith obj1_cyc1, local_facts_1)
@@ -177,7 +178,7 @@ let simple_predicate_tests =
 
 let tests_is_instrumentation_write =
 	simple_predicate_tester_pos "is_instrumentation_write" is_instrumentation_write
-		[ (RWrite { ref = (yref, 1); oldref = (yref, 0); value = v0; success = true }, local_facts_1) ]
+		[ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, local_facts_1) ]
 
 let tests_is_function_update =
 	let funref = Reference.reference_of_field (OObject 0) "toString" in
@@ -187,7 +188,7 @@ let tests_is_function_update =
 let tests_may_insert_in_init =
 	let funref = Reference.reference_of_field (OObject 0) "toString" in
 	simple_predicate_tester_pos "may_insert_in_init" may_insert_in_init
-		[ (RWrite { ref = (yref, 1); oldref = (yref, 0); value = v0; success = true }, local_facts_1);
+		[ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, local_facts_1);
 		  (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1);
 			test_funpost; test_literal; test_forin; test_local; test_catch;
 			test_alias; test_read; test_return; test_with; test_enter;
@@ -197,7 +198,7 @@ let tests_may_insert_in_init =
 let tests_may_insert_in_wrap_simple =
 	let funref = Reference.reference_of_field (OObject 0) "toString" in
 	simple_predicate_tester_pos "may_insert_in_wrap_simple" may_insert_in_wrap_simple
-		[ (RWrite { ref = (yref, 1); oldref = (yref, 0); value = v0; success = true }, local_facts_1);
+		[ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, local_facts_1);
 		  (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1);
 			test_funpost; test_literal; test_forin; test_local; test_catch;
 			test_alias; test_read; test_return; test_with; test_enter;
@@ -247,5 +248,6 @@ val interpret_cond : matching_state -> Richtrace.rich_event -> Richtrace.rich_ev
 *)
 *)
 
-let _ = Test.run_tests
+let _ =
+	Test.run_tests
 	(simple_predicate_tests @ predicate_tests @ internal_call_tests)
