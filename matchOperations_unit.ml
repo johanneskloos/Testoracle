@@ -230,24 +230,137 @@ let internal_call_tests =
 	test_is_internal_call_impl_pos ::
 	test_is_internal_call_impl_neg ::
 	tests_is_internal_call
-																																																	(*				
 
-			(*
-												  
+let test_comparator funcname func pos1 pos2 neg1 neg2 neg =
+	let mktitle op1 op2 =
+		Format.asprintf "%s: %a, %a" funcname pp_rich_event op1 pp_rich_event op2
+	in let make_neg op1 op2 =
+		Test.make_simple_test ~title:(mktitle op1 op2)
+		  (fun () -> assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (func default_state op1 op2))
+	in let rec posbuild pos1 pos2 = match pos1, pos2 with
+		| op1::pos1, op2::pos2 ->
+			Test.make_simple_test ~title:(mktitle op1 op2)
+			  (fun () -> assert_is_None ~prn:(Misc.to_string MatchTypes.pp_mismatch) (func default_state op1 op2)) ::
+			List.map (make_neg op1) (pos2 @ neg2 @ neg) @ List.map (fun op1' -> make_neg op1' op2) (pos1 @ neg1 @ neg) @
+			posbuild pos1 pos2
+		| [], [] -> []
+		| _, _ -> failwith "pos1 and pos2 have differing length"
+	in
+		posbuild pos1 pos2 @
+		List.flatten (List.map (fun op1 -> List.map (fun op2 -> make_neg op1 op2) (neg2 @ neg)) (neg1 @ neg))
+
+let xref2 = Reference.reference_of_field (OObject 1) "val"
+let test2_funpre = (RFunPre { f = obj2_fun1; base = vundef; args = obj2_simp1; call_type = Cleantrace.Method }, local_facts_2) 
+let test2_funpost = (RFunPost { f = obj2_fun1; base = vundef; args = obj2_simp1; result = v1 }, local_facts_2)
+let test2_literal = (RLiteral { value = v2; hasGetterSetter = false }, local_facts_2)
+let test2_forin = (RForIn obj2_cyc1, local_facts_2)
+let test2_local = (RLocal { name = "x"; ref = (xref2, 0) }, local_facts_2)
+let test2_catch = (RCatch { name = "x"; ref = (xref2, 0) }, local_facts_2)
+let test2_alias = (RAlias { name = "x"; ref = (xref2, 0); source = Argument 0 }, local_facts_2)
+let test2_read = (RRead { ref = (xref2, 0); value = v1 }, local_facts_2)
+let test2_write = (RWrite { oldref = (xref2, 0); ref = (xref2, 0); value = v1; success = true }, local_facts_2)
+let test2_return = (RReturn obj2_cyc1, local_facts_2)
+let test2_throw = (RThrow obj2_cyc1, local_facts_2)
+let test2_with = (RWith obj2_cyc1, local_facts_2)
+let test2_enter = (RFunEnter { f = obj2_fun1; this = vundef; args = obj2_simp1 }, local_facts_2)
+let test2_exit = (RFunExit { ret = v1; exc = vundef }, local_facts_2)
+let test2_senter = (RScriptEnter, local_facts_2)
+let test2_sexit = (RScriptExit, local_facts_2)
+let test2_sexc = (RScriptExc v0, local_facts_2)
+let test2_binary = (RBinary { op = "+"; left = v1; right = v2; result = v1 }, local_facts_2)
+let test2_unary = (RUnary { op = "-"; arg = v0; result = v0 }, local_facts_2)
+let test2_eend = (REndExpression, local_facts_2)
+let test2_cond = (RConditional vtrue, local_facts_2)
+
+let tests_match_operations =
+	test_comparator "match_operations" match_operations
+		[ test_funpre;
+			test_funpost;
+			test_literal;
+			test_forin;
+			test_local;
+			test_catch;
+			test_alias;
+			test_read;
+			test_write;
+			test_return;
+			test_throw;
+			test_with;
+			test_exit;
+			test_senter;
+			test_sexit;
+			test_sexc;
+			test_binary;
+			test_unary;
+			test_eend;
+			test_cond ]
+		[ test2_funpre;
+			test2_funpost;
+			test2_literal;
+			test2_forin;
+			test2_local;
+			test2_catch;
+			test2_alias;
+			test2_read;
+			test2_write;
+			test2_return;
+			test2_throw;
+			test2_with;
+			test2_exit;
+			test2_senter;
+			test2_sexit;
+			test2_sexc;
+			test2_binary;
+			test2_unary;
+			test2_eend;
+			test2_cond ]
+		[] [] []
+
+let noncall_neg1 = [
+	test_funpost; test_literal; test_forin; test_local; test_catch; test_alias; test_read; test_write; test_return;
+	test_throw; test_with; test_enter; test_exit; test_senter; test_sexit; test_sexc; test_binary; test_unary;
+	test_eend; test_cond
+]
+
+let noncall_neg2 = [
+	test2_funpost; test2_literal; test2_forin; test2_local; test2_catch; test2_alias; test2_read; test2_write; test2_return;
+	test2_throw; test2_with; test2_enter; test2_exit; test2_senter; test2_sexit; test2_sexc; test2_binary; test2_unary;
+	test2_eend; test2_cond
+]
+
+let tests_is_matching_internal_call =
+	test_comparator "is_matching_internal_call" is_matching_internal_call
+		[ (RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1);
+		  (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1) ]
+		[ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2);
+		  (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2) ]
+		((RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1) :: noncall_neg1)
+		((RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2) :: noncall_neg2)
+		[]
+		
+let tests_is_matching_external_call =
+	test_comparator "is_matching_external_call" is_matching_external_call
+		([(RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1);
+		  (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1) ])
+		([(RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2);
+		  (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2) ])
+		([(RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1)] @ noncall_neg1)
+		([(RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2)] @ noncall_neg2)
+		[]
+
+let comparator_tests =
+	tests_match_operations @ tests_is_matching_internal_call @ tests_is_matching_external_call
+(*
 type 'a comparator = matching_state -> 'a -> 'a -> mismatch option
 type call_comparator = Richtrace.rich_event comparator
 
-val match_operations : Richtrace.rich_event comparator
-val is_matching_internal_call : call_comparator
-val is_matching_external_call : call_comparator
 val is_matching_toString_call : call_comparator
 val may_be_wrapper_entry : call_comparator
 val is_matching_entry: Richtrace.rich_event comparator
 
 val interpret_cond : matching_state -> Richtrace.rich_event -> Richtrace.rich_event -> match_condition -> mismatch option
 *)
-*)
 
 let _ =
 	Test.run_tests
-	(simple_predicate_tests @ predicate_tests @ internal_call_tests)
+	(simple_predicate_tests @ predicate_tests @ internal_call_tests @ comparator_tests)

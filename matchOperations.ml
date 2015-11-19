@@ -160,7 +160,7 @@ let is_function_update { rt2 } = explain_wrapper NotFunctionUpdate (function
             | _ -> false
         with Not_found ->
             Format.eprintf "%a not found in is_function_update@." Reference.pp_versioned_reference ref;
-            Format.eprintf "@[<v 2>points-to map contains:@ %a@]@." PointsTo.pp_points_to_map rt2.points_to;
+						Format.eprintf "@[<v 2>points-to map contains:@ %a@]@." PointsTo.pp_points_to_map rt2.points_to;
             failwith "is_function_update failed"
         end
     | _ -> false)
@@ -171,7 +171,6 @@ let is_function_property_update = explain_wrapper NotFunctionUpdate (function
 let is_uninitialized_dummy_write = explain_wrapper OtherOperation (function
     | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
     | _ -> false)
-
 
 (**
 * The folloing three predicates detect operations that can
