@@ -3,6 +3,7 @@ open MatchOperations
 open Test_base_data
 open Kaputt.Abbreviations
 open Richtrace
+open Types
 
 let (|>) = Pervasives.(|>)
 
@@ -174,24 +175,66 @@ let simple_predicate_tests =
 	tests_is_catch @
 	tests_is_not_function
 
-								(*				
-val is_not_function : simple_predicate
+let tests_is_instrumentation_write =
+	simple_predicate_tester_pos "is_instrumentation_write" is_instrumentation_write
+		[ (RWrite { ref = (yref, 1); oldref = (yref, 0); value = v0; success = true }, local_facts_1) ]
 
-(* Needs special handling *)
-val is_instrumentation_write : predicate
-val is_function_update : predicate
-val may_insert_in_init : predicate
-val may_insert_in_wrap_simple : predicate
+let tests_is_function_update =
+	let funref = Reference.reference_of_field (OObject 0) "toString" in
+	simple_predicate_tester_pos "is_function_update" is_function_update
+		[ (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1) ]
+
+let tests_may_insert_in_init =
+	let funref = Reference.reference_of_field (OObject 0) "toString" in
+	simple_predicate_tester_pos "may_insert_in_init" may_insert_in_init
+		[ (RWrite { ref = (yref, 1); oldref = (yref, 0); value = v0; success = true }, local_facts_1);
+		  (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1);
+			test_funpost; test_literal; test_forin; test_local; test_catch;
+			test_alias; test_read; test_return; test_with; test_enter;
+			test_senter; test_sexit;	test_sexc; test_binary;	test_unary;
+			test_eend; test_cond ]
+	
+let tests_may_insert_in_wrap_simple =
+	let funref = Reference.reference_of_field (OObject 0) "toString" in
+	simple_predicate_tester_pos "may_insert_in_wrap_simple" may_insert_in_wrap_simple
+		[ (RWrite { ref = (yref, 1); oldref = (yref, 0); value = v0; success = true }, local_facts_1);
+		  (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1);
+			test_funpost; test_literal; test_forin; test_local; test_catch;
+			test_alias; test_read; test_return; test_with; test_enter;
+			test_senter; test_sexit;	test_sexc; test_binary;	test_unary;
+			test_eend; test_cond ]
+
+let predicate_tests =
+	tests_is_instrumentation_write @
+	tests_is_function_update @
+	tests_may_insert_in_init @
+	tests_may_insert_in_wrap_simple	
+
+let test_is_internal_call_impl_pos =
+	Test.make_simple_test ~title:"is_internal_call_impl - positive case" (fun () ->
+		assert_is_None (is_internal_call_impl test_rt2 4)
+	)
+
+let test_is_internal_call_impl_neg =
+	Test.make_simple_test ~title:"is_internal_call_impl - negative case" (fun () ->
+		assert_is_None (is_internal_call_impl test_rt2 3)
+	)
+
+let tests_is_internal_call = let open Cleantrace in
+	default_simple_predicate_tester "is_internal_call" (is_internal_call test_rt2)
+		[ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
+		[ (RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
+		 
+let internal_call_tests =
+	test_is_internal_call_impl_pos ::
+	test_is_internal_call_impl_neg ::
+	tests_is_internal_call
+																																																	(*				
 
 			(*
 												  
 type 'a comparator = matching_state -> 'a -> 'a -> mismatch option
-type predicate = matching_state -> Richtrace.rich_event -> mismatch option
 type call_comparator = Richtrace.rich_event comparator
-type simple_predicate = Richtrace.rich_event -> mismatch option
-
-val is_internal_call_impl : Richtrace.rich_tracefile -> int -> mismatch option
-val is_internal_call : Richtrace.rich_tracefile -> Richtrace.rich_event -> mismatch option
 
 val match_operations : Richtrace.rich_event comparator
 val is_matching_internal_call : call_comparator
@@ -205,4 +248,4 @@ val interpret_cond : matching_state -> Richtrace.rich_event -> Richtrace.rich_ev
 *)
 
 let _ = Test.run_tests
-	(simple_predicate_tests)
+	(simple_predicate_tests @ predicate_tests @ internal_call_tests)
