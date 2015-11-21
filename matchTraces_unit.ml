@@ -1,20 +1,22 @@
-open Trace
+open Types
 open MatchOperations
 open Richtrace
 open Kaputt
 open Abbreviations
-open Misc
 open Reference
 open LocalFacts
 open Cleantrace
+open MatchTypes
+
+module StringMap = Misc.StringMap
 
 let (|>>) = (|>)
 let (|>) = Pervasives.(|>)
 
 let funcs = [|
-    Local { from_toString = "ar3wraw3eraw3r"; from_jalangi = "function () { stuff }" };
+    Local { from_toString = "ar3wraw3eraw3r"; from_jalangi = Some "function () { stuff }" };
     External 1;
-    Local { from_toString = "hsrthytyhjdrr"; from_jalangi = "function () { f() }" }
+    Local { from_toString = "hsrthytyhjdrr"; from_jalangi = Some "function () { f() }" }
     |]
 let add_field name value =
     StringMap.add name { value; writable = true; get = None; set = None; enumerable = true; configurable = true }
@@ -42,12 +44,12 @@ let val2 = ONumberFloat 3.14
 let val3 = OBoolean true
 let val4 = OString "xyz"
 let obj2 = OObject 4
-let ref1 = (reference_of_fieldref (4, "0"), 1)
-let ref2 = (reference_of_fieldref (4, "0"), 0)
-let ref3 = (reference_of_fieldref (5, "x"), 5)
-let ref4 = (reference_of_fieldref (5, "x"), 8)
-let ref5 = (reference_of_fieldref (0, "toString"), 0)
-let ref6 = (reference_of_fieldref (0, "toString"), 1)
+let ref1 = (reference_of_fieldref (Object 4, "0"), 1)
+let ref2 = (reference_of_fieldref (Object 4, "0"), 0)
+let ref3 = (reference_of_fieldref (Object 5, "x"), 5)
+let ref4 = (reference_of_fieldref (Object 5, "x"), 8)
+let ref5 = (reference_of_fieldref (Object 0, "toString"), 0)
+let ref6 = (reference_of_fieldref (Object 0, "toString"), 1)
 let add_pt = VersionReferenceMap.add
 let gref1 = (Reference.reference_of_name false StringMap.empty true "a", 0)
 let gref2 = (Reference.reference_of_name false StringMap.empty true "b", 0)
@@ -66,14 +68,13 @@ let dummy_rt = {
     funcs;
     objs;
     trace = [];
-    globals = StringMap.empty |> StringMap.add "a" { id = OObject 0; obj = StringMap.empty; proto = StringMap.empty };
+    globals = StringMap.empty |> StringMap.add "a" (OObject 0);
     globals_are_properties = false;
     points_to
 }
 let state1_facts = {
     last_arguments = Some 42;
     last_update = Some ref2;
-    this = 0;
     versions = ReferenceMap.empty
         |> ReferenceMap.add (fst ref1) 0
         |> ReferenceMap.add (fst ref3) 5
@@ -87,245 +88,16 @@ let add_init = VersionReferenceSet.add
 let state1 = {
     rt1 = dummy_rt;
     rt2 = dummy_rt;
-    objeq = IntIntMap.empty;
+    objeq = ref Misc.IntIntMap.empty;
     initialisation_data =
         VersionReferenceSet.empty
         |> add_init ref3;
-    facts1 = state1_facts;
-    facts2 = state1_facts;
-    toString_data = []
+    toString_data = [];
+		known_blocked = Misc.IntIntMap.empty;
+		nonequivalent_functions = Misc.IntIntSet.empty
 }
 
-(* Format: * event, unobservable, write, exit, instrumentation write,  *)
-(* * function update, insert in init, insert in matching (simple), *       *)
-(* internal call, insert in wrap, insert in toString.                      *)
-let bc op =
-    (op, true, false, false, false, false, true, true, false, true, true)
-let operation_classification = [
-    (RFunPre { f = func1; base = base1; args = args1; call_type = Function },
-        false, false, false, false, false, false, false, true, false, false);
-    (RFunPre { f = func2; base = base1; args = args1; call_type = Function },
-        false, false, false, false, false, false, false, false, false, false);
-    (RFunPre { f = func3; base = base1; args = args1; call_type = Function },
-        false, false, false, false, false, false, false, true, false, false);
-    (RFunPost { f = func1; base = base1; args = args1; result = val1 },
-        false, false, false, false, false, false, false, false, false, false);
-    (bc (RLiteral { value = val1; hasGetterSetter = false }));
-    (bc (RForIn base1));
-    (bc (RLocal { name = "x"; ref = (reference_of_local_name "x", 0) }));
-    (bc (RAlias { name = "x"; source = Argument 1; ref = ref1 }));
-    (bc (RRead { ref = ref1; value = val1 }));
-    (RWrite { ref = ref1; oldref = ref2; value = val1; success = true },
-        false, true, false, false, false, false, true, false, false, false);
-    (RWrite { ref = ref4; oldref = ref3; value = val1; success = true },
-        false, true, false, true, false, true, true, false, true, false);
-    (RWrite { ref = ref6; oldref = ref5; value = val1; success = true },
-        false, true, false, false, true, true, true, false, true, false);
-    (* XXX some cases may be missing, but are not needed now: * - Local        *)
-    (* variables in wrapper code.                                              *)
-    (bc (RReturn val1));
-    (RThrow val1, false, false, false, false, false, false, true, false, false, false);
-    (bc (RWith val1));
-    (bc (RFunEnter { f = func1; this = base1; args = args1 }));
-    (RFunExit { ret = val1; exc = val1 },
-        true, false, true, false, false, true, true, false, true, true);
-    (bc (RScriptEnter));
-    (bc (RScriptExit));
-    (bc (RScriptExc val1));
-    (bc (RBinary { op = "+"; left = val1; right = val1; result = val1 }));
-    (bc (RUnary { op = "-"; arg = val1; result = val1 }));
-    (bc (REndExpression));
-    (bc (RConditional val1))
-    ];;
-
-let test_operation_classification
-    (op, op_unobservable, op_write, op_exit, op_instrumentation_write,
-    op_function_update, op_in_init, op_in_matching, op_internal_call,
-    op_in_wrap, op_in_tostring) =
-    Test.make_simple_test
-        ~title: (to_string pp_rich_operation op ^ " classification")
-        (fun () ->
-                Assert.equal_bool
-                    ~msg:"unobservable"
-                    op_unobservable
-                    (is_unobservable op);
-                Assert.equal_bool ~msg:"write" op_write (is_write op);
-                Assert.equal_bool ~msg:"exit" op_exit (is_exit op);
-                Assert.equal_bool
-                    ~msg:"instrumentation write"
-                    op_instrumentation_write
-                    (is_instrumentation_write state1 op);
-                Assert.equal_bool
-                    ~msg:"function update"
-                    op_function_update
-                    (is_function_update state1 op);
-                Assert.equal_bool
-                    ~msg:"internal call"
-                    op_internal_call
-                    (is_internal_call state1.rt1 op);
-                Assert.equal_bool
-                    ~msg:"can occur in init code"
-                    op_in_init
-                    (may_insert_in_init state1 op);
-                Assert.equal_bool
-                    ~msg:"can occur in matching code without stack change"
-                    op_in_matching
-                    (may_insert_in_matching_simple op);
-                Assert.equal_bool
-                    ~msg:"can occur in wrapping code"
-                    op_in_wrap
-                    (may_insert_in_wrap_simple state1 op);
-                Assert.equal_bool
-                    ~msg:"can occur in toString code"
-                    op_in_tostring
-                    (may_insert_in_toString_simple op));;
-
-let operation_classification_tests =
-    List.map test_operation_classification operation_classification
-
 (** Some more small functions. *)
-
-let match_source_test =
-    Test.make_simple_test ~title:"match_source" (fun () ->
-                Assert.is_true ~msg:"arguments with equal index"
-                    (match_source state1 (Argument 0) (Argument 0) |> fst);
-                Assert.is_false ~msg:"arguments with nonequal index"
-                    (match_source state1 (Argument 0) (Argument 1) |> fst);
-                Assert.is_false ~msg:"argument vs. with"
-                    (match_source state1 (Argument 0) (With ref1) |> fst)
-            (* TODO with cases; with is broken anyway, though. *))
-
-(* Format: * first function, second function, matching internal, *         *)
-(* matching external, may be wrapper.                                      *)
-let call_test_data = [
-    (func1, func1, true, false, false);
-    (func2, func2, false, true, false);
-    (func1, func3, false, false, true);
-    (func2, func1, false, false, false);
-    ];;
-
-let call_test_maker (f1, f2, match_int, match_ext, match_wrap) =
-    let op1 =
-        RFunPre { f = f1; base = base1; args = args1; call_type = Method }
-    and op2 =
-        RFunPre { f = f2; base = base1; args = args1; call_type = Method }
-    in
-    Test.make_simple_test
-        ~title: (Format.asprintf "Functions matching: %a vs. %a"
-                pp_rich_operation op1 pp_rich_operation op2)
-        (fun () ->
-                Assert.equal_bool ~msg:"matching internal call"
-                    match_int
-                    (is_matching_internal_call state1 op1 op2);
-                Assert.equal_bool ~msg:"matching external call"
-                    match_ext
-                    (is_matching_external_call state1 op1 op2);
-                Assert.equal_bool ~msg:"potential wrapper call"
-                    match_wrap
-                    (may_be_wrapper_entry state1 op1 op2))
-
-let call_tests = List.map call_test_maker call_test_data
-
-(** match_operations needs a large number of test cases. *)
-let all_ops =
-    [ RFunPre { f = func1; base = val1; args = val3; call_type = Method };
-    RFunPre { f = func2; base = val1; args = val3; call_type = Method };
-    RFunPre { f = func1; base = val2; args = args1; call_type = Method };
-    RFunPre { f = func1; base = val1; args = val3; call_type = Method };
-    RFunPre { f = func1; base = val1; args = val3; call_type = Function };
-    RFunPost { f = func1; base = val1; args = val3; result = val1 };
-    RFunPost { f = func2; base = val1; args = val3; result = val1 };
-    RFunPost { f = func1; base = val2; args = val3; result = val1 };
-    RFunPost { f = func1; base = val1; args = base1; result = val1 };
-    RFunPost { f = func1; base = val1; args = val3; result = args1 };
-    RLiteral { value = val1; hasGetterSetter = true };
-    RLiteral { value = val1; hasGetterSetter = false };
-    RLiteral { value = val2; hasGetterSetter = false };
-    RForIn val1;
-    RForIn args1;
-    RLocal { name = "x"; ref = ref1 };
-    RLocal { name = "x"; ref = ref3 };
-    RLocal { name = "y"; ref = ref1 };
-    RAlias { name = "x"; source = Argument 0; ref = ref1 };
-    RAlias { name = "y"; source = Argument 0; ref = ref1 };
-    RAlias { name = "x"; source = Argument 1; ref = ref1 };
-    RAlias { name = "x"; source = Argument 0; ref = ref3 };
-    RRead { ref = ref1; value = val2 };
-    RRead { ref = ref1; value = val1 };
-    RRead { ref = ref3; value = val2 };
-    RWrite { ref = ref1; oldref = ref5; value = obj1; success = true };
-    RWrite { ref = ref3; oldref = ref5; value = obj1; success = true };
-    RWrite { ref = ref1; oldref = ref1; value = obj1; success = true };
-    RWrite { ref = ref1; oldref = ref5; value = val1; success = true };
-    RWrite { ref = ref1; oldref = ref5; value = obj1; success = false };
-    RReturn val1;
-    RReturn obj1;
-    RThrow val1;
-    RThrow obj1;
-    RWith val1;
-    RWith obj1;
-    RFunEnter { f = func1; this = val1; args = args1 };
-    RFunEnter { f = func2; this = val1; args = args1 };
-    RFunEnter { f = func1; this = val2; args = args1 };
-    RFunEnter { f = func1; this = val1; args = func3 };
-    RFunExit { ret = val1; exc = val3 };
-    RFunExit { ret = args1; exc = val3 };
-    RFunExit { ret = val1; exc = val2 };
-    RScriptEnter;
-    RScriptExit;
-    RScriptExc val1;
-    RScriptExc base1;
-    RBinary { op ="+"; left = val2; right = val1; result = val3 };
-    RBinary { op ="-"; left = val2; right = val1; result = val3 };
-    RBinary { op ="+"; left = base1; right = val1; result = val3 };
-    RBinary { op ="+"; left = val2; right = base1; result = val3 };
-    RBinary { op ="+"; left = val2; right = val1; result = val4 };
-    RUnary { op ="!"; arg = val2; result = val1 };
-    RUnary { op ="~"; arg = val2; result = val1 };
-    RUnary { op ="!"; arg = base1; result = val1 };
-    RUnary { op ="!"; arg = val2; result = base1 };
-    REndExpression;
-    RConditional val1;
-    RConditional base1 ];;
-
-let test_match_operations_one_case op1 op2 =
-    Test.make_simple_test
-        ~title: (Format.asprintf "Matching %a and %a"
-                pp_rich_operation op1 pp_rich_operation op2)
-        (fun () ->
-                Assert.equal_bool (op1 = op2) (match_operations state1 op1 op2 |> fst))
-let test_match_operations_cross =
-    List.map (fun op1 ->
-                List.map (test_match_operations_one_case op1) all_ops)
-        all_ops |> List.flatten
-
-(* XXX we should also test the "sides match" part a bit more... *)
-
-(* add_objeq is so straightforward that we don't test. * Ditto for         *)
-(* get_state.                                                              *)
-let test_is_matching_toString_call =
-    Test.make_simple_test ~title:"is_matching_toString" (fun () ->
-                let state' = { state1 with toString_data = [ func2 ] } in
-                Assert.is_false ~msg:"not a call to toString"
-                    (is_matching_toString_call state'
-                            (RFunPre { f = func1; args = args1; base = obj1; call_type = Method })
-                            (RFunPre { f = func1; args = args1; base = obj1; call_type = Method }));
-                Assert.is_true ~msg:"should match"
-                    (is_matching_toString_call state'
-                            (RFunPre { f = func2; args = args1; base = obj1; call_type = Method })
-                            (RFunPre { f = func1; args = args1; base = obj1; call_type = Method }));
-                Assert.is_false ~msg:"base doesn't match"
-                    (is_matching_toString_call state'
-                            (RFunPre { f = func2; args = args1; base = obj1; call_type = Method })
-                            (RFunPre { f = func1; args = args1; base = val1; call_type = Method }));
-                Assert.is_false ~msg:"not a known toString call"
-                    (is_matching_toString_call state1
-                            (RFunPre { f = func2; args = args1; base = obj1; call_type = Method })
-                            (RFunPre { f = func1; args = args1; base = obj1; call_type = Method }));
-                Assert.is_false ~msg:"not a call"
-                    (is_matching_toString_call state' RScriptEnter RScriptEnter)
-        )
-
 let trace_init =
     List.map (fun op -> (op, state1_facts))
         [ RWrite { ref = ref6; oldref = ref5;

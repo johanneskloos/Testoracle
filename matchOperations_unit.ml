@@ -351,8 +351,6 @@ let tests_is_matching_external_call =
 let comparator_tests =
 	tests_match_operations @ tests_is_matching_internal_call @ tests_is_matching_external_call
 (*
-type 'a comparator = matching_state -> 'a -> 'a -> mismatch option
-type call_comparator = Richtrace.rich_event comparator
 
 val is_matching_toString_call : call_comparator
 val may_be_wrapper_entry : call_comparator

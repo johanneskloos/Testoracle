@@ -4,7 +4,6 @@ open MatchTypes
 open Richtrace
 open Kaputt
 open Abbreviations
-open Misc
 open Reference
 open LocalFacts
 open Types
@@ -48,6 +47,8 @@ let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2; rse ]
 let enrich = 
   let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = Misc.StringMap.empty } in
   List.map (fun x -> (x, empty_local_facts))
+
+module StringMap = Misc.StringMap
 
 let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"
@@ -140,7 +141,7 @@ let pp_match pp = function
     | Wrap op -> Format.fprintf pp "wrap %a" pp_rich_operation op
     | Init op -> Format.fprintf pp "init %a" pp_rich_operation op
 let match_print_trace tr =
-    to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
+    Misc.to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
 let match_print tr1 tr2 = function
     | Some tr -> match_print_trace tr
     | None -> "failed"
