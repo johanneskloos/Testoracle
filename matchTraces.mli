@@ -1,4 +1,4 @@
-open Richtrace
+open TraceTypes
 open MatchTypes
 open Types
 
@@ -44,7 +44,7 @@ match_operation list *
 *)
 val can_be_added_as_initialisation :
 matching_state ->
-(rich_operation * LocalFacts.local_facts) list ->
+(rich_operation * local_facts) list ->
 match_mode list -> mismatch option
 
 (**
@@ -70,10 +70,10 @@ rich_operation -> event_match list -> event_match list
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
-matching_state -> LocalFacts.local_facts -> objectid -> Reference.versioned_reference list
+matching_state -> local_facts -> objectid -> Reference.versioned_reference list
 (** Collect the references belonging to a value. *)
 val collect_references :
-matching_state -> LocalFacts.local_facts ->
+matching_state -> local_facts ->
 jsval -> Reference.versioned_reference list
 (** Perpetuate initialisation-produced data. *)
 val perpetuate_initialisation_data :

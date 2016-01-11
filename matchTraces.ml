@@ -50,8 +50,8 @@ let extend_matching op op1 op2 matching =
     | WrapperSimple | WrapperPush _ | WrapperPop | WrapperReplace _ -> Wrap op2 :: matching
     | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
-let collect_object_references { rt2 = { Richtrace.objs } } facts id =
-    objs.(Types.get_object_id id)
+let collect_object_references { rt2 = { TraceTypes.objs } } facts id =
+    ExtArray.get objs (Types.get_object_id id)
     |> Misc.StringMap.bindings
     |> List.map (fun (field, _) -> Reference.reference_of_fieldref (id, field) |> LocalFacts.make_versioned facts)
 
@@ -61,7 +61,7 @@ let collect_references matching_state facts obj = match obj with
     | _ -> []
 
 let perpetuate_initialisation_data matching_state (op, facts) =
-    let open Richtrace in
+    let open TraceTypes in
     let { initialisation_data = init_old } = matching_state in
     let init_new =
         match op with
@@ -77,7 +77,7 @@ let perpetuate_initialisation_data matching_state (op, facts) =
     in
     { matching_state with initialisation_data = init_new }
 
-let detect_toString op1 matching_state = let open Richtrace in match op1 with
+let detect_toString op1 matching_state = let open TraceTypes in match op1 with
     | RRead { ref; value } ->
         begin match (fst ref) with
             | Reference.Field (_, name) when name = "toString" ->
@@ -88,7 +88,7 @@ let detect_toString op1 matching_state = let open Richtrace in match op1 with
     | _ -> matching_state
 
 let performs_write = function
-  | Richtrace.RWrite _ -> true
+  | TraceTypes.RWrite _ -> true
   | _ -> false
 
 let invalidate_cache op1 op2 matching_state =
@@ -164,7 +164,7 @@ and apply_first_working parent matching_state op1 op2 trace1 trace2 stack =
             apply_first_working parent matching_state op1 op2 trace1 trace2 stack matchops
 
 let match_traces rt1 rt2 =
-    let open Richtrace in
+    let open TraceTypes in
     matching_engine
         { rt1; rt2;
             objeq = ref IntIntMap.empty;

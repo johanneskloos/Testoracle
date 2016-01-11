@@ -1,6 +1,3 @@
-(*open Types
-open Richtrace*)
-
 (** The mode to switch to, on a push. *)
 type match_mode =
     | Wrapper
@@ -78,9 +75,9 @@ type match_state =
 * or initialisation.
 *)
 type event_match =
-        Pair of Richtrace.rich_operation * Richtrace.rich_operation
-    | Wrap of Richtrace.rich_operation
-    | Init of Richtrace.rich_operation
+        Pair of TraceTypes.rich_operation * TraceTypes.rich_operation
+    | Wrap of TraceTypes.rich_operation
+    | Init of TraceTypes.rich_operation
 
 (** Match failure explanation *)
 type obj_match_failure =
@@ -130,8 +127,8 @@ type named_failure_trace = (string * obj_match_failure) option
 type objeq = failure_trace Misc.IntIntMap.t
 
 type matching_state = {
-    rt1: Richtrace.rich_tracefile;
-    rt2: Richtrace.rich_tracefile;
+    rt1: TraceTypes.rich_tracefile;
+    rt2: TraceTypes.rich_tracefile;
     objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
     toString_data: Types.jsval list;
@@ -280,7 +277,7 @@ let get_state = function
     | ToStringUpdatePattern :: _ -> InToStringUpdatePattern
     | [] -> InToplevel
 
-let pp_event_match pp = let open Richtrace in function
+let pp_event_match pp = let open TraceTypes in function
     | Pair(r1, r2) -> fprintf pp "Pair\t%a\t%a@." pp_rich_operation r1 pp_rich_operation r2
     | Init i -> fprintf pp "Init\t\t%a@." pp_rich_operation i
     | Wrap i -> fprintf pp "Wrap\t\t%a@." pp_rich_operation i

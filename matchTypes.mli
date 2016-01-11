@@ -75,9 +75,9 @@ type match_state =
 * or initialisation.
 *)
 type event_match =
-        Pair of Richtrace.rich_operation * Richtrace.rich_operation
-    | Wrap of Richtrace.rich_operation
-    | Init of Richtrace.rich_operation
+        Pair of TraceTypes.rich_operation * TraceTypes.rich_operation
+    | Wrap of TraceTypes.rich_operation
+    | Init of TraceTypes.rich_operation
 
 (** Match failure explanation *)
 type obj_match_failure =
@@ -135,8 +135,8 @@ type objeq = failure_trace Misc.IntIntMap.t
  * - Nonmonotonically changing (all others).
  *)
 type matching_state = {
-    rt1: Richtrace.rich_tracefile;
-    rt2: Richtrace.rich_tracefile;
+    rt1: TraceTypes.rich_tracefile;
+    rt2: TraceTypes.rich_tracefile;
     objeq: objeq ref;
     initialisation_data: Reference.VersionReferenceSet.t;
     toString_data: Types.jsval list;

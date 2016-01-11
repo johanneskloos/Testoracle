@@ -1,4 +1,4 @@
-open Richtrace
+open TraceTypes
 open Types
 open MatchTypes
 module Option = Misc.Option
@@ -160,7 +160,7 @@ let is_function_update { rt2 } = explain_wrapper NotFunctionUpdate (function
             | _ -> false
         with Not_found ->
             Format.eprintf "%a not found in is_function_update@." Reference.pp_versioned_reference ref;
-						Format.eprintf "@[<v 2>points-to map contains:@ %a@]@." PointsTo.pp_points_to_map rt2.points_to;
+						Format.eprintf "@[<v 2>points-to map contains:@ %a@]@." Reference.pp_points_to_map rt2.points_to;
             failwith "is_function_update failed"
         end
     | _ -> false)
@@ -211,10 +211,10 @@ let convert
 
 let is_internal_call_impl { funcs } f =
     try
-        begin match funcs.(f) with Local _ -> None | External _ -> Some ExternalCall end
+        begin match ExtArray.get funcs f with Local _ -> None | External _ -> Some ExternalCall end
     with
     | e -> Format.eprintf "trying to get %d from %a@." f
-            (FormatHelper.pp_print_array pp_funcspec) funcs; raise e
+            pp_functions funcs; raise e
 
 let is_internal_call rt = function
     | (RFunPre { f = OFunction(_, f) }, _) -> is_internal_call_impl rt f
@@ -308,14 +308,14 @@ let is_matching_entry matching_data (op1, facts1) (op2, facts2) =
     | _ -> Some NotEnter
 
 (** Check if a call goes to a known higher-order function. *)
-let is_call_to { funcs; objs; points_to } name: Richtrace.rfunpre -> bool = function
+let is_call_to { funcs; objs; points_to } name: funpre -> bool = function
     | { f = OFunction(_, id); base } as rt ->
         Format.eprintf "Checking if %a is a higher-order call to %a@."
             pp_rich_operation (RFunPre rt) (FormatHelper.pp_print_list Format.pp_print_string) name;
         begin
             let rec lookup base name = match name with
                 | component :: rest ->
-                    lookup (Misc.StringMap.find component objs.(get_object base)).value rest
+                    lookup (Misc.StringMap.find component (ExtArray.get objs (get_object base))).value rest
                 | [] -> base
             in try
                 let get path = lookup (OObject 0) path in

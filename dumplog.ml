@@ -1,7 +1,7 @@
 open MatchTracesObserver
 open Format
 open MatchTypes
-open Richtrace
+open TraceTypes
 open Trace
       
 let _ =

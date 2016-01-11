@@ -16,12 +16,12 @@ let with_chan f =
 let next_node () = let res = !node_id in incr node_id; res
 
 type record =
-    | RNode of int * Richtrace.rich_operation * Richtrace.rich_operation * match_mode list
+    | RNode of int * TraceTypes.rich_operation * TraceTypes.rich_operation * match_mode list
     | REdge of int * int * match_operation
     | RFailure of int * ((match_condition * mismatch) list * match_operation) list
-    | RXfrmConsumed of int * Richtrace.rich_operation list
-    | ROrigConsumedOk of int * Richtrace.rich_operation list * match_mode list
-    | ROrigConsumedFailure of int * Richtrace.rich_operation list * match_mode list
+    | RXfrmConsumed of int * TraceTypes.rich_operation list
+    | ROrigConsumedOk of int * TraceTypes.rich_operation list * match_mode list
+    | ROrigConsumedFailure of int * TraceTypes.rich_operation list * match_mode list
     | RBlockedShared of int * int * int * match_mode list
 
 let write_record (data: record) chan =

@@ -1,14 +1,14 @@
 open MatchTypes
 
 type 'a comparator = matching_state -> 'a -> 'a -> mismatch option
-type predicate = matching_state -> Richtrace.rich_event -> mismatch option
-type call_comparator = Richtrace.rich_event comparator
-type simple_predicate = Richtrace.rich_event -> mismatch option
+type predicate = matching_state -> TraceTypes.rich_event -> mismatch option
+type call_comparator = TraceTypes.rich_event comparator
+type simple_predicate = TraceTypes.rich_event -> mismatch option
 
-val is_internal_call_impl : Richtrace.rich_tracefile -> int -> mismatch option
-val is_internal_call : Richtrace.rich_tracefile -> Richtrace.rich_event -> mismatch option
+val is_internal_call_impl : TraceTypes.rich_tracefile -> int -> mismatch option
+val is_internal_call : TraceTypes.rich_tracefile -> TraceTypes.rich_event -> mismatch option
 
-val match_operations : Richtrace.rich_event comparator
+val match_operations : TraceTypes.rich_event comparator
 val is_instrumentation_write : predicate
 val is_function_update : predicate
 val may_insert_in_init : predicate
@@ -19,7 +19,7 @@ val is_matching_internal_call : call_comparator
 val is_matching_external_call : call_comparator
 val is_matching_toString_call : call_comparator
 val may_be_wrapper_entry : call_comparator
-val is_matching_entry: Richtrace.rich_event comparator
+val is_matching_entry: TraceTypes.rich_event comparator
 val is_fun_literal : simple_predicate
 val is_local_decl : simple_predicate
 val is_fun_read : simple_predicate
@@ -35,4 +35,4 @@ val is_use_strict : simple_predicate
 val is_not_function : simple_predicate
 val is_catch : simple_predicate
 
-val interpret_cond : matching_state -> Richtrace.rich_event -> Richtrace.rich_event -> match_condition -> mismatch option
+val interpret_cond : matching_state -> TraceTypes.rich_event -> TraceTypes.rich_event -> match_condition -> mismatch option

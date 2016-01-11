@@ -1,5 +1,6 @@
 open MatchTypes
 open Types
+open TraceTypes
 
 (** Check if a value is of base type. *)
 val is_base : jsval -> bool
@@ -7,10 +8,10 @@ val is_base : jsval -> bool
 type data = {
     funs1 : functions;
     funs2 : functions;
-    facts1 : LocalFacts.local_facts;
-    facts2 : LocalFacts.local_facts;
-    pt1 : PointsTo.points_to_map;
-    pt2 : PointsTo.points_to_map;
+    facts1 : local_facts;
+    facts2 : local_facts;
+    pt1 : Reference.points_to_map;
+    pt2 : Reference.points_to_map;
     noneq: Misc.IntIntSet.t;
 }
 (** Strict matching of functions. Two functions match strictly
@@ -101,10 +102,10 @@ val match_values_raw : recursive_matcher
 *)
 val match_values :
 string ->
-Richtrace.rich_tracefile ->
-Richtrace.rich_tracefile ->
-LocalFacts.local_facts ->
-LocalFacts.local_facts ->
+rich_tracefile ->
+rich_tracefile ->
+local_facts ->
+local_facts ->
 Misc.IntIntSet.t ->
 jsval -> jsval -> objeq ref -> named_failure_trace
 
@@ -113,10 +114,10 @@ jsval -> jsval -> objeq ref -> named_failure_trace
 * isomporphic objects. *)
 val match_refs :
 string ->
-Richtrace.rich_tracefile ->
-Richtrace.rich_tracefile ->
-LocalFacts.local_facts ->
-LocalFacts.local_facts ->
+rich_tracefile ->
+rich_tracefile ->
+local_facts ->
+local_facts ->
 Misc.IntIntSet.t ->
 Reference.VersionReferenceMap.key ->
 Reference.VersionReferenceMap.key -> objeq ref -> named_failure_trace

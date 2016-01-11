@@ -5,7 +5,7 @@ let default_orig_trace = ".orig.trace"
 let default_xfrm_trace = ".xfrm.trace"
 let cert = ref false
 
-let (>>) x f = f x; x
+let (>>>) x f = f x; x
 
 let debug_print msg pp data =
     if !debug then Format.printf "@[<v 2>%s:@ %a@]@."
@@ -14,9 +14,9 @@ let debug_print msg pp data =
 let rich_tracefile_from_path path =
     let chan = open_in path in
     let rt = Trace.parse_tracefile chan
-        >> debug_print ("Read trace file " ^ path) Trace.pp_tracefile
-        |> Richtrace.calculate_rich_tracefile
-        >> debug_print "Enrichted trace file" Richtrace.pp_rich_tracefile in
+        >>> debug_print ("Read trace file " ^ path) TraceTypes.pp_tracefile
+        |> RichTrace.tracefile_to_rich_tracefile
+        >>> debug_print "Enrichted trace file" TraceTypes.pp_rich_tracefile in
     close_in chan; rt
 
 let parse_args () =

@@ -1,5 +1,6 @@
 open Types
 open MatchTypes
+open TraceTypes
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
@@ -12,10 +13,10 @@ let is_base = function
 type data = {
     funs1: functions;
     funs2: functions;
-    facts1: LocalFacts.local_facts;
-    facts2: LocalFacts.local_facts;
-    pt1: PointsTo.points_to_map;
-    pt2: PointsTo.points_to_map;
+    facts1: local_facts;
+    facts2: local_facts;
+    pt1: Reference.points_to_map;
+    pt2: Reference.points_to_map;
     noneq: Misc.IntIntSet.t
 }
 
@@ -52,7 +53,7 @@ let normalize str =
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
     Format.eprintf "Matching functions %d and %d@." fun1 fun2;
-    match (funs1.(fun1), funs2.(fun2)) with
+    match (ExtArray.get funs1 fun1, ExtArray.get funs2 fun2) with
     | (Local { from_toString = i1; from_jalangi = u1 },
     Local { from_toString = i2; from_jalangi = u2 }) ->
     (* This is a hack. The function text used here can be either *)
@@ -85,7 +86,7 @@ let match_functions { funs1; funs2 } fun1 fun2 =
 (** Associated matching of functions. This gives a coarse
  * over-approximation. *)
 let match_functions_associated { funs1; funs2; noneq } fun1 fun2 =
-    match funs1.(fun1), funs2.(fun2) with
+    match ExtArray.get funs1 fun1, ExtArray.get funs2 fun2 with
     | (Local _, Local _) -> not (Misc.IntIntSet.mem (fun1, fun2) noneq)
     | (External id1, External id2) -> id1 = id2
     | _ -> false
@@ -171,7 +172,7 @@ let rec match_values_raw data seen objeq = function
     | (o1, o2) ->
         Some (NonMatching ([], o1, o2) )
 
-let match_values name = let open Richtrace in fun
+let match_values name = fun
     { funcs = funs1; points_to = pt1 }
     { funcs = funs2; points_to = pt2 }
     facts1 facts2 noneq obj1 obj2 objeq ->
@@ -187,7 +188,7 @@ let match_values name = let open Richtrace in fun
 let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
     try
         match_values name rt1 rt2 facts1 facts2 noneq
-            (Reference.VersionReferenceMap.find r1 rt1.Richtrace.points_to)
-            (Reference.VersionReferenceMap.find r2 rt2.Richtrace.points_to)
+            (Reference.VersionReferenceMap.find r1 rt1.points_to)
+            (Reference.VersionReferenceMap.find r2 rt2.points_to)
             objeq
     with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found

@@ -1,4 +1,5 @@
 (*open MatchTypes*)
+open TraceTypes
 
 let bad_path_page path =
   (CertifierData.HTML, <:html<
@@ -32,10 +33,8 @@ let output_ref (ref, ver) =
 
 
 let output_op =
-  let open Cleantrace in
-  let open Richtrace in
   let output_call_type = function
-    | Cleantrace.Function -> <:html<function>>
+    | Function -> <:html<function>>
     | Method -> <:html<method>>
     | Constructor -> <:html<constructor>>
     | ConstructorMethod -> <:html<constructor/method>>

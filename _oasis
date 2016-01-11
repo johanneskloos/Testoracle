@@ -33,7 +33,7 @@ Executable "jstruthiness"
   Path:         .
   BuildTools:   ocamlbuild
   MainIs:       oracle.ml
-  BuildDepends: js-enrichment, unix
+  BuildDepends: js-enrichment, unix, pcre
   
 Executable "dumplog"
   Path:         .
@@ -47,7 +47,7 @@ Executable "certifier"
   BuildTools:   ocamlbuild
   MainIs:       certifier.ml
   BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
-                ocamlgraph, cohttp, cohttp.lwt, lwt.unix
+                ocamlgraph, cohttp, cohttp.lwt, lwt.unix, pcre
 
 Executable "unittests"
   Path:       .
@@ -55,7 +55,7 @@ Executable "unittests"
   Install:    false
   Build$:     flag(tests)
   MainIs:     unittests.ml
-  BuildDepends: kaputt, js-enrichment
+  BuildDepends: kaputt, js-enrichment, js-enrichment.test
 
 Test "unittests"
   Command:    $unittests
