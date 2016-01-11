@@ -1,0 +1,62 @@
+OASISFormat: 0.4
+Name:        js-truthiness
+Version:     0.1
+Synopsis:    JSStreaming testing tools
+Authors:     Johannes Kloos
+License:     Proprietary
+Plugins:     StdFiles (0.4)
+AlphaFeatures: ocamlbuild_more_args
+XOcamlbuildExtraArgs: -use-ocamlfind
+
+Executable "pptrace"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       pptrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+
+Executable "pprichtrace"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       pprichtrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+
+Executable "ppcleantrace"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       ppcleantrace.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+
+Executable "jstruthiness"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       oracle.ml
+  BuildDepends: js-enrichment, unix
+  
+Executable "dumplog"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       dumplog.ml
+  Install$:     flag(prettyprint)
+  BuildDepends: js-enrichment
+
+Executable "certifier"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       certifier.ml
+  BuildDepends: js-enrichment, cow, cow.syntax, camlp4o, lwt, batteries,
+                ocamlgraph, cohttp, cohttp.lwt, lwt.unix
+
+Executable "unittests"
+  Path:       .
+  BuildTools: ocamlbuild
+  Install:    false
+  Build$:     flag(tests)
+  MainIs:     unittests.ml
+  BuildDepends: kaputt, js-enrichment
+
+Test "unittests"
+  Command:    $unittests
+  Run:        true
