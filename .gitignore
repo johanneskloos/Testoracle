@@ -6,3 +6,6 @@ myocamlbuild.ml
 setup.*
 _build
 *~
+*.bak
+*.byte
+*.native
