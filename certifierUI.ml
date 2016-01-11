@@ -12,24 +12,24 @@ let bad_path_page path =
   >> |> Cow.Html.to_string)
 
 let output_val = let open Types in function 
-  | OUndefined -> <:html<(undefined)>>
-  | ONull -> <:html<(null)>>
-  | OBoolean x -> <:html<$str:string_of_bool x$>>
-  | ONumberInt x -> <:html<$int:x$>>
-  | ONumberFloat x -> <:html<$flo:x$>>
-  | OString x -> <:html<"$str:x$">>
-  | OSymbol x -> <:html<symbol:$str:x$>>
-  | OObject id -> <:html<obj#$int:id$>>
-  | OFunction(id, fid) -> <:html<fun#$int:id$/$int:fid$>>
-  | OOther (ty, id) -> <:html<$str:ty$#$int:id$>>
+    | OUndefined -> <:html<(undefined)>>
+    | ONull -> <:html<(null)>>
+    | OBoolean x -> <:html<$str:string_of_bool x$>>
+    | ONumberInt x -> <:html<$int:x$>>
+    | ONumberFloat x -> <:html<$flo:x$>>
+    | OString x -> <:html<"$str:x$">>
+    | OSymbol x -> <:html<symbol:$str:x$>>
+    | OObject id -> <:html<obj#$int:id$>>
+    | OFunction(id, fid) -> <:html<fun#$int:id$/$int:fid$>>
+    | OOther (ty, id) -> <:html<$str:ty$#$int:id$>>
 
 let output_objectid obj = output_val (Types.objectid_to_jsval obj)
 
 let output_ref (ref, ver) =
   let open Reference in match ref with
-    | Field (obj, field) -> <:html<$output_objectid obj$.$str:field$@$int:ver$>>
-    | LocalVariable name -> <:html<$str:name$@$int:ver$>>
-    | GlobalVariable name -> <:html<global:$str:name$@$int:ver$>>
+  | Field (obj, field) -> <:html<$output_objectid obj$.$str:field$@$int:ver$>>
+  | LocalVariable name -> <:html<$str:name$@$int:ver$>>
+  | GlobalVariable name -> <:html<global:$str:name$@$int:ver$>>
 
 
 let output_op =
@@ -44,12 +44,12 @@ let output_op =
   function
   | RFunPre { f; base; args; call_type } ->
     <:html< Calling $output_call_type call_type$
-       $output_val f$ on $output_val base$ with
-        argument object $output_val args$
-     >> 
+            $output_val f$ on $output_val base$ with
+            argument object $output_val args$
+    >> 
   | RFunPost { f; base; args; result } ->
     <:html< Called $output_val f$ on $output_val base$
-      with argument object $output_val args$; result is $output_val result$
+            with argument object $output_val args$; result is $output_val result$
     >>
   | RLiteral { value; hasGetterSetter } ->
     if hasGetterSetter then
@@ -60,14 +60,14 @@ let output_op =
     <:html< for/in on $output_val x$>>
   | RLocal { name; ref } ->
     <:html< Declaring local variable $str:name$,
-    mapped to reference $output_ref ref$>>
+            mapped to reference $output_ref ref$>>
   | RCatch { name; ref } ->
     <:html< Catching into $str:name$,
-    mapped to reference $output_ref ref$>>
+            mapped to reference $output_ref ref$>>
   | RAlias { name; source; ref } ->
     <:html< Declaring alias $str:name$ for
-    reference $output_ref ref$ because
-    $output_reason source$>>
+            reference $output_ref ref$ because
+            $output_reason source$>>
   | RRead { ref; value } ->
     <:html< Reading reference $output_ref ref$ yields $output_val value$>>
   | RWrite { ref; oldref; value; success } ->
@@ -102,18 +102,18 @@ let output_trace tr =
 
 let output_stack st =
   let mode_to_string = let open MatchTypes in function
-    |  Regular -> "R"
-    | Init -> "I"
-    | Wrapper -> "W"
-    | External -> "E"
-    | ToString -> "T"
-    | RegularEnter -> "r"
-		| WrapperEnter -> "w"
-		| IndirectDefinitionPattern -> "i"
-		| ExtraFunctionPattern -> "e"
-		| ToStringUpdatePattern -> "u" in
+      |  Regular -> "R"
+      | Init -> "I"
+      | Wrapper -> "W"
+      | External -> "E"
+      | ToString -> "T"
+      | RegularEnter -> "r"
+      | WrapperEnter -> "w"
+      | IndirectDefinitionPattern -> "i"
+      | ExtraFunctionPattern -> "e"
+      | ToStringUpdatePattern -> "u" in
   let output_mode x = <:html< $str:mode_to_string x$ >> in
-   <:html<$list:List.map output_mode st$>>
+  <:html<$list:List.map output_mode st$>>
 
 let error_page e base query =
   <:html<
@@ -162,7 +162,7 @@ let shared_css = (CertifierData.CSS, <:css<
           bottom: 0;
         }
 >> |> Cow.Css.to_string)
- 
+
 let rec map_with_commas fmt = function
   | [] -> <:html< (empty)>>
   | [x] -> fmt x
@@ -193,31 +193,31 @@ let trace_main_page_leaves self { CertifierData.nodes } =
   Misc.bmap (List.sort compare) |>
   (fun (l1, l2) -> l1 @ l2) |>
   fmt_node_link_list self
-        
+
 let trace_main_page self base data =
   <:html< <html><head><title>Trace for $str:base$</title></head>
-  <body>
-  <a href="#trace1">To first trace</a>
-  <a href="#trace2">To second trace</a>
-  <h1>Leaves</h1>
-  $trace_main_page_leaves self data$
-  <h1><a id="trace1">Original trace</a></h1>
-  $trace_main_page_trace self (CertifierData.reconstruct_first data)$
-  <a href="#trace1">To first trace</a>
-  <h1><a id="trace2">Modified trace</a></h1>
-  $trace_main_page_trace self (CertifierData.reconstruct_second data)$  
-  </body></html> >>
+          <body>
+          <a href="#trace1">To first trace</a>
+          <a href="#trace2">To second trace</a>
+          <h1>Leaves</h1>
+          $trace_main_page_leaves self data$
+          <h1><a id="trace1">Original trace</a></h1>
+          $trace_main_page_trace self (CertifierData.reconstruct_first data)$
+          <a href="#trace1">To first trace</a>
+          <h1><a id="trace2">Modified trace</a></h1>
+          $trace_main_page_trace self (CertifierData.reconstruct_second data)$  
+          </body></html> >>
 
 let trace_details_summary = let open CertifierData in function
-  | FinalNodeData _ -> <:html< <strong>No extensions at inner node available!</strong> >>
-  | NodeData _ -> <:html< Regular inner node >>
-  | EndtraceData _ -> <:html< <strong>Transformed trace has ended before original trace was exhausted!</strong> >>
-  | InitTailtraceData _ -> <:html< <strong>Tail of transformed code cannot be classified as init code!</strong> >>
-  | SuccessNode -> <:html< <strong>Match successful</strong> >>
-  | BlockedData _ -> <:html< <strong>Shared block</strong> >> 
+    | FinalNodeData _ -> <:html< <strong>No extensions at inner node available!</strong> >>
+    | NodeData _ -> <:html< Regular inner node >>
+    | EndtraceData _ -> <:html< <strong>Transformed trace has ended before original trace was exhausted!</strong> >>
+    | InitTailtraceData _ -> <:html< <strong>Tail of transformed code cannot be classified as init code!</strong> >>
+    | SuccessNode -> <:html< <strong>Match successful</strong> >>
+    | BlockedData _ -> <:html< <strong>Shared block</strong> >> 
 
 let output_mode m = <:html< $str:Misc.to_string MatchTypes.pp_match_mode m$>>
- 
+
 let output_matchop = let open MatchTypes in function
     | MatchSimple -> <:html< Simple match>>
     | MatchPush m -> <:html< Match and push $output_mode m$>>
@@ -226,11 +226,11 @@ let output_matchop = let open MatchTypes in function
     | WrapperSimple -> <:html< Simple wrap >>
     | WrapperPush m -> <:html< Wrap and push $output_mode m$>>
     | WrapperPop -> <:html< Wrap and pop >>
-		| WrapperReplace m -> <:html< Wrap and replace $output_mode m$>>
+    | WrapperReplace m -> <:html< Wrap and replace $output_mode m$>>
     | Initialization -> <:html< Simple init >>
     | InitializationPush m -> <:html< Init and push $output_mode m$>>
     | InitializationPop -> <:html< Init and pop >>
-		| MatchDroppable -> <:html<Drop RHS>>
+    | MatchDroppable -> <:html<Drop RHS>>
 
 let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.stack; CertifierData.trace_trace } =
   let open MatchObjects in let open MatchTypes in let open MatchOperations in
@@ -254,13 +254,13 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     | IsPostExit -> <:html<$output_op op2$ is not a post-exit>>
     | IsEnter -> <:html<$output_op op2$ is not an entry>>
     | MatchEnter -> <:html<$output_op op1$ and $output_op op2$ are not matching function entries>>
-		| UseStrictRHS -> <:html<RHS not "use strict">>
+    | UseStrictRHS -> <:html<RHS not "use strict">>
     | IsCatch -> <:html<$output_op op2$ is not a catch>>
-		| IsFunLiteral -> <:html<$output_op op2$ is not a function literal>>
-		| IsLocalDecl -> <:html<$output_op op2$ is not a local declaration>>
-		| IsFunRead -> <:html<$output_op op2$ is not a function read>>
-		| IsEndOfExpr -> <:html<$output_op op2$ is not end-of-expr>>
-     in
+    | IsFunLiteral -> <:html<$output_op op2$ is not a function literal>>
+    | IsLocalDecl -> <:html<$output_op op2$ is not a local declaration>>
+    | IsFunRead -> <:html<$output_op op2$ is not a function read>>
+    | IsEndOfExpr -> <:html<$output_op op2$ is not end-of-expr>>
+  in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->
       <:html<At $str:output_path path$, $output_val val1$ does not match $output_val val2$>>
@@ -273,7 +273,7 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     | DifferentExternal (id1, id2) -> <:html<External function mismatch: $int:id1$ vs. $int:id2$>>
     | InconsistentlyInstrumented -> <:html<from_toString vs. from_jalangi function>>
     | InternalExternal -> <:html<Internal vs. external function>>
- in
+  in
   let output_reason = function
     | DifferentType -> <:html<Different types>>
     | DifferentObjects (where, failure) ->
@@ -300,7 +300,7 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     | NotInitCode -> <:html<Not init code>>
     | NotEnter -> <:html<Not a function entry>>
     | FunctionMismatch reason -> output_function_mismatch reason
-		| NotUseStrict -> <:html<Not "use strict">>
+    | NotUseStrict -> <:html<Not "use strict">>
     | NotCatch -> <:html<Not catch>> in
   let output_cond (cond, reason) =
     <:html<$output_cond cond$: $output_reason reason$>> in
@@ -329,42 +329,42 @@ let trace_details_cases self tree idx =
       <li><a href="$str:self [("event", "details"); ("index", string_of_int (CertifierData.TraceTree.E.dst e))]$">$output_matchop (CertifierData.TraceTree.E.label e)$</a></li>
     >>
   in let open CertifierData in function
-  | FinalNodeData data ->
-    <:html< <h2>Reasons why no more matching is possible:</h2>$trace_details_reasons data$ >>
-  | NodeData data ->
-    <:html< <h2>Follower nodes</h2>
-      <ul>$list:TraceTree.fold_succ_e (fun e l -> output_follower e :: l) tree idx []$</ul> 
-      <h2>Reasons why other matchings have been ruled out:</h2>$trace_details_reasons data$ >>
-  | EndtraceData tr ->
-    <:html< <h2>Leftover trace</h2>$output_trace tr$>>
-  |  InitTailtraceData (tr, st) ->
-    <:html<
+    | FinalNodeData data ->
+      <:html< <h2>Reasons why no more matching is possible:</h2>$trace_details_reasons data$ >>
+    | NodeData data ->
+      <:html< <h2>Follower nodes</h2>
+              <ul>$list:TraceTree.fold_succ_e (fun e l -> output_follower e :: l) tree idx []$</ul> 
+              <h2>Reasons why other matchings have been ruled out:</h2>$trace_details_reasons data$ >>
+    | EndtraceData tr ->
+      <:html< <h2>Leftover trace</h2>$output_trace tr$>>
+    |  InitTailtraceData (tr, st) ->
+      <:html<
       <h2>Leftover trace</h2>$output_trace tr$
       <h2>Stack</h2>$output_stack st$
     >>
-  | SuccessNode ->
-    <:html< Match successful! >>
-  | BlockedData (len1, len2, stack) ->
-    <:html< Blocked: A suffix pair of lengths $int:len1$, $int:len2$ is known not to match for stack $output_stack stack$>> 
+    | SuccessNode ->
+      <:html< Match successful! >>
+    | BlockedData (len1, len2, stack) ->
+      <:html< Blocked: A suffix pair of lengths $int:len1$, $int:len2$ is known not to match for stack $output_stack stack$>> 
 
 let trace_details self base { CertifierData.tree; CertifierData.nodes } idx =
   let node_class = CertifierData.TraceNodes.find idx nodes
   and link i = self [("event", "details"); ("index", string_of_int i)] in
   let output_matchop = let open MatchTypes in function
-    | Pair(op1, op2) ->
-      <:html< <td>$output_op op1$</td><td>$output_op op2$</td><td></td> >>
-    | Init op ->
-      <:html< <td></td><td>$output_op op$</td><td>Init</td> >>
-    | Wrap op ->
-      <:html< <td></td><td>$output_op op$</td><td>Wrap</td> >> in
+      | Pair(op1, op2) ->
+        <:html< <td>$output_op op1$</td><td>$output_op op2$</td><td></td> >>
+      | Init op ->
+        <:html< <td></td><td>$output_op op$</td><td>Init</td> >>
+      | Wrap op ->
+        <:html< <td></td><td>$output_op op$</td><td>Wrap</td> >> in
   let build_partial_trace idx =
     CertifierData.collect_trace idx tree nodes
     |> List.map (fun (idx, stack, matchop) -> 
-      <:html< <tr>
-        <td><a href="$str:link idx$">$int:idx$</a></td>
-        <td>$output_stack stack$</td>
-        $output_matchop matchop$
-        </tr> >>) in
+        <:html< <tr>
+                <td><a href="$str:link idx$">$int:idx$</a></td>
+                <td>$output_stack stack$</td>
+                $output_matchop matchop$
+                </tr> >>) in
   <:html<
   <html>
     <head>
@@ -388,34 +388,34 @@ let trace_details self base { CertifierData.tree; CertifierData.nodes } idx =
       $trace_details_cases self tree idx node_class$
     </body>
   </html> >>
- 
+
 let trace_multiplex self base data query =
   match query "event" with
-    | Some "details" ->
-        begin match query "index" with
-          | Some idx -> Lwt.return (CertifierData.HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
-          | None -> raise (Invalid_argument "Needs exactly one index")
-        end
-    | Some "graph" ->
-        CertifierGraph.format (base ^ ".png") (fun v -> self [("event", "details"); ("index", string_of_int v)]) data
-				|> Lwt.map (fun out -> (CertifierData.PNG, out))
-    | None -> Lwt.return (CertifierData.HTML, trace_main_page self base data |> Cow.Html.to_string)
-    | _ -> raise (Invalid_argument "Unknown event given")
+  | Some "details" ->
+    begin match query "index" with
+      | Some idx -> Lwt.return (CertifierData.HTML, trace_details self base data (int_of_string idx) |> Cow.Html.to_string)
+      | None -> raise (Invalid_argument "Needs exactly one index")
+    end
+  | Some "graph" ->
+    CertifierGraph.format (base ^ ".png") (fun v -> self [("event", "details"); ("index", string_of_int v)]) data
+    |> Lwt.map (fun out -> (CertifierData.PNG, out))
+  | None -> Lwt.return (CertifierData.HTML, trace_main_page self base data |> Cow.Html.to_string)
+  | _ -> raise (Invalid_argument "Unknown event given")
 
 let list_certs self certs =
-    let fmt_result = function
-        | Some 0 -> "(match)"
-        | Some 1 -> "(no match)"
-        | Some 2 -> "(failed)"
-        | Some i -> "(unknown result: " ^ string_of_int i ^ ")"
-        | None -> "(can't read state)" in
-    let link_cert (name, result) =
-      <:html< <a href="$str:self name$">$str:name$</a> $str:fmt_result result$<br/> >>
-    in
-    (CertifierData.HTML, <:html<
+  let fmt_result = function
+    | Some 0 -> "(match)"
+    | Some 1 -> "(no match)"
+    | Some 2 -> "(failed)"
+    | Some i -> "(unknown result: " ^ string_of_int i ^ ")"
+    | None -> "(can't read state)" in
+  let link_cert (name, result) =
+    <:html< <a href="$str:self name$">$str:name$</a> $str:fmt_result result$<br/> >>
+  in
+  (CertifierData.HTML, <:html<
     <html><head><title>List of certificates</title></head>
     <body>$list:List.map link_cert certs$</body></html> >> |> Cow.Html.to_string)
-    
+
 let bad_path path =
   (CertifierData.HTML, <:html<
   <html>

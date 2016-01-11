@@ -3,115 +3,115 @@ open MatchTypes
 open Types
 
 (** The trace matcher is built in two parts,
-* the match candidate finder and the matching engine.
-* They communicate using the following protocol:
-* The matching engine calls the appropriate candidate finder
-* for its current state with the head operations of both traces,
-* and the candidate finder returns a list of matching operations
-* that describe how the traces can be matched at this point.
-*
-* Example:
-* Suppose we are in top - level mode, and the head operations
-* are Read(ref1, "x") and Read(ref2, "x").
-* If ref1 and ref2 match, then two operations are possible,
-* namely MatchSimple, matching both operations together and continuing
-* with the trail of the traces on both said, and
-* Init, which treats the second event as initialization code,
-* and continues matching with the full trace on the left and the tail
-* on the right.
+ * the match candidate finder and the matching engine.
+ * They communicate using the following protocol:
+ * The matching engine calls the appropriate candidate finder
+ * for its current state with the head operations of both traces,
+ * and the candidate finder returns a list of matching operations
+ * that describe how the traces can be matched at this point.
+ *
+ * Example:
+ * Suppose we are in top - level mode, and the head operations
+ * are Read(ref1, "x") and Read(ref2, "x").
+ * If ref1 and ref2 match, then two operations are possible,
+ * namely MatchSimple, matching both operations together and continuing
+ * with the trail of the traces on both said, and
+ * Init, which treats the second event as initialization code,
+ * and continues matching with the full trace on the left and the tail
+ * on the right.
 *)
 
 val interpret_rules :
-(match_condition list * match_operation) list ->
-matching_state ->
-rich_event ->
-rich_event ->
-match_operation list *
-((match_condition * mismatch) list * match_operation) list
+  (match_condition list * match_operation) list ->
+  matching_state ->
+  rich_event ->
+  rich_event ->
+  match_operation list *
+  ((match_condition * mismatch) list * match_operation) list
 
 val build_candidates :
-matching_state ->
-rich_event ->
-rich_event ->
-match_state ->
-match_operation list *
-((match_condition * mismatch) list * match_operation) list
+  matching_state ->
+  rich_event ->
+  rich_event ->
+  match_state ->
+  match_operation list *
+  ((match_condition * mismatch) list * match_operation) list
 
 (**
-* Special - case handling for a trace ending in initialisation code.
-* This is legal, but probably not very useful, except in the degenerate
-* case of empty code.
+ * Special - case handling for a trace ending in initialisation code.
+ * This is legal, but probably not very useful, except in the degenerate
+ * case of empty code.
 *)
 val can_be_added_as_initialisation :
-matching_state ->
-(rich_operation * local_facts) list ->
-match_mode list -> mismatch option
+  matching_state ->
+  (rich_operation * local_facts) list ->
+  match_mode list -> mismatch option
 
 (**
-* Effects of the matching operations on various bits of state.
-*
-* [adapt_first op op1 facts1 trace1]
-* computes the original code trace to use for further matching,
-* given a matching event [op].
+ * Effects of the matching operations on various bits of state.
+ *
+ * [adapt_first op op1 facts1 trace1]
+ * computes the original code trace to use for further matching,
+ * given a matching event [op].
 *)
 val adapt_first :
-match_operation -> ('a * 'b) -> ('a * 'b) list -> ('a * 'b) list
+  match_operation -> ('a * 'b) -> ('a * 'b) list -> ('a * 'b) list
 
 (** [adapt_stack op stack]
-* applies the required stack manipulation for [op]. *)
+ * applies the required stack manipulation for [op]. *)
 val adapt_stack : match_operation -> match_mode list -> match_mode list
 
 (** [extend_matching op op1 op2 matching]
-* extends the given matching according to [op]. *)
+ * extends the given matching according to [op]. *)
 val extend_matching :
-match_operation ->
-rich_operation ->
-rich_operation -> event_match list -> event_match list
+  match_operation ->
+  rich_operation ->
+  rich_operation -> event_match list -> event_match list
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
-matching_state -> local_facts -> objectid -> Reference.versioned_reference list
+  matching_state -> local_facts -> objectid -> Reference.versioned_reference list
 (** Collect the references belonging to a value. *)
 val collect_references :
-matching_state -> local_facts ->
-jsval -> Reference.versioned_reference list
+  matching_state -> local_facts ->
+  jsval -> Reference.versioned_reference list
 (** Perpetuate initialisation-produced data. *)
 val perpetuate_initialisation_data :
-matching_state ->
-rich_event -> matching_state
+  matching_state ->
+  rich_event -> matching_state
 (** Detect calls to "toString" *)
 val detect_toString :
-rich_operation ->
-matching_state -> matching_state
+  rich_operation ->
+  matching_state -> matching_state
 (** Adapt the matching state according to the given event *)
 val adapt_matching_state :
-match_operation ->
-rich_event ->
-rich_event ->
-matching_state -> matching_state
+  match_operation ->
+  rich_event ->
+  rich_event ->
+  matching_state -> matching_state
 (** The matching engine.
-*
-* It consists of two mutually - recursive functions:
-* [matching_engine matching_state trace1 trace2 stack]
-* handles the various cases of empty and non - empty traces
-* [trace1] and [trace2], using
-* [apply_first_working matching_state op1 op2 trace1 trace2 stack]
-* to handle the list of operations generated by the candidate
-* generator when there is an event to match on both sides. *)
+ *
+ * It consists of two mutually - recursive functions:
+ * [matching_engine matching_state trace1 trace2 stack]
+ * handles the various cases of empty and non - empty traces
+ * [trace1] and [trace2], using
+ * [apply_first_working matching_state op1 op2 trace1 trace2 stack]
+ * to handle the list of operations generated by the candidate
+ * generator when there is an event to match on both sides. *)
 val matching_engine :
-matching_state ->
-rich_trace -> rich_trace -> match_mode list ->
-event_match list option
+  matching_state ->
+  rich_trace -> rich_trace -> match_mode list ->
+  event_match list option
 
 val apply_first_working :
-int ->
-matching_state ->
-rich_event ->
-rich_event ->
-rich_trace ->
-rich_trace ->
-match_mode list -> match_operation list ->
-event_match list option
+  int ->
+  matching_state ->
+  rich_event ->
+  rich_event ->
+  rich_trace ->
+  rich_trace ->
+  match_mode list -> match_operation list ->
+  event_match list option
 (** The main entry point for trace matching. *)
 val match_traces :
-rich_tracefile -> rich_tracefile -> event_match list option
+  rich_tracefile -> rich_tracefile -> event_match list option

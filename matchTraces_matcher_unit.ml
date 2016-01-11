@@ -53,112 +53,112 @@ module StringMap = Misc.StringMap
 let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"
 let fun_u = [|
-    Local { from_toString = body1; from_jalangi = Some body1 }
-    |]
+  Local { from_toString = body1; from_jalangi = Some body1 }
+|]
 let add_field name value fields =
-    StringMap.add name
-        { value; writable = true; get = None; set = None; enumerable = true;
-            configurable = true } fields
+  StringMap.add name
+    { value; writable = true; get = None; set = None; enumerable = true;
+      configurable = true } fields
 
 let objs_u = [|
-    StringMap.empty |> add_field "dist0l" OUndefined;
-    StringMap.empty;
-    StringMap.empty |> add_field "base" (OBoolean true);
-    StringMap.empty |> add_field "0" (ONumberFloat 1.0)
-    |]
+  StringMap.empty |> add_field "dist0l" OUndefined;
+  StringMap.empty;
+  StringMap.empty |> add_field "base" (OBoolean true);
+  StringMap.empty |> add_field "0" (ONumberFloat 1.0)
+|]
 let objs_m = [|
-    StringMap.empty |> add_field "dist0r" OUndefined;
-    StringMap.empty |> add_field "dist1r" OUndefined;
-    StringMap.empty;
-    StringMap.empty;
-    StringMap.empty |> add_field "dist4r" OUndefined;
-    StringMap.empty |> add_field "base" (OBoolean true);
-    StringMap.empty |> add_field "0" (ONumberFloat 1.0)
-    |]
+  StringMap.empty |> add_field "dist0r" OUndefined;
+  StringMap.empty |> add_field "dist1r" OUndefined;
+  StringMap.empty;
+  StringMap.empty;
+  StringMap.empty |> add_field "dist4r" OUndefined;
+  StringMap.empty |> add_field "base" (OBoolean true);
+  StringMap.empty |> add_field "0" (ONumberFloat 1.0)
+|]
 
 let fun_m = [|
-    External 17;
-    Local { from_toString = body1; from_jalangi = Some body1 };
-    Local { from_toString = body2; from_jalangi = Some body2 }
-    |]
+  External 17;
+  Local { from_toString = body1; from_jalangi = Some body1 };
+  Local { from_toString = body2; from_jalangi = Some body2 }
+|]
 let rtu1 = {
-    funcs = fun_u;
-    objs = objs_u;
-    trace = enrich tu1;
-    points_to = VersionReferenceMap.empty;
-    globals_are_properties = false;
-    globals = StringMap.empty
+  funcs = fun_u;
+  objs = objs_u;
+  trace = enrich tu1;
+  points_to = VersionReferenceMap.empty;
+  globals_are_properties = false;
+  globals = StringMap.empty
 }
 let rtu2 = {
-    funcs = fun_u;
-    objs = objs_u;
-    trace = enrich tu2;
-    points_to = VersionReferenceMap.empty;
-    globals_are_properties = false;
-    globals = StringMap.empty
+  funcs = fun_u;
+  objs = objs_u;
+  trace = enrich tu2;
+  points_to = VersionReferenceMap.empty;
+  globals_are_properties = false;
+  globals = StringMap.empty
 }
 let rtm1 = {
-    funcs = fun_m;
-    objs = objs_m;
-    trace = enrich tm1;
-    points_to = VersionReferenceMap.empty;
-    globals_are_properties = false;
-    globals = StringMap.empty
+  funcs = fun_m;
+  objs = objs_m;
+  trace = enrich tm1;
+  points_to = VersionReferenceMap.empty;
+  globals_are_properties = false;
+  globals = StringMap.empty
 }
 let rtm2 = {
-    funcs = fun_m;
-    objs = objs_m;
-    trace = enrich tm2;
-    points_to = VersionReferenceMap.empty;
-    globals_are_properties = false;
-    globals = StringMap.empty
+  funcs = fun_m;
+  objs = objs_m;
+  trace = enrich tm2;
+  points_to = VersionReferenceMap.empty;
+  globals_are_properties = false;
+  globals = StringMap.empty
 }
 
 let match1 = [
-    Pair(rfp_0, rfp_1);
-    Pair(rfe_0, rfe_1);
-    Pair(rfx, rfx);
-    Pair(rfo_0, rfo_1);
-    Init(ree2);
-    Pair(run, run);
-    Init(ree3)
-    ]
+  Pair(rfp_0, rfp_1);
+  Pair(rfe_0, rfe_1);
+  Pair(rfx, rfx);
+  Pair(rfo_0, rfo_1);
+  Init(ree2);
+  Pair(run, run);
+  Init(ree3)
+]
 let match2 = [
-    Pair(rfp_0, rfp_2);
-    Wrap(rfe_2);
-    Wrap(rfp_1);
-    Pair(rfe_0, rfe_1);
-    Pair(run, run);
-    Pair(rfx, rfx);
-    Pair(rfo_0, rfo_1);
-    Wrap(rfx);
-    Wrap(rfo_2);
-    Pair(rse, rse)
-    ]
+  Pair(rfp_0, rfp_2);
+  Wrap(rfe_2);
+  Wrap(rfp_1);
+  Pair(rfe_0, rfe_1);
+  Pair(run, run);
+  Pair(rfx, rfx);
+  Pair(rfo_0, rfo_1);
+  Wrap(rfx);
+  Wrap(rfo_2);
+  Pair(rse, rse)
+]
 
 let pp_match pp = function
-    | Pair(op1, op2) -> Format.fprintf pp "%a -> %a" pp_rich_operation op1 pp_rich_operation op2
-    | Wrap op -> Format.fprintf pp "wrap %a" pp_rich_operation op
-    | Init op -> Format.fprintf pp "init %a" pp_rich_operation op
+  | Pair(op1, op2) -> Format.fprintf pp "%a -> %a" pp_rich_operation op1 pp_rich_operation op2
+  | Wrap op -> Format.fprintf pp "wrap %a" pp_rich_operation op
+  | Init op -> Format.fprintf pp "init %a" pp_rich_operation op
 let match_print_trace tr =
-    Misc.to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
+  Misc.to_string (fun pp -> Format.fprintf pp "@[<v 4>%a@]" (FormatHelper.pp_print_list_lines pp_match)) tr
 let match_print tr1 tr2 = function
-    | Some tr -> match_print_trace tr
-    | None -> "failed"
+  | Some tr -> match_print_trace tr
+  | None -> "failed"
 
 let match_equal tr1 tr2 exp = Assert.make_equal (=) (match_print tr1 tr2) exp (match_traces tr1 tr2)
 
 let test_11 =
-    Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 1"
-        (fun () ->
-                match_equal rtu1 rtm1 (Some match1))
+  Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 1"
+    (fun () ->
+       match_equal rtu1 rtm1 (Some match1))
 let test_22 =
-    Test.make_simple_test ~title:"Comparing traces unmod. 2 and mod. 2"
-        (fun () ->
-                match_equal rtu2 rtm2 (Some match2))
+  Test.make_simple_test ~title:"Comparing traces unmod. 2 and mod. 2"
+    (fun () ->
+       match_equal rtu2 rtm2 (Some match2))
 let test_12 =
-    Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 2"
-        (fun () ->
-                Assert.equal_bool false (match match_traces rtu1 rtm2 with Some _ -> true | None -> false))
+  Test.make_simple_test ~title:"Comparing traces unmod. 1 and mod. 2"
+    (fun () ->
+       Assert.equal_bool false (match match_traces rtu1 rtm2 with Some _ -> true | None -> false))
 
 let tests = [test_11; test_22; test_12]
