@@ -3,8 +3,8 @@ Name:        js-truthiness
 Version:     0.1
 Synopsis:    JSStreaming testing tools
 Authors:     Johannes Kloos
-License:     Proprietary
 Plugins:     StdFiles (0.4)
+License:     PROP
 AlphaFeatures: ocamlbuild_more_args
 XOcamlbuildExtraArgs: -use-ocamlfind
 
@@ -46,7 +46,7 @@ Executable "certifier"
   Path:         .
   BuildTools:   ocamlbuild
   MainIs:       certifier.ml
-  BuildDepends: js-enrichment, cow, cow.syntax, camlp4o, lwt, batteries,
+  BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
                 ocamlgraph, cohttp, cohttp.lwt, lwt.unix
 
 Executable "unittests"
