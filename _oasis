@@ -14,6 +14,7 @@ Executable "pptrace"
   MainIs:       pptrace.ml
   Install$:     flag(prettyprint)
   BuildDepends: js-enrichment
+  CompiledObject: best
 
 Executable "pprichtrace"
   Path:         .
@@ -21,6 +22,7 @@ Executable "pprichtrace"
   MainIs:       pprichtrace.ml
   Install$:     flag(prettyprint)
   BuildDepends: js-enrichment
+  CompiledObject: best
 
 Executable "ppcleantrace"
   Path:         .
@@ -28,12 +30,14 @@ Executable "ppcleantrace"
   MainIs:       ppcleantrace.ml
   Install$:     flag(prettyprint)
   BuildDepends: js-enrichment
+  CompiledObject: best
 
 Executable "jstruthiness"
   Path:         .
   BuildTools:   ocamlbuild
   MainIs:       oracle.ml
   BuildDepends: js-enrichment, unix, pcre
+  CompiledObject: best
   
 Executable "dumplog"
   Path:         .
@@ -41,13 +45,16 @@ Executable "dumplog"
   MainIs:       dumplog.ml
   Install$:     flag(prettyprint)
   BuildDepends: js-enrichment
+  CompiledObject: best
 
 Executable "certifier"
   Path:         .
   BuildTools:   ocamlbuild
+  Build:        false
   MainIs:       certifier.ml
   BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
                 ocamlgraph, cohttp, cohttp.lwt, lwt.unix, pcre
+  CompiledObject: best
 
 Executable "unittests"
   Path:       .
@@ -55,7 +62,7 @@ Executable "unittests"
   Install:    false
   Build$:     flag(tests)
   MainIs:     unittests.ml
-  BuildDepends: kaputt, js-enrichment, js-enrichment.test
+  BuildDepends: kaputt, js-enrichment, js-enrichment.test, pcre
 
 Test "unittests"
   Command:    $unittests
