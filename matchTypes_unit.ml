@@ -18,8 +18,7 @@ let test_get_state_inner (name, stack, state) =
 	Test.make_simple_test ~title:name (fun () ->
 		Assert.make_equal (=) (Misc.to_string pp_match_state) (get_state stack) state)
 
-let _ =
-	Test.run_tests (List.map test_get_state_inner [
+let tests =(List.map test_get_state_inner [
 		("get_state - InToplevel", [], InToplevel);
 		("get_state - InRegular", [Regular], InRegular);
 		("get_state - InRegularEnter", [RegularEnter], InRegularEnter);

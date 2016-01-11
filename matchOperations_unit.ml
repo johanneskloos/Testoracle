@@ -359,6 +359,4 @@ val is_matching_entry: Richtrace.rich_event comparator
 val interpret_cond : matching_state -> Richtrace.rich_event -> Richtrace.rich_event -> match_condition -> mismatch option
 *)
 
-let _ =
-	Test.run_tests
-	(simple_predicate_tests @ predicate_tests @ internal_call_tests @ comparator_tests)
+let tests = simple_predicate_tests @ predicate_tests @ internal_call_tests @ comparator_tests

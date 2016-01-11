@@ -161,6 +161,4 @@ let test_12 =
         (fun () ->
                 Assert.equal_bool false (match match_traces rtu1 rtm2 with Some _ -> true | None -> false))
 
-let () =
-    Printexc.record_backtrace true;
-    Test.run_tests [test_11; test_22; test_12]
+let tests = [test_11; test_22; test_12]

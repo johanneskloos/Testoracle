@@ -267,8 +267,7 @@ let test_match_values_cyc1_cyc2 =
 		let objeq = ref Misc.IntIntMap.empty in
 		assert_is_Some (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 Misc.IntIntSet.empty obj1_cyc1 obj2_cyc2 objeq))
 
-let () =
-	Test.run_tests (is_base_tests @ [
+let tests = (is_base_tests @ [
 		match_functions_ins_ins_eq;
 		match_functions_ins_ins_neq;
 		match_functions_nins_eq;
