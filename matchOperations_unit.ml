@@ -2,7 +2,7 @@ open MatchTypes
 open MatchOperations
 open TestBaseData
 open Kaputt.Abbreviations
-open Richtrace
+open TraceTypes
 open Types
 
 let (|>) = Pervasives.(|>)
@@ -26,7 +26,7 @@ let reset_default_state () =
   default_state.nonequivalent_functions <- Misc.IntIntSet.empty;
   default_state.known_blocked <- Misc.IntIntMap.empty
 
-let pp_rich_event pp (op, _) = Richtrace.pp_rich_operation pp op
+let pp_rich_event pp (op, _) = pp_rich_operation pp op
 
 let default_predicate_tester predname pred poslist neglist =
   List.map (fun pos ->
@@ -42,7 +42,7 @@ let default_predicate_tester predname pred poslist neglist =
           assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred default_state neg)))
     neglist
 
-let default_simple_predicate_tester predname pred (poslist: Richtrace.rich_event list) (neglist: Richtrace.rich_event list) =
+let default_simple_predicate_tester predname pred (poslist: rich_event list) (neglist: rich_event list) =
   List.map (fun pos ->
       Test.make_simple_test
         ~title:(predname ^ ": " ^ Misc.to_string pp_rich_event pos)
@@ -55,8 +55,8 @@ let default_simple_predicate_tester predname pred (poslist: Richtrace.rich_event
     neglist
 
 let xref = Reference.reference_of_field (OObject 4) "val"
-let test_funpre = (RFunPre { f = obj1_fun1; base = vundef; args = obj1_simp1; call_type = Cleantrace.Method }, local_facts_1) 
-let test_funpost = (RFunPost { f = obj1_fun1; base = vundef; args = obj1_simp1; result = v1 }, local_facts_1)
+let test_funpre = (RFunPre { f = obj1_fun1; base = vundef; args = obj1_simp1; call_type = Method }, local_facts_1) 
+let test_funpost = (RFunPost { f = obj1_fun1; base = vundef; args = obj1_simp1; result = v1; call_type = Method }, local_facts_1)
 let test_literal = (RLiteral { value = v2; hasGetterSetter = false }, local_facts_1)
 let test_forin = (RForIn obj1_cyc1, local_facts_1)
 let test_local = (RLocal { name = "x"; ref = (xref, 0) }, local_facts_1)
@@ -85,7 +85,7 @@ let test_all_ops = [
 
 let list_delta large small = List.filter (fun x -> not (List.mem x small)) large
 
-let simple_predicate_tester_pos predname pred (poslist: Richtrace.rich_event list) =
+let simple_predicate_tester_pos predname pred (poslist: rich_event list) =
   default_predicate_tester predname pred poslist (list_delta test_all_ops poslist)
 let simple_predicate_tester_neg predname pred neglist =
   default_predicate_tester predname pred (list_delta test_all_ops neglist) neglist
@@ -221,7 +221,7 @@ let test_is_internal_call_impl_neg =
       assert_is_None (is_internal_call_impl test_rt2 3)
     )
 
-let tests_is_internal_call = let open Cleantrace in
+let tests_is_internal_call =
   default_simple_predicate_tester "is_internal_call" (is_internal_call test_rt2)
     [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
     [ (RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
@@ -250,8 +250,8 @@ let test_comparator funcname func pos1 pos2 neg1 neg2 neg =
   List.flatten (List.map (fun op1 -> List.map (fun op2 -> make_neg op1 op2) (neg2 @ neg)) (neg1 @ neg))
 
 let xref2 = Reference.reference_of_field (OObject 1) "val"
-let test2_funpre = (RFunPre { f = obj2_fun1; base = vundef; args = obj2_simp1; call_type = Cleantrace.Method }, local_facts_2) 
-let test2_funpost = (RFunPost { f = obj2_fun1; base = vundef; args = obj2_simp1; result = v1 }, local_facts_2)
+let test2_funpre = (RFunPre { f = obj2_fun1; base = vundef; args = obj2_simp1; call_type = Method }, local_facts_2) 
+let test2_funpost = (RFunPost { f = obj2_fun1; base = vundef; args = obj2_simp1; result = v1; call_type = Method }, local_facts_2)
 let test2_literal = (RLiteral { value = v2; hasGetterSetter = false }, local_facts_2)
 let test2_forin = (RForIn obj2_cyc1, local_facts_2)
 let test2_local = (RLocal { name = "x"; ref = (xref2, 0) }, local_facts_2)
@@ -330,22 +330,22 @@ let noncall_neg2 = [
 
 let tests_is_matching_internal_call =
   test_comparator "is_matching_internal_call" is_matching_internal_call
-    [ (RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1);
-      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1) ]
-    [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2);
-      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2) ]
-    ((RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1) :: noncall_neg1)
-    ((RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2) :: noncall_neg2)
+    [ (RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_1);
+      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_1) ]
+    [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2);
+      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
+    ((RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_1) :: noncall_neg1)
+    ((RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2) :: noncall_neg2)
     []
 
 let tests_is_matching_external_call =
   test_comparator "is_matching_external_call" is_matching_external_call
-    ([(RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1);
-      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1) ])
-    ([(RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2);
-      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2) ])
-    ([(RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_1)] @ noncall_neg1)
-    ([(RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Cleantrace.Method }, local_facts_2)] @ noncall_neg2)
+    ([(RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_1);
+      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_1) ])
+    ([(RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2);
+      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_2) ])
+    ([(RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_1)] @ noncall_neg1)
+    ([(RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2)] @ noncall_neg2)
     []
 
 let comparator_tests =
@@ -354,9 +354,9 @@ let comparator_tests =
 
 val is_matching_toString_call : call_comparator
 val may_be_wrapper_entry : call_comparator
-val is_matching_entry: Richtrace.rich_event comparator
+val is_matching_entry: rich_event comparator
 
-val interpret_cond : matching_state -> Richtrace.rich_event -> Richtrace.rich_event -> match_condition -> mismatch option
+val interpret_cond : matching_state -> rich_event -> rich_event -> match_condition -> mismatch option
 *)
 
 let tests = simple_predicate_tests @ predicate_tests @ internal_call_tests @ comparator_tests

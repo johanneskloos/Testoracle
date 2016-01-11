@@ -1,7 +1,7 @@
 open Trace
 open MatchTraces
 open MatchTypes
-open Richtrace
+open TraceTypes
 open Kaputt
 open Abbreviations
 open Reference
@@ -24,16 +24,16 @@ let v1 = ONumberInt 1
 let v2 = ONumberInt 2
 let v3 = ONumberInt 3
 
-let rfp_0 = RFunPre { f = f1; args = a; base = b; call_type = Cleantrace.Method }
-let rfp_1 = RFunPre { f = f1'; args = a'; base = b'; call_type = Cleantrace.Method }
-let rfp_2 = RFunPre { f = f1''; args = a'; base = b'; call_type = Cleantrace.Method }
+let rfp_0 = RFunPre { f = f1; args = a; base = b; call_type = Method }
+let rfp_1 = RFunPre { f = f1'; args = a'; base = b'; call_type = Method }
+let rfp_2 = RFunPre { f = f1''; args = a'; base = b'; call_type = Method }
 let rfe_0 = RFunEnter { f = f1; this = b; args = a }
 let rfe_1 = RFunEnter { f = f1'; args = a'; this = b' }
 let rfe_2 = RFunEnter { f = f1''; args = a'; this = b' }
 let rfx = RFunExit { ret = v1; exc = OUndefined }
-let rfo_0 = RFunPost { f = f1; args = a; base = b; result = v1 }
-let rfo_1 = RFunPost { f = f1'; args = a'; base = b'; result = v1 }
-let rfo_2 = RFunPost { f = f1''; args = a'; base = b'; result = v1 }
+let rfo_0 = RFunPost { f = f1; args = a; base = b; result = v1; call_type = Method }
+let rfo_1 = RFunPost { f = f1'; args = a'; base = b'; result = v1; call_type = Method }
+let rfo_2 = RFunPost { f = f1''; args = a'; base = b'; result = v1; call_type = Method }
 let run = RUnary { op = "-"; arg = v5; result = vm5 }
 let ree2 = RConditional v2
 let ree3 = RConditional v3
@@ -45,7 +45,7 @@ let tu2 = [ rfp_0; rfe_0; run; rfx; rfo_0; rse ]
 let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2; rse ]
 
 let enrich = 
-  let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = Misc.StringMap.empty } in
+  let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = Misc.StringMap.empty; points_to = Reference.VersionReferenceMap.empty } in
   List.map (fun x -> (x, empty_local_facts))
 
 module StringMap = Misc.StringMap
@@ -54,7 +54,7 @@ let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"
 let fun_u = [|
   Local { from_toString = body1; from_jalangi = Some body1 }
-|]
+|] |> ExtArray.of_array
 let add_field name value fields =
   StringMap.add name
     { value; writable = true; get = None; set = None; enumerable = true;
@@ -65,7 +65,7 @@ let objs_u = [|
   StringMap.empty;
   StringMap.empty |> add_field "base" (OBoolean true);
   StringMap.empty |> add_field "0" (ONumberFloat 1.0)
-|]
+|] |> ExtArray.of_array
 let objs_m = [|
   StringMap.empty |> add_field "dist0r" OUndefined;
   StringMap.empty |> add_field "dist1r" OUndefined;
@@ -74,13 +74,13 @@ let objs_m = [|
   StringMap.empty |> add_field "dist4r" OUndefined;
   StringMap.empty |> add_field "base" (OBoolean true);
   StringMap.empty |> add_field "0" (ONumberFloat 1.0)
-|]
+|] |> ExtArray.of_array
 
 let fun_m = [|
   External 17;
   Local { from_toString = body1; from_jalangi = Some body1 };
   Local { from_toString = body2; from_jalangi = Some body2 }
-|]
+|] |> ExtArray.of_array
 let rtu1 = {
   funcs = fun_u;
   objs = objs_u;
@@ -130,9 +130,9 @@ let match2 = [
   Pair(rfe_0, rfe_1);
   Pair(run, run);
   Pair(rfx, rfx);
-  Pair(rfo_0, rfo_1);
+  Wrap(rfo_1);
   Wrap(rfx);
-  Wrap(rfo_2);
+  Pair(rfo_0, rfo_2);
   Pair(rse, rse)
 ]
 

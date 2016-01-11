@@ -2,8 +2,19 @@ open MatchObjects
 open Kaputt.Abbreviations
 open Types
 open TestBaseData
-
+open MatchTypes
+open TraceTypes
 let (|>) = Pervasives.(|>)
+
+let test_data = {
+  funs1 = functab1;
+  funs2 = functab2;
+  facts1 = local_facts_1;
+  facts2 = local_facts_2;
+  pt1 = points_to_1;
+  pt2 = points_to_2;
+  noneq = Misc.IntIntSet.empty
+}
 
 let is_base_test_true (name, value) =
   Test.make_simple_test ~title:("is_base - " ^ name) (fun () ->	Assert.is_true (is_base value))
@@ -101,10 +112,40 @@ let test_tab =
   |> ValPairMap.add (obj1_cyc2, obj2_cyc2) true
   |> ValPairMap.add (obj1_cyc2, obj2_cyc3) false
 
+module IIA = Assert.Set(Misc.IntIntSet)
+               (struct
+                  type t = int * int
+                  let to_string = Misc.to_string Misc.pp_print_int_pair
+                end)
+let same_data
+      { funs1 = funs11;
+        funs2 = funs21;
+        facts1 = facts11;
+        facts2 = facts21;
+        pt1 = pt11;
+        pt2 = pt21;
+        noneq = noneq1 }
+      { funs1 = funs12;
+        funs2 = funs22;
+        facts1 = facts12;
+        facts2 = facts22;
+        pt1 = pt12;
+        pt2 = pt22;
+        noneq = noneq2 } =
+  same_functions funs11 funs12;
+  same_functions funs21 funs22;
+  same_local_facts facts11 facts12;
+  same_local_facts facts21 facts22;
+  AssertVersionedReferenceMap.make_equal (=) (Misc.to_string pp_jsval)
+    pt11 pt12;
+  AssertVersionedReferenceMap.make_equal (=) (Misc.to_string pp_jsval)
+    pt21 pt22;
+  IIA.equal noneq1 noneq2 
+
 let matcher_stub seen_tab data cycle_set objeq vals =
   Format.eprintf "Considering value pair %a@."
     (FormatHelper.pp_print_pair pp_jsval pp_jsval) vals;
-  Assert.same test_data data;
+  same_data test_data data;
   seen_tab := ValPairMap.add vals
       (1 + try ValPairMap.find vals !seen_tab with Not_found -> 0)
       !seen_tab;
@@ -226,7 +267,15 @@ let test_match_objects_memo_cyc3_cyc3_objeq_cache_fail =
        and cycle_seen = Misc.IntIntSet.empty
        and msg = MatchTypes.Other "mark" in
        let objeq = ref (Misc.IntIntMap.empty |> Misc.IntIntMap.add (get_object_id id1, get_object_id id2) (Some msg)) in
-       Assert.same (Some msg) (match_objects_memo (matcher_stub seen) ["toString"] test_data cycle_seen objeq id1 id2)
+       Assert.make_equal (=)
+         (function
+              None -> "None"
+            | Some (NonMatching (_, _, _)) -> "non-matching elements ..."
+            | Some (MissingOrig (n, _)) -> "missing orig called " ^ n ^ " at ..."
+            | Some (MissingXfrm (n, _)) -> "missing xfrm called " ^ n ^ " at ..."
+            | Some (Other msg) -> msg)
+         (Some msg)
+         (match_objects_memo (matcher_stub seen) ["toString"] test_data cycle_seen objeq id1 id2)
     )
 
 let test_match_raw_values_v1_v1 =
