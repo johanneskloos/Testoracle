@@ -50,7 +50,6 @@ Executable "dumplog"
 Executable "certifier"
   Path:         .
   BuildTools:   ocamlbuild
-  Build:        false
   MainIs:       certifier.ml
   BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
                 ocamlgraph, cohttp, cohttp.lwt, lwt.unix, pcre

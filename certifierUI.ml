@@ -274,7 +274,7 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     | InconsistentlyInstrumented -> <:html<from_toString vs. from_jalangi function>>
     | InternalExternal -> <:html<Internal vs. external function>>
   in
-  let output_reason = function
+  let rec output_reason = function
     | DifferentType -> <:html<Different types>>
     | DifferentObjects (where, failure) ->
       <:html<Objects in $str:where$ don't match: $output_obj_match_trace failure$>>
@@ -301,7 +301,8 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     | NotEnter -> <:html<Not a function entry>>
     | FunctionMismatch reason -> output_function_mismatch reason
     | NotUseStrict -> <:html<Not "use strict">>
-    | NotCatch -> <:html<Not catch>> in
+    | NotCatch -> <:html<Not catch>>
+    | And (r1, r2) -> <:html<$output_reason r1$ and $output_reason r2$>> in
   let output_cond (cond, reason) =
     <:html<$output_cond cond$: $output_reason reason$>> in
   let output_nonempty = function
