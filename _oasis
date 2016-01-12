@@ -8,30 +8,6 @@ License:     PROP
 AlphaFeatures: ocamlbuild_more_args
 XOcamlbuildExtraArgs: -use-ocamlfind
 
-Executable "pptrace"
-  Path:         .
-  BuildTools:   ocamlbuild
-  MainIs:       pptrace.ml
-  Install$:     flag(prettyprint)
-  BuildDepends: js-enrichment
-  CompiledObject: best
-
-Executable "pprichtrace"
-  Path:         .
-  BuildTools:   ocamlbuild
-  MainIs:       pprichtrace.ml
-  Install$:     flag(prettyprint)
-  BuildDepends: js-enrichment
-  CompiledObject: best
-
-Executable "ppcleantrace"
-  Path:         .
-  BuildTools:   ocamlbuild
-  MainIs:       ppcleantrace.ml
-  Install$:     flag(prettyprint)
-  BuildDepends: js-enrichment
-  CompiledObject: best
-
 Executable "jstruthiness"
   Path:         .
   BuildTools:   ocamlbuild
