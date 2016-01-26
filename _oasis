@@ -11,7 +11,7 @@ XOcamlbuildExtraArgs: -use-ocamlfind
 Executable "jstruthiness"
   Path:         .
   BuildTools:   ocamlbuild
-  MainIs:       oracle.ml
+  MainIs:       oracleMain.ml
   BuildDepends: js-enrichment, unix, pcre
   CompiledObject: best
   
