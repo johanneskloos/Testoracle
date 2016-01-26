@@ -184,10 +184,19 @@ let match_values name = fun
   | Some err -> Some (name, err)
   | None -> None
 
+let match_refs_naming name (r1, _) (r2, _) = let open Reference in match r1, r2 with
+  | LocalVariable v1, LocalVariable v2 when v1 = v2 -> None
+  | GlobalVariable v1, GlobalVariable v2 when v1 = v2 -> None
+  | Field (_, f1), Field (_, f2) when f1 = f2 -> None
+  | _, _ -> Some (name, Other "Non-matching reference names")
+
 let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
   try
-    match_values name rt1 rt2 facts1 facts2 noneq
-      (Reference.VersionReferenceMap.find r1 rt1.points_to)
-      (Reference.VersionReferenceMap.find r2 rt2.points_to)
-      objeq
+    match match_refs_naming name r1 r2 with
+      | None ->
+         match_values name rt1 rt2 facts1 facts2 noneq
+          (Reference.VersionReferenceMap.find r1 rt1.points_to)
+          (Reference.VersionReferenceMap.find r2 rt2.points_to)
+          objeq
+      | Some _ as r -> r
   with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found
