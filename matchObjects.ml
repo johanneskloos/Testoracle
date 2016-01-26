@@ -52,7 +52,6 @@ let normalize str =
 
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
-  Format.eprintf "Matching functions %d and %d@." fun1 fun2;
   match (ExtArray.get funs1 fun1, ExtArray.get funs2 fun2) with
   | (Local { from_toString = i1; from_jalangi = u1 },
      Local { from_toString = i2; from_jalangi = u2 }) ->

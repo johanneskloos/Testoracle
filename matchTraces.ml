@@ -118,6 +118,7 @@ let is_blocked { known_blocked } trace1 trace2 stack =
 (** The matching engine itself. *)
 let rec matching_engine matching_state trace1 trace2 stack =
   (* Short-circuit matching if we have shown this case to be blocked. *)
+  (*Format.eprintf "At %d/%d with stack %a@." (List.length trace1) (List.length trace2) pp_print_stack stack;*)
   if is_blocked matching_state trace1 trace2 stack then begin
     MatchTracesObserver.log_blocked_shared (List.length trace1) (List.length trace2) stack;
     None
