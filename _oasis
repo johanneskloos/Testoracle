@@ -14,6 +14,13 @@ Executable "jstruthiness"
   MainIs:       oracleMain.ml
   BuildDepends: js-enrichment, unix, pcre
   CompiledObject: best
+
+Executable "jstruthiness-job"
+  Path:         .
+  BuildTools:   ocamlbuild
+  MainIs:       oracleJobClient.ml
+  BuildDepends: js-enrichment, unix, pcre, job, posix_resource
+  CompiledObject: best
   
 Executable "dumplog"
   Path:         .
