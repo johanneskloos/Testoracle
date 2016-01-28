@@ -65,13 +65,26 @@ let handle_job = function
       end
   | (xfrm, orig, None) -> run_job_limited xfrm orig
 
-let _ = Jobloop.job_loop (fun line ->
-                    try
-                      parse_job line
-                        |> handle_job
-                    with
-                      | BadName (reason, line) ->
-                          Format.eprintf "Bad name: %s in %s@." reason line
-                      | Invalid_argument arg ->
-                          Format.eprintf "Invalid argument: %s" arg)
+let job_callback line =
+  try
+    parse_job line
+      |> handle_job
+  with
+    | BadName (reason, line) ->
+        Format.eprintf "Bad name: %s in %s@." reason line
+    | Invalid_argument arg ->
+        Format.eprintf "Invalid argument: %s" arg
 
+open Arg 
+let port = ref 8888
+let parse_args () =
+  let args = [
+    ("-f", String (MatchFlags.parse_match_flags), "Matching flags");
+    ("-p", Int (fun p -> port := p), "Job server port")
+  ]
+  and usage_msg =
+    "Test oracle for Javascript trace equivalence, job client version. Usage:\n\
+     oracleJobClient [options]\n"
+  in parse args (fun _ -> failwith "Unexpected argument") usage_msg
+
+let _ = parse_args(); Jobloop.job_loop !port job_callback

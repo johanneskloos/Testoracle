@@ -7,7 +7,8 @@ let parse_args () =
   let names = ref [] in
   let args = [
     ("-D", Set Oracle.debug, "Debugging mode");
-    ("-t", String (MatchTracesObserver.open_observer), "Trace file")
+    ("-t", String (MatchTracesObserver.open_observer), "Trace file");
+    ("-f", String (MatchFlags.parse_match_flags), "Matching flags")
   ]
   and usage_msg =
     "Test oracle for Javascript trace equivalence. Usage:\n\

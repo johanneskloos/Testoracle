@@ -85,6 +85,14 @@ let wrap_reason = function
   | Some (name, reason) -> Some (DifferentObjects (name, reason))
   | None -> None
 
+let is_arguments = function
+  | (Reference.LocalVariable "arguments", _) -> true
+  | _ -> false
+
+let is_this = function
+  | (Reference.LocalVariable "this", _) -> true
+  | _ -> false
+
 (**
  * Check if two operations match. This does not take
  * any stack state into account; it purely matches the arguments.
@@ -108,12 +116,12 @@ let match_operations matching_state (op1, facts1) (op2, facts2) =
       (* Not checking ref equivalence; the initial value is provided by  *)
       (* a write later, so we don't need to handle it here, and it       *)
       (* breaks the function-declaring-function pattern.                 *)
-      (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2
+      check_eq "name" name1 name2
     | RCatch { name = name1; ref = ref1 }, RCatch { name = name2; ref = ref2 } ->
       (* Not checking ref equivalence; the initial value is provided by  *)
       (* a write later, so we don't need to handle it here, and it       *)
       (* breaks the function-declaring-function pattern.                 *)
-      (*check_ref "ref" ref1 ref2 &&&*) check_eq "name" name1 name2
+      check_eq "name" name1 name2
     | RAlias { name = name1; ref = ref1; source = src1 }, RAlias { name = name2; ref = ref2; source = src2 } ->
       match_source matching_state facts1 src1 facts2 src2 &&& check_ref "ref" ref1 ref2 &&& check_eq "name" name1 name2
     | RRead { ref = ref1; value = val1 }, RRead { ref = ref2; value = val2 } ->
@@ -121,14 +129,16 @@ let match_operations matching_state (op1, facts1) (op2, facts2) =
     | RWrite { ref = ref1; oldref = oref1; value = val1; success = succ1 }, RWrite { ref = ref2; oldref = oref2; value = val2; success = succ2 } ->
       (* Don't check oref; we probably need to check a proper match      *)
       (* between ref.                                                    *)
-      check_ref "ref" ref1 ref2 &&& check "val" val1 val2 (*&&& check_ref "oref" oref1 oref2*)
+        if !MatchFlags.lax_args && is_arguments ref1 && is_arguments ref2 then
+          None
+        else if !MatchFlags.lax_this && is_this ref1 && is_this ref2 then
+          None
+        else
+          check_ref "ref" ref1 ref2 &&& check "val" val1 val2
     | RForIn val1, RForIn val2 -> check "val" val1 val2
     | RReturn val1, RReturn val2 -> check "val" val1 val2
     | RThrow val1, RThrow val2 -> check "val" val1 val2
     | RWith val1, RWith val2 -> check "val" val1 val2
-    (* | RFunEnter { f = f1; this = this1; args = args1 }, RFunEnter { *)
-    (* f = f2; this = this2; args = args2 } -> check "f"   *)
-    (* f1 f2 &&& check "this" this1 this2 &&& check "args" args1 args2 *)
     | RFunExit { ret = ret1; exc = exc1 }, RFunExit { ret = ret2; exc = exc2 } ->
       check "ret" ret1 ret2 &&& check "ext" exc1 exc2
     | RScriptEnter, RScriptEnter -> None
@@ -303,8 +313,12 @@ let is_matching_entry matching_data (op1, facts1) (op2, facts2) =
   match op1, op2 with
   | RFunEnter { f = OFunction(_, f1); args = args1; this = this1 },
     RFunEnter { f = OFunction(_, f2); args = args2; this = this2 } ->
-    match_val "args" args1 args2 &&&
-    match_val "this" this1 this2
+      begin match !MatchFlags.lax_args, !MatchFlags.lax_this with
+        | true, true -> None
+        | true, false -> match_val "this" this1 this2
+        | false, true -> match_val "args" args1 args2
+        | false, false -> match_val "args" args1 args2 &&& match_val "this" this1 this2
+      end
   | _ -> Some NotEnter
 
 (** Check if a call goes to a known higher-order function. *)
