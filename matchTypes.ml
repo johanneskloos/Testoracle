@@ -10,6 +10,7 @@ type match_mode =
   | IndirectDefinitionPattern
   | ExtraFunctionPattern
   | ToStringUpdatePattern
+  | AliasMatchPattern
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -52,6 +53,8 @@ type match_condition =
   | IsLocalDecl
   | IsFunRead
   | IsEndOfExpr
+  | IsAliasMatch
+  | MatchAliasWrites
 
 (** Description of the current state of matching. *)
 type match_state =
@@ -66,6 +69,7 @@ type match_state =
   | InIndirectDefinitionPattern
   | InExtraFunctionPattern
   | InToStringUpdatePattern
+  | InAliasMatchPattern
 
 (**
  * The entries of the matching certificate.
@@ -149,6 +153,7 @@ let pp_match_mode pp = function
   | IndirectDefinitionPattern -> Format.pp_print_string pp "indirect-def"
   | ExtraFunctionPattern -> Format.pp_print_string pp "extra-func"
   | ToStringUpdatePattern -> Format.pp_print_string pp "tostring-update"
+  | AliasMatchPattern -> Format.pp_print_string pp "alias-match"
 
 let pp_match_operation pp = function
   | Initialization -> Format.pp_print_string pp "init"
@@ -175,7 +180,9 @@ let pp_print_stack pp =
       | WrapperEnter -> pp_print_char pp 'r'
       | IndirectDefinitionPattern -> pp_print_char pp 'i'
       | ExtraFunctionPattern -> pp_print_char pp 'e'
-      | ToStringUpdatePattern -> pp_print_char pp 'u')
+      | ToStringUpdatePattern -> pp_print_char pp 'u'
+      | AliasMatchPattern -> pp_print_char pp 'A'
+  )
 
 let pp_cond pp cond = pp_print_string pp (match cond with
       MatchSides -> "match operations"
@@ -199,7 +206,10 @@ let pp_cond pp cond = pp_print_string pp (match cond with
     | IsFunLiteral -> "is a function literal"
     | IsLocalDecl -> "is a local variable declaration"
     | IsFunRead -> "is a function read"
-    | IsEndOfExpr -> "is end-of-expression")
+    | IsEndOfExpr -> "is end-of-expression"
+    | IsAliasMatch -> "is an alias match"
+    | MatchAliasWrites -> "are matching writes for aliases")
+
 
 let pp_path pp = function
   | [] ->
@@ -275,6 +285,7 @@ let get_state = function
   | IndirectDefinitionPattern :: _ -> InIndirectDefinitionPattern
   | ExtraFunctionPattern :: _ -> InExtraFunctionPattern
   | ToStringUpdatePattern :: _ -> InToStringUpdatePattern
+  | AliasMatchPattern :: _ -> InAliasMatchPattern
   | [] -> InToplevel
 
 let pp_event_match pp = let open TraceTypes in function

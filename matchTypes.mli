@@ -10,6 +10,7 @@ type match_mode =
   | IndirectDefinitionPattern
   | ExtraFunctionPattern
   | ToStringUpdatePattern
+  | AliasMatchPattern
 
 (** Matching rules are build from match operations and match conditions.
  * First come the matching operations, which described how trace elements
@@ -52,6 +53,8 @@ type match_condition =
   | IsLocalDecl
   | IsFunRead
   | IsEndOfExpr
+  | IsAliasMatch
+  | MatchAliasWrites
 
 (** Description of the current state of matching. *)
 type match_state =
@@ -66,6 +69,7 @@ type match_state =
   | InIndirectDefinitionPattern
   | InExtraFunctionPattern
   | InToStringUpdatePattern
+  | InAliasMatchPattern
 
 (**
  * The entries of the matching certificate.

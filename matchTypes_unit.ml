@@ -13,6 +13,7 @@ let pp_match_state pp = let open Format in function
     | InIndirectDefinitionPattern -> pp_print_string pp "InIndirectDefinitionPattern"
     | InExtraFunctionPattern -> pp_print_string pp "InExtraFunctionPattern"
     | InToStringUpdatePattern -> pp_print_string pp "InToStringUpdatePattern"
+    | InAliasMatchPattern -> pp_print_string pp "InAliasMatchPattern"
 
 let test_get_state_inner (name, stack, state) =
   Test.make_simple_test ~title:name (fun () ->

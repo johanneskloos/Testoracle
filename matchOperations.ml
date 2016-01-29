@@ -396,6 +396,26 @@ let is_end_of_expr = function
   | (REndExpression, _) -> None
   | _ -> Some OtherOperation
 
+let is_alias_match (op1, _) (op2, _) =
+  if !MatchFlags.arg_undef then begin
+    match (op1, op2) with
+      | (RAlias { name = name1; source = Argument _ },
+         RLocal { name = name2 })
+          when name1 = name2 -> None
+      | (RLocal { name = name1 },
+         RAlias { name = name2; source = Argument _ })
+          when name1 = name2 -> None
+      | _ -> Some DifferentOperations
+  end else Some DifferentOperations
+
+let is_alias_write_match (op1, _) (op2, _) =
+  match op1, op2 with
+    | RWrite { value = OUndefined; success = true; ref=ref1; oldref=oldref1 },
+      RWrite { value = OUndefined; success = true; ref=ref2; oldref=oldref2 }
+        when ref1 = oldref1 && ref2 = oldref2 ->
+        None
+    | _ -> Some DifferentOperations
+
 (** DSL interface to matching functionality *)
 let interpret_cond matching_state op1 op2 = function
   | MatchSides -> match_operations matching_state op1 op2
@@ -420,3 +440,5 @@ let interpret_cond matching_state op1 op2 = function
   | IsLocalDecl -> is_local_decl op2
   | IsFunRead -> is_fun_read op2
   | IsEndOfExpr -> is_end_of_expr op2
+  | IsAliasMatch -> is_alias_match op1 op2
+  | MatchAliasWrites -> is_alias_write_match op1 op2

@@ -111,7 +111,9 @@ let output_stack st =
       | WrapperEnter -> "w"
       | IndirectDefinitionPattern -> "i"
       | ExtraFunctionPattern -> "e"
-      | ToStringUpdatePattern -> "u" in
+      | ToStringUpdatePattern -> "u"
+      | AliasMatchPattern -> "A"
+  in
   let output_mode x = <:html< $str:mode_to_string x$ >> in
   <:html<$list:List.map output_mode st$>>
 
@@ -260,6 +262,8 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     | IsLocalDecl -> <:html<$output_op op2$ is not a local declaration>>
     | IsFunRead -> <:html<$output_op op2$ is not a function read>>
     | IsEndOfExpr -> <:html<$output_op op2$ is not end-of-expr>>
+    | IsAliasMatch -> <:html<$output_op op1$ and $output_op op2$ are not an alias pair>>
+    | MatchAliasWrites  -> <:html<$output_op op1$ and $output_op op2$ are not matching alias writes>>
   in
   let output_obj_match_trace = function
     | NonMatching (path, val1, val2) ->

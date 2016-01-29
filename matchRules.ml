@@ -26,6 +26,12 @@ let rules_regular =
     ([MatchSides; IsFunLiteral], MatchPush IndirectDefinitionPattern);
     ([IsFunLiteral], WrapperPush ExtraFunctionPattern);
     ([IsFunRead], WrapperPush ToStringUpdatePattern);
+    ([IsAliasMatch], MatchReplace AliasMatchPattern);
+  ]
+
+let rules_alias_match_pattern =
+  [
+    ([MatchAliasWrites], MatchReplace Regular)
   ]
 
 let rules_regular_enter =
@@ -93,3 +99,4 @@ let find_rules = function
   | InIndirectDefinitionPattern -> rules_indirect_definition
   | InExtraFunctionPattern -> rules_extra_function
   | InToStringUpdatePattern -> rules_tostring_update
+  | InAliasMatchPattern -> rules_alias_match_pattern
