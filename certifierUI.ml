@@ -329,28 +329,44 @@ let trace_details_reasons { CertifierData.op1; CertifierData.op2; CertifierData.
     >>
 
 let trace_details_cases self tree idx =
-  let output_follower e =
-    <:html<
-      <li><a href="$str:self [("event", "details"); ("index", string_of_int (CertifierData.TraceTree.E.dst e))]$">$output_matchop (CertifierData.TraceTree.E.label e)$</a></li>
-    >>
-  in let open CertifierData in function
+  let open CertifierData in
+  let output_node_link idx label = 
+    <:html< <a href="$str:self [("event", "details"); ("index", string_of_int idx)]$">$label$</a> >>
+  and output_label e = output_matchop (TraceTree.E.label e)
+  in let output_predecessor tree idx = 
+  match CertifierData.TraceTree.pred_e tree idx with
+    | [ e ] -> output_node_link (TraceTree.E.src e) (output_label e)
+    | [] -> <:html<No predecessor>>
+    | _ -> <:html<Multiple predecessors?!>>
+  and try_fast_forward = function
+    | Some i -> output_node_link i <:html< Fast forward >>
+    | None -> <:html< >>
+  and output_follower e = 
+    <:html< <li>$output_node_link (TraceTree.E.dst e) (output_label e)$</li> >>
+  in function
     | FinalNodeData data ->
-      <:html< <h2>Reasons why no more matching is possible:</h2>$trace_details_reasons data$ >>
+      <:html< <h2>Predecessor node</h2>$output_predecessor tree idx$
+              <h2>Reasons why no more matching is possible:</h2>$trace_details_reasons data$ >>
     | NodeData data ->
       <:html< <h2>Follower nodes</h2>
               <ul>$list:TraceTree.fold_succ_e (fun e l -> output_follower e :: l) tree idx []$</ul> 
+              $try_fast_forward (find_fast_forward tree idx)$
+              <h2>Predecessor node</h2>$output_predecessor tree idx$
               <h2>Reasons why other matchings have been ruled out:</h2>$trace_details_reasons data$ >>
     | EndtraceData tr ->
       <:html< <h2>Leftover trace</h2>$output_trace tr$>>
     |  InitTailtraceData (tr, st) ->
       <:html<
+      <h2>Predecessor node</h2>$output_predecessor tree idx$
       <h2>Leftover trace</h2>$output_trace tr$
       <h2>Stack</h2>$output_stack st$
     >>
     | SuccessNode ->
-      <:html< Match successful! >>
+      <:html< Match successful!
+      <h2>Predecessor node</h2>$output_predecessor tree idx$>>
     | BlockedData (len1, len2, stack) ->
-      <:html< Blocked: A suffix pair of lengths $int:len1$, $int:len2$ is known not to match for stack $output_stack stack$>> 
+      <:html< Blocked: A suffix pair of lengths $int:len1$, $int:len2$ is known not to match for stack $output_stack stack$
+           <h2>Predecessor node</h2>$output_predecessor tree idx$ >> 
 
 let trace_details self base { CertifierData.tree; CertifierData.nodes } idx =
   let node_class = CertifierData.TraceNodes.find idx nodes

@@ -30,6 +30,8 @@ let parse_job line =
     | [ xfrm; ""; certname ] ->
         let (base, typename) = get_base xfrm in
           (xfrm, build_orig base, Some certname)
+    | [ xfrm; orig; "-" ] ->
+        (xfrm, orig, None)
     | [ xfrm; orig; "" ] ->
         let (base, typename) = get_base xfrm in
           (xfrm, orig, build_cert base typename)

@@ -13,7 +13,7 @@ module MatchOp = struct
   let compare: t -> t -> int = compare
   let default: t = MatchSimple
 end;;
-module TraceTree = Graph.Persistent.Digraph.ConcreteLabeled(IntSig)(MatchOp);;
+module TraceTree = Graph.Persistent.Digraph.ConcreteBidirectionalLabeled(IntSig)(MatchOp);;
 module TraceNodes = Map.Make(IntSig);;
 
 type trace_inner_node_data = {
@@ -129,3 +129,16 @@ let extract_data data =
       | MatchTracesObserver.RBlockedShared (id, len1, len2, stack) ->
         { tree; nodes = TraceNodes.add id (BlockedData (len1, len2, stack)) nodes })
     { tree = TraceTree.empty; nodes = TraceNodes.empty } data
+
+let find_fast_forward tree idx =
+  let step v =
+    match TraceTree.succ tree v with
+      | [ v' ] -> Some v'
+      | _ -> None
+  in let rec extend v =
+    match step v with
+      | Some v -> extend v
+      | None -> v
+  in match step idx with
+    | Some v -> Some (extend v)
+    | None -> None
