@@ -8,6 +8,10 @@ License:     PROP
 AlphaFeatures: ocamlbuild_more_args
 XOcamlbuildExtraArgs: -use-ocamlfind
 
+Flag certifier
+  Description:  "Build the certifier"
+  Default:      false
+
 Executable "jstruthiness"
   Path:         .
   BuildTools:   ocamlbuild
@@ -32,6 +36,7 @@ Executable "dumplog"
 
 Executable "certifier"
   Path:         .
+  Build$:       flag(certifier)
   BuildTools:   ocamlbuild
   MainIs:       certifier.ml
   BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
