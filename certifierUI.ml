@@ -1,4 +1,4 @@
-(*open MatchTypes*)
+open MatchTypes
 open TraceTypes
 
 let bad_path_page path =
@@ -191,8 +191,8 @@ let trace_main_page_leaves self { CertifierData.nodes } =
   CertifierData.TraceNodes.bindings nodes |>
   List.filter (function (_, CertifierData.NodeData _) -> false | _ -> true) |>
   List.partition (function (_, CertifierData.BlockedData _) -> false | _ -> true) |>
-  Misc.bmap (List.map fst) |>
-  Misc.bmap (List.sort compare) |>
+  BatTuple.Tuple2.mapn (List.map fst) |>
+  BatTuple.Tuple2.mapn (List.sort compare) |>
   (fun (l1, l2) -> l1 @ l2) |>
   fmt_node_link_list self
 
@@ -218,7 +218,7 @@ let trace_details_summary = let open CertifierData in function
     | SuccessNode -> <:html< <strong>Match successful</strong> >>
     | BlockedData _ -> <:html< <strong>Shared block</strong> >> 
 
-let output_mode m = <:html< $str:Misc.to_string MatchTypes.pp_match_mode m$>>
+let output_mode m = <:html< $str:Fmt.to_to_string MatchTypes.pp_match_mode m$>>
 
 let output_matchop = let open MatchTypes in function
     | MatchSimple -> <:html< Simple match>>

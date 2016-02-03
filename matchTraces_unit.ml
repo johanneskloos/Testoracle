@@ -8,7 +8,7 @@ open LocalFacts
 open Cleantrace
 open MatchTypes
 
-module StringMap = Misc.StringMap
+module StringMap = StringMap
 
 let (|>>) = (|>)
 let (|>) = Pervasives.(|>)
@@ -88,13 +88,13 @@ let add_init = VersionReferenceSet.add
 let state1 = {
   rt1 = dummy_rt;
   rt2 = dummy_rt;
-  objeq = ref Misc.IntIntMap.empty;
+  objeq = ref IntIntMap.empty;
   initialisation_data =
     VersionReferenceSet.empty
     |> add_init ref3;
   toString_data = [];
-  known_blocked = Misc.IntIntMap.empty;
-  nonequivalent_functions = Misc.IntIntSet.empty
+  known_blocked = IntIntMap.empty;
+  nonequivalent_functions = IntIntSet.empty
 }
 
 (** Some more small functions. *)

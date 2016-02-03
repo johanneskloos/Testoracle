@@ -4,7 +4,7 @@ open TraceTypes
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
-type objeq = failure_trace Misc.IntIntMap.t
+type objeq = failure_trace IntIntMap.t
 
 let is_base = function
   | OFunction _ | OObject _ | OOther _ -> false
@@ -17,12 +17,12 @@ type data = {
   facts2: local_facts;
   pt1: Reference.points_to_map;
   pt2: Reference.points_to_map;
-  noneq: Misc.IntIntSet.t
+  noneq: IntIntSet.t
 }
 
 type cmpname = string
 type recursive_matcher =
-  data -> Misc.IntIntSet.t -> objeq ref -> jsval * jsval -> failure_trace
+  data -> IntIntSet.t -> objeq ref -> jsval * jsval -> failure_trace
 
 let body_regex =
   let open Pcre in
@@ -86,61 +86,52 @@ let match_functions { funs1; funs2 } fun1 fun2 =
  * over-approximation. *)
 let match_functions_associated { funs1; funs2; noneq } fun1 fun2 =
   match ExtArray.get funs1 fun1, ExtArray.get funs2 fun2 with
-  | (Local _, Local _) -> not (Misc.IntIntSet.mem (fun1, fun2) noneq)
+  | (Local _, Local _) -> not (IntIntSet.mem (fun1, fun2) noneq)
   | (External id1, External id2) -> id1 = id2
   | _ -> false
 
-module StringMapExtra = Misc.MapExtra(Misc.StringMap);;
+type map_result = OK of jsval * jsval | Fail of bool
 
 let match_objects_raw
     (matchobj: recursive_matcher)
     ignored data seen objeq m1 m2 =
-  let fold fleft fright fboth =
-    StringMapExtra.fold2
-      (fun field _ -> function
-         | Some _ as r -> r
-         | None -> fleft field)
-      (fun field _ -> function
-         | Some _ as r -> r
-         | None -> fright field)
-      (fun field val1 val2 -> function
-         | Some _ as r -> r
-         | None -> fboth field val1 val2)
-      m1 m2 None
+  let mboth =
+    StringMap.merge (fun field ov1 ov2 ->
+        if List.mem field ignored then
+          None
+        else
+          match ov1, ov2 with
+          | Some v1, Some v2 -> Some (OK (v1, v2))
+          | Some _, None -> Some (Fail true)
+          | None, Some _ -> Some (Fail false)
+          | None, None -> failwith "Bad merge")
+      m1 m2
   and extend_error field failure_trace =
     match failure_trace with
     | Some (NonMatching (trace, v1, v2)) -> Some (NonMatching (field :: trace, v1, v2))
     | Some (MissingOrig (fld, tr)) -> Some (MissingOrig (fld, field :: tr))
     | Some (MissingXfrm (fld, tr)) -> Some (MissingXfrm (fld, field :: tr))
-    | _ -> failure_trace in
-  fold
-    (fun field ->
-       if List.mem field ignored then
-         None
-       else
-         Some (MissingXfrm (field, [])))
-    (fun field ->
-       if List.mem field ignored then
-         None
-       else
-         Some (MissingOrig (field, [])))
-    (fun field val1 val2 ->
-       if List.mem field ignored then
-         None
-       else
-         matchobj data seen objeq (val1, val2) |> extend_error field)
+    | _ -> failure_trace
+  in StringMap.fold (fun field vals -> function
+      | Some _ as err -> err
+      | None -> match vals with
+        | OK (v1, v2) ->
+          matchobj data seen objeq (v1, v2) |> extend_error field
+        | Fail true -> Some (MissingXfrm (field, []))
+        | Fail false -> Some (MissingOrig (field, [])))
+    mboth None
 
 let match_objects_memo matchobj ignored data seen objeq id1 id2 =
   let id1' = get_object_id id1 and id2' = get_object_id id2 in
-  if Misc.IntIntSet.mem (id1', id2') seen then begin
+  if IntIntSet.mem (id1', id2') seen then begin
     None
-  end else if Misc.IntIntMap.mem (id1', id2') !objeq then begin
-    Misc.IntIntMap.find (id1', id2') !objeq
+  end else if IntIntMap.mem (id1', id2') !objeq then begin
+    IntIntMap.find (id1', id2') !objeq
   end else begin
     let m1 = PointsTo.find_object_facts id1 data.facts1 data.pt1
     and m2 = PointsTo.find_object_facts id2 data.facts2 data.pt2
-    and seen' = Misc.IntIntSet.add (id1', id2') seen
-    and extend_cache res = objeq := Misc.IntIntMap.add (id1', id2') res !objeq; res in
+    and seen' = IntIntSet.add (id1', id2') seen
+    and extend_cache res = objeq := IntIntMap.add (id1', id2') res !objeq; res in
     match_objects_raw matchobj ignored data seen' objeq m1 m2
     |> extend_cache
   end
@@ -177,7 +168,7 @@ let match_values name = fun
   facts1 facts2 noneq obj1 obj2 objeq ->
   match
     match_values_raw { funs1; funs2; facts1; facts2; pt1; pt2; noneq }
-      Misc.IntIntSet.empty
+      IntIntSet.empty
       objeq
       (obj1, obj2)
   with
@@ -193,10 +184,10 @@ let match_refs_naming name (r1, _) (r2, _) = let open Reference in match r1, r2 
 let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
   try
     match match_refs_naming name r1 r2 with
-      | None ->
-         match_values name rt1 rt2 facts1 facts2 noneq
-          (Reference.VersionReferenceMap.find r1 rt1.points_to)
-          (Reference.VersionReferenceMap.find r2 rt2.points_to)
-          objeq
-      | Some _ as r -> r
+    | None ->
+      match_values name rt1 rt2 facts1 facts2 noneq
+        (Reference.VersionReferenceMap.find r1 rt1.points_to)
+        (Reference.VersionReferenceMap.find r2 rt2.points_to)
+        objeq
+    | Some _ as r -> r
   with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found

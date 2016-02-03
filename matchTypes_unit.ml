@@ -17,7 +17,7 @@ let pp_match_state pp = let open Format in function
 
 let test_get_state_inner (name, stack, state) =
   Test.make_simple_test ~title:name (fun () ->
-      Assert.make_equal (=) (Misc.to_string pp_match_state) (get_state stack) state)
+      Assert.make_equal (=) (Fmt.to_to_string pp_match_state) (get_state stack) state)
 
 let tests =(List.map test_get_state_inner [
     ("get_state - InToplevel", [], InToplevel);

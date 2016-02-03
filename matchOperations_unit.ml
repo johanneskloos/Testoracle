@@ -12,46 +12,46 @@ let obj0_toString = Reference.reference_of_field (OObject 0) "toString"
 let default_state = {
   rt1 = test_rt1;
   rt2 = test_rt2;
-  objeq = ref Misc.IntIntMap.empty;
+  objeq = ref IntIntMap.empty;
   initialisation_data =
     Reference.VersionReferenceSet.empty
     |> Reference.VersionReferenceSet.add (obj0_toString, 0);
   toString_data = [];
-  nonequivalent_functions = Misc.IntIntSet.empty;
-  known_blocked = Misc.IntIntMap.empty
+  nonequivalent_functions = IntIntSet.empty;
+  known_blocked = IntIntMap.empty
 }
 
 let reset_default_state () =
-  default_state.objeq := Misc.IntIntMap.empty;
-  default_state.nonequivalent_functions <- Misc.IntIntSet.empty;
-  default_state.known_blocked <- Misc.IntIntMap.empty
+  default_state.objeq := IntIntMap.empty;
+  default_state.nonequivalent_functions <- IntIntSet.empty;
+  default_state.known_blocked <- IntIntMap.empty
 
 let pp_rich_event pp (op, _) = pp_rich_operation pp op
 
 let default_predicate_tester predname pred poslist neglist =
   List.map (fun pos ->
       Test.make_simple_test
-        ~title:(predname ^ ": " ^ Misc.to_string pp_rich_event pos)
+        ~title:(predname ^ ": " ^ Fmt.to_to_string pp_rich_event pos)
         (fun () -> reset_default_state();
-          assert_is_None ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred default_state pos)))
+          assert_is_None ~prn:(Fmt.to_to_string MatchTypes.pp_mismatch) (pred default_state pos)))
     poslist @
   List.map (fun neg ->
       Test.make_simple_test
-        ~title:(predname ^ ": " ^ Misc.to_string pp_rich_event neg)
+        ~title:(predname ^ ": " ^ Fmt.to_to_string pp_rich_event neg)
         (fun () -> reset_default_state();
-          assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred default_state neg)))
+          assert_is_Some ~prn:(Fmt.to_to_string MatchTypes.pp_mismatch) (pred default_state neg)))
     neglist
 
 let default_simple_predicate_tester predname pred (poslist: rich_event list) (neglist: rich_event list) =
   List.map (fun pos ->
       Test.make_simple_test
-        ~title:(predname ^ ": " ^ Misc.to_string pp_rich_event pos)
-        (fun () -> assert_is_None ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred pos)))
+        ~title:(predname ^ ": " ^ Fmt.to_to_string pp_rich_event pos)
+        (fun () -> assert_is_None ~prn:(Fmt.to_to_string MatchTypes.pp_mismatch) (pred pos)))
     poslist @
   List.map (fun neg ->
       Test.make_simple_test
-        ~title:(predname ^ ": " ^ Misc.to_string pp_rich_event neg)
-        (fun () -> assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (pred neg)))
+        ~title:(predname ^ ": " ^ Fmt.to_to_string pp_rich_event neg)
+        (fun () -> assert_is_Some ~prn:(Fmt.to_to_string MatchTypes.pp_mismatch) (pred neg)))
     neglist
 
 let xref = Reference.reference_of_field (OObject 4) "val"
@@ -236,11 +236,11 @@ let test_comparator funcname func pos1 pos2 neg1 neg2 neg =
     Format.asprintf "%s: %a, %a" funcname pp_rich_event op1 pp_rich_event op2
   in let make_neg op1 op2 =
        Test.make_simple_test ~title:(mktitle op1 op2)
-         (fun () -> assert_is_Some ~prn:(Misc.to_string MatchTypes.pp_mismatch) (func default_state op1 op2))
+         (fun () -> assert_is_Some ~prn:(Fmt.to_to_string MatchTypes.pp_mismatch) (func default_state op1 op2))
   in let rec posbuild pos1 pos2 = match pos1, pos2 with
       | op1::pos1, op2::pos2 ->
         Test.make_simple_test ~title:(mktitle op1 op2)
-          (fun () -> assert_is_None ~prn:(Misc.to_string MatchTypes.pp_mismatch) (func default_state op1 op2)) ::
+          (fun () -> assert_is_None ~prn:(Fmt.to_to_string MatchTypes.pp_mismatch) (func default_state op1 op2)) ::
         List.map (make_neg op1) (pos2 @ neg2 @ neg) @ List.map (fun op1' -> make_neg op1' op2) (pos1 @ neg1 @ neg) @
         posbuild pos1 pos2
       | [], [] -> []

@@ -1,7 +1,6 @@
 open TraceTypes
 open Types
 open MatchTypes
-module Option = Misc.Option
 
 (**
  * Basic predicates.
@@ -324,21 +323,14 @@ let is_matching_entry matching_data (op1, facts1) (op2, facts2) =
 (** Check if a call goes to a known higher-order function. *)
 let is_call_to { funcs; objs; points_to } name: funpre -> bool = function
   | { f = OFunction(_, id); base } (*as rt*) ->
-      (*
-    Format.eprintf "Checking if %a is a higher-order call to %a@."
-      pp_rich_operation (RFunPre rt) (FormatHelper.pp_print_list Format.pp_print_string) name;
-       *)
     begin
       let rec lookup base name = match name with
         | component :: rest ->
-          lookup (Misc.StringMap.find component (ExtArray.get objs (get_object base))).value rest
+          lookup (StringMap.find component (ExtArray.get objs (get_object base))).value rest
         | [] -> base
       in try
         let get path = lookup (OObject 0) path in
         let called_via path id' =
-          (*
-          Format.eprintf "Checking for indirect call via %a@."
-            (FormatHelper.pp_print_list Format.pp_print_string) path;*)
           match get path, base with
           | OFunction(_, id''), OFunction(_, id''') when id = id'' ->
             (*Format.eprintf "%d vs. %d@." id'' id';*) id''' = id'

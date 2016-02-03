@@ -12,7 +12,7 @@ type data = {
   facts2 : local_facts;
   pt1 : Reference.points_to_map;
   pt2 : Reference.points_to_map;
-  noneq: Misc.IntIntSet.t;
+  noneq: IntIntSet.t;
 }
 (** Strict matching of functions. Two functions match strictly
  * if they have the same implementation. *)
@@ -24,7 +24,7 @@ val match_functions_associated : data -> int -> int -> bool
 (** The type of the main function for recursive object matching. *)
 type recursive_matcher =
   data ->
-  Misc.IntIntSet.t ->
+  IntIntSet.t ->
   objeq ref -> jsval * jsval -> failure_trace
 
 (** ** Matching of the recursive object structure. *)
@@ -52,12 +52,12 @@ type recursive_matcher =
 *)
 val match_objects_raw :
   recursive_matcher ->
-  Misc.StringMap.key list ->
+  StringMap.key list ->
   data ->
-  Misc.IntIntSet.t ->
+  IntIntSet.t ->
   objeq ref ->
-  jsval Misc.StringMap.t ->
-  jsval Misc.StringMap.t -> failure_trace
+  jsval StringMap.t ->
+  jsval StringMap.t -> failure_trace
 
 (** [match_objects_memo matchobj ignored data seen objeq id1 id2]
  * checks whether two objects, refered to by their ids [id1] and [id2],
@@ -76,8 +76,8 @@ val match_objects_raw :
 *)
 val match_objects_memo :
   recursive_matcher ->
-  Misc.StringMap.key list ->
-  data -> Misc.IntIntSet.t -> objeq ref ->
+  StringMap.key list ->
+  data -> IntIntSet.t -> objeq ref ->
   objectid -> objectid -> failure_trace
 
 (** [match_values_raw cmpname data seen objeq (v1, v2)] checks
@@ -106,7 +106,7 @@ val match_values :
   rich_tracefile ->
   local_facts ->
   local_facts ->
-  Misc.IntIntSet.t ->
+  IntIntSet.t ->
   jsval -> jsval -> objeq ref -> named_failure_trace
 
 (** [match_references rt1 rt2 facts1 facts2 r1 r2 objeq]
@@ -118,6 +118,6 @@ val match_refs :
   rich_tracefile ->
   local_facts ->
   local_facts ->
-  Misc.IntIntSet.t ->
+  IntIntSet.t ->
   Reference.VersionReferenceMap.key ->
   Reference.VersionReferenceMap.key -> objeq ref -> named_failure_trace

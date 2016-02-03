@@ -128,7 +128,7 @@ type mismatch =
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
-type objeq = failure_trace Misc.IntIntMap.t
+type objeq = failure_trace IntIntMap.t
 
 (** State information for matching.
  * There are three kinds of information:
@@ -144,8 +144,8 @@ type matching_state = {
   objeq: objeq ref;
   initialisation_data: Reference.VersionReferenceSet.t;
   toString_data: Types.jsval list;
-  mutable nonequivalent_functions: Misc.IntIntSet.t;
-  mutable known_blocked: match_mode list list Misc.IntIntMap.t
+  mutable nonequivalent_functions: IntIntSet.t;
+  mutable known_blocked: match_mode list list IntIntMap.t
 }
 
 (** Pretty-printers *)
