@@ -51,7 +51,7 @@ let extend_matching op op1 op2 matching =
   | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
 let collect_object_references { rt2 = { TraceTypes.objs } } facts id =
-  ExtArray.get objs (Types.get_object_id id)
+  BatDynArray.get objs (Types.get_object_id id)
   |> StringMap.bindings
   |> List.map (fun (field, _) -> Reference.reference_of_fieldref (id, field) |> LocalFacts.make_versioned facts)
 

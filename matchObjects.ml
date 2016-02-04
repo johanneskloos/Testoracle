@@ -52,7 +52,7 @@ let normalize str =
 
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
-  match (ExtArray.get funs1 fun1, ExtArray.get funs2 fun2) with
+  match (BatDynArray.get funs1 fun1, BatDynArray.get funs2 fun2) with
   | (Local { from_toString = i1; from_jalangi = u1 },
      Local { from_toString = i2; from_jalangi = u2 }) ->
     (* This is a hack. The function text used here can be either *)
@@ -85,7 +85,7 @@ let match_functions { funs1; funs2 } fun1 fun2 =
 (** Associated matching of functions. This gives a coarse
  * over-approximation. *)
 let match_functions_associated { funs1; funs2; noneq } fun1 fun2 =
-  match ExtArray.get funs1 fun1, ExtArray.get funs2 fun2 with
+  match BatDynArray.get funs1 fun1, BatDynArray.get funs2 fun2 with
   | (Local _, Local _) -> not (IntIntSet.mem (fun1, fun2) noneq)
   | (External id1, External id2) -> id1 = id2
   | _ -> false

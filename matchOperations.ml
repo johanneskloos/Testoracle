@@ -220,7 +220,7 @@ let convert
 
 let is_internal_call_impl { funcs } f =
   try
-    begin match ExtArray.get funcs f with Local _ -> None | External _ -> Some ExternalCall end
+    begin match BatDynArray.get funcs f with Local _ -> None | External _ -> Some ExternalCall end
   with
   | e -> Format.eprintf "trying to get %d from %a@." f
            pp_functions funcs; raise e
@@ -326,7 +326,7 @@ let is_call_to { funcs; objs; points_to } name: funpre -> bool = function
     begin
       let rec lookup base name = match name with
         | component :: rest ->
-          lookup (StringMap.find component (ExtArray.get objs (get_object base))).value rest
+          lookup (StringMap.find component (BatDynArray.get objs (get_object base))).value rest
         | [] -> base
       in try
         let get path = lookup (OObject 0) path in

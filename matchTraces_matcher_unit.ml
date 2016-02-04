@@ -54,7 +54,7 @@ let body1 = "function f1 (args) { body 1 }"
 let body2 = "function f2 (args) { body 2 }"
 let fun_u = [|
   Local { from_toString = body1; from_jalangi = Some body1 }
-|] |> ExtArray.of_array
+|] |> BatDynArray.of_array
 let add_field name value fields =
   StringMap.add name
     { value; writable = true; get = None; set = None; enumerable = true;
@@ -65,7 +65,7 @@ let objs_u = [|
   StringMap.empty;
   StringMap.empty |> add_field "base" (OBoolean true);
   StringMap.empty |> add_field "0" (ONumberFloat 1.0)
-|] |> ExtArray.of_array
+|] |> BatDynArray.of_array
 let objs_m = [|
   StringMap.empty |> add_field "dist0r" OUndefined;
   StringMap.empty |> add_field "dist1r" OUndefined;
@@ -74,13 +74,13 @@ let objs_m = [|
   StringMap.empty |> add_field "dist4r" OUndefined;
   StringMap.empty |> add_field "base" (OBoolean true);
   StringMap.empty |> add_field "0" (ONumberFloat 1.0)
-|] |> ExtArray.of_array
+|] |> BatDynArray.of_array
 
 let fun_m = [|
   External 17;
   Local { from_toString = body1; from_jalangi = Some body1 };
   Local { from_toString = body2; from_jalangi = Some body2 }
-|] |> ExtArray.of_array
+|] |> BatDynArray.of_array
 let rtu1 = {
   funcs = fun_u;
   objs = objs_u;
