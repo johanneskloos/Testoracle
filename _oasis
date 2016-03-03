@@ -5,8 +5,8 @@ Synopsis:    JSStreaming testing tools
 Authors:     Johannes Kloos
 Plugins:     StdFiles (0.4)
 License:     PROP
-AlphaFeatures: ocamlbuild_more_args
-XOcamlbuildExtraArgs: -use-ocamlfind
+OCamlVersion: >= 4.02.1
+AlphaFeatures: no_automatic_syntax
 
 Flag certifier
   Description:  "Build the certifier"
@@ -34,23 +34,23 @@ Executable "dumplog"
   BuildDepends: js-enrichment
   CompiledObject: best
 
-Executable "certifier"
-  Path:         .
-  Build$:       flag(certifier)
-  BuildTools:   ocamlbuild
-  MainIs:       certifier.ml
-  BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
-                ocamlgraph, cohttp, cohttp.lwt, lwt.unix, pcre
-  CompiledObject: best
-
-Executable "unittests"
-  Path:       .
-  BuildTools: ocamlbuild
-  Install:    false
-  Build$:     flag(tests)
-  MainIs:     unittests.ml
-  BuildDepends: kaputt, js-enrichment, js-enrichment.test, pcre
-
-Test "unittests"
-  Command:    $unittests
-  Run:        true
+#Executable "certifier"
+#  Path:         .
+#  Build$:       flag(certifier)
+#  BuildTools:   ocamlbuild
+#  MainIs:       certifier.ml
+#  BuildDepends: js-enrichment, cow, cow.syntax, lwt, batteries,
+#                ocamlgraph, cohttp, cohttp.lwt, lwt.unix, pcre
+#  CompiledObject: best
+#
+#Executable "unittests"
+#  Path:       .
+#  BuildTools: ocamlbuild
+#  Install:    false
+#  Build$:     flag(tests)
+#  MainIs:     unittests.ml
+#  BuildDepends: kaputt, js-enrichment, js-enrichment.test, pcre
+#
+#Test "unittests"
+#  Command:    $unittests
+#  Run:        true
