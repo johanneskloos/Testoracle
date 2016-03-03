@@ -50,11 +50,11 @@ let ref3 = (reference_of_fieldref (Object 5, "x"), 5)
 let ref4 = (reference_of_fieldref (Object 5, "x"), 8)
 let ref5 = (reference_of_fieldref (Object 0, "toString"), 0)
 let ref6 = (reference_of_fieldref (Object 0, "toString"), 1)
-let add_pt = VersionReferenceMap.add
+let add_pt = VersionedReferenceMap.add
 let gref1 = (Reference.reference_of_name false StringMap.empty true "a", 0)
 let gref2 = (Reference.reference_of_name false StringMap.empty true "b", 0)
 let points_to =
-  VersionReferenceMap.empty
+  VersionedReferenceMap.empty
   |> add_pt ref1 (ONumberInt 17)
   |> add_pt ref2 (ONumberInt 18)
   |> add_pt ref3 (OBoolean true)
@@ -84,13 +84,13 @@ let state1_facts = {
   aliases = StringMap.empty
 }
 
-let add_init = VersionReferenceSet.add
+let add_init = VersionedReferenceSet.add
 let state1 = {
   rt1 = dummy_rt;
   rt2 = dummy_rt;
   objeq = ref IntIntMap.empty;
   initialisation_data =
-    VersionReferenceSet.empty
+    VersionedReferenceSet.empty
     |> add_init ref3;
   toString_data = [];
   known_blocked = IntIntMap.empty;

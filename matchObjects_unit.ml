@@ -9,8 +9,8 @@ let (|>) = Pervasives.(|>)
 let test_data = {
   funs1 = functab1;
   funs2 = functab2;
-  facts1 = local_facts_1;
-  facts2 = local_facts_2;
+  facts1 = rich_facts_1;
+  facts2 = rich_facts_2;
   pt1 = points_to_1;
   pt2 = points_to_2;
   noneq = IntIntSet.empty
@@ -133,8 +133,8 @@ let same_data
         noneq = noneq2 } =
   same_functions funs11 funs12;
   same_functions funs21 funs22;
-  same_local_facts facts11 facts12;
-  same_local_facts facts21 facts22;
+  same_rich_facts facts11 facts12;
+  same_rich_facts facts21 facts22;
   AssertVersionedReferenceMap.make_equal (=) (Fmt.to_to_string pp_jsval)
     pt11 pt12;
   AssertVersionedReferenceMap.make_equal (=) (Fmt.to_to_string pp_jsval)

@@ -1,5 +1,5 @@
 open MatchTypes
-module VersionReferenceSet = Reference.VersionReferenceSet
+module VersionedReferenceSet = Reference.VersionedReferenceSet
 module IntIntMap = IntIntMap
 
 let interpret_conds matching_state op1 op2 conds =
@@ -66,13 +66,13 @@ let perpetuate_initialisation_data matching_state (op, facts) =
   let init_new =
     match op with
     | RWrite { ref; oldref }
-      when VersionReferenceSet.mem oldref init_old ->
-      VersionReferenceSet.add ref init_old
+      when VersionedReferenceSet.mem oldref init_old ->
+      VersionedReferenceSet.add ref init_old
     | RLiteral { value } ->
-      List.fold_left (fun init ref -> VersionReferenceSet.add ref init)
+      List.fold_left (fun init ref -> VersionedReferenceSet.add ref init)
         init_old (collect_references matching_state facts value)
     | RLocal { ref } ->
-      VersionReferenceSet.add ref init_old
+      VersionedReferenceSet.add ref init_old
     | _ -> init_old
   in
   { matching_state with initialisation_data = init_new }
@@ -169,7 +169,7 @@ let match_traces rt1 rt2 =
   matching_engine
     { rt1; rt2;
       objeq = ref IntIntMap.empty;
-      initialisation_data = VersionReferenceSet.empty;
+      initialisation_data = VersionedReferenceSet.empty;
       toString_data = [];
       nonequivalent_functions = IntIntSet.empty;
       known_blocked = IntIntMap.empty

@@ -45,8 +45,8 @@ let tu2 = [ rfp_0; rfe_0; run; rfx; rfo_0; rse ]
 let tm2 = [ rfp_2; rfe_2; rfp_1; rfe_1; run; rfx; rfo_1; rfx; rfo_2; rse ]
 
 let enrich = 
-  let empty_local_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = StringMap.empty; points_to = Reference.VersionReferenceMap.empty } in
-  List.map (fun x -> (x, empty_local_facts))
+  let empty_rich_facts = { last_arguments = None; last_update = None; versions = ReferenceMap.empty; aliases = StringMap.empty; points_to = Reference.VersionedReferenceMap.empty } in
+  List.map (fun x -> (x, empty_rich_facts))
 
 module StringMap = StringMap
 
@@ -85,7 +85,7 @@ let rtu1 = {
   funcs = fun_u;
   objs = objs_u;
   trace = enrich tu1;
-  points_to = VersionReferenceMap.empty;
+  points_to = VersionedReferenceMap.empty;
   globals_are_properties = false;
   globals = StringMap.empty
 }
@@ -93,7 +93,7 @@ let rtu2 = {
   funcs = fun_u;
   objs = objs_u;
   trace = enrich tu2;
-  points_to = VersionReferenceMap.empty;
+  points_to = VersionedReferenceMap.empty;
   globals_are_properties = false;
   globals = StringMap.empty
 }
@@ -101,7 +101,7 @@ let rtm1 = {
   funcs = fun_m;
   objs = objs_m;
   trace = enrich tm1;
-  points_to = VersionReferenceMap.empty;
+  points_to = VersionedReferenceMap.empty;
   globals_are_properties = false;
   globals = StringMap.empty
 }
@@ -109,7 +109,7 @@ let rtm2 = {
   funcs = fun_m;
   objs = objs_m;
   trace = enrich tm2;
-  points_to = VersionReferenceMap.empty;
+  points_to = VersionedReferenceMap.empty;
   globals_are_properties = false;
   globals = StringMap.empty
 }

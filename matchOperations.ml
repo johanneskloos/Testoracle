@@ -85,11 +85,11 @@ let wrap_reason = function
   | None -> None
 
 let is_arguments = function
-  | (Reference.LocalVariable "arguments", _) -> true
+  | (Reference.Variable (_, "arguments"), _) -> true
   | _ -> false
 
 let is_this = function
-  | (Reference.LocalVariable "this", _) -> true
+  | (Reference.Variable (_, "this"), _) -> true
   | _ -> false
 
 (**
@@ -159,12 +159,12 @@ let match_operations matching_state (op1, facts1) (op2, facts2) =
  * These two predicates classify certain types of writes.
 *)
 let is_instrumentation_write { initialisation_data } = explain_wrapper NotInitData (function
-    | RWrite { oldref } -> Reference.VersionReferenceSet.mem oldref initialisation_data
+    | RWrite { oldref } -> Reference.VersionedReferenceSet.mem oldref initialisation_data
     | _ -> false)
 
 let is_function_update { rt2 } = explain_wrapper NotFunctionUpdate (function
     | RWrite { ref } ->
-      begin try match Reference.VersionReferenceMap.find ref rt2.points_to with
+      begin try match Reference.VersionedReferenceMap.find ref rt2.points_to with
         | OFunction _ -> true
         | _ -> false
         with Not_found ->
@@ -220,7 +220,7 @@ let convert
 
 let is_internal_call_impl { funcs } f =
   try
-    begin match BatDynArray.get funcs f with Local _ -> None | External _ -> Some ExternalCall end
+    begin match BatDynArray.get funcs f with External _ -> Some ExternalCall | _ -> None end
   with
   | e -> Format.eprintf "trying to get %d from %a@." f
            pp_functions funcs; raise e

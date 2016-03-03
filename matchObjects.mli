@@ -8,8 +8,8 @@ val is_base : jsval -> bool
 type data = {
   funs1 : functions;
   funs2 : functions;
-  facts1 : local_facts;
-  facts2 : local_facts;
+  facts1 : rich_facts;
+  facts2 : rich_facts;
   pt1 : Reference.points_to_map;
   pt2 : Reference.points_to_map;
   noneq: IntIntSet.t;
@@ -104,8 +104,8 @@ val match_values :
   string ->
   rich_tracefile ->
   rich_tracefile ->
-  local_facts ->
-  local_facts ->
+  rich_facts ->
+  rich_facts ->
   IntIntSet.t ->
   jsval -> jsval -> objeq ref -> named_failure_trace
 
@@ -116,8 +116,8 @@ val match_refs :
   string ->
   rich_tracefile ->
   rich_tracefile ->
-  local_facts ->
-  local_facts ->
+  rich_facts ->
+  rich_facts ->
   IntIntSet.t ->
-  Reference.VersionReferenceMap.key ->
-  Reference.VersionReferenceMap.key -> objeq ref -> named_failure_trace
+  Reference.VersionedReferenceMap.key ->
+  Reference.VersionedReferenceMap.key -> objeq ref -> named_failure_trace

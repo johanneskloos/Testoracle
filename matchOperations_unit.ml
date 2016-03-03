@@ -14,8 +14,8 @@ let default_state = {
   rt2 = test_rt2;
   objeq = ref IntIntMap.empty;
   initialisation_data =
-    Reference.VersionReferenceSet.empty
-    |> Reference.VersionReferenceSet.add (obj0_toString, 0);
+    Reference.VersionedReferenceSet.empty
+    |> Reference.VersionedReferenceSet.add (obj0_toString, 0);
   toString_data = [];
   nonequivalent_functions = IntIntSet.empty;
   known_blocked = IntIntMap.empty
@@ -55,27 +55,27 @@ let default_simple_predicate_tester predname pred (poslist: rich_event list) (ne
     neglist
 
 let xref = Reference.reference_of_field (OObject 4) "val"
-let test_funpre = (RFunPre { f = obj1_fun1; base = vundef; args = obj1_simp1; call_type = Method }, local_facts_1) 
-let test_funpost = (RFunPost { f = obj1_fun1; base = vundef; args = obj1_simp1; result = v1; call_type = Method }, local_facts_1)
-let test_literal = (RLiteral { value = v2; hasGetterSetter = false }, local_facts_1)
-let test_forin = (RForIn obj1_cyc1, local_facts_1)
-let test_local = (RLocal { name = "x"; ref = (xref, 0) }, local_facts_1)
-let test_catch = (RCatch { name = "x"; ref = (xref, 0) }, local_facts_1)
-let test_alias = (RAlias { name = "x"; ref = (xref, 0); source = Argument 0 }, local_facts_1)
-let test_read = (RRead { ref = (xref, 0); value = v1 }, local_facts_1)
-let test_write = (RWrite { oldref = (xref, 0); ref = (xref, 0); value = v1; success = true }, local_facts_1)
-let test_return = (RReturn obj1_cyc1, local_facts_1)
-let test_throw = (RThrow obj1_cyc1, local_facts_1)
-let test_with = (RWith obj1_cyc1, local_facts_1)
-let test_enter = (RFunEnter { f = obj1_fun1; this = vundef; args = obj1_simp1 }, local_facts_1)
-let test_exit = (RFunExit { ret = v1; exc = vundef }, local_facts_1)
-let test_senter = (RScriptEnter, local_facts_1)
-let test_sexit = (RScriptExit, local_facts_1)
-let test_sexc = (RScriptExc v0, local_facts_1)
-let test_binary = (RBinary { op = "+"; left = v1; right = v2; result = v1 }, local_facts_1)
-let test_unary = (RUnary { op = "-"; arg = v0; result = v0 }, local_facts_1)
-let test_eend = (REndExpression, local_facts_1)
-let test_cond = (RConditional vtrue, local_facts_1)
+let test_funpre = (RFunPre { f = obj1_fun1; base = vundef; args = obj1_simp1; call_type = Method }, rich_facts_1) 
+let test_funpost = (RFunPost { f = obj1_fun1; base = vundef; args = obj1_simp1; result = v1; call_type = Method }, rich_facts_1)
+let test_literal = (RLiteral { value = v2; hasGetterSetter = false }, rich_facts_1)
+let test_forin = (RForIn obj1_cyc1, rich_facts_1)
+let test_local = (RLocal { name = "x"; ref = (xref, 0) }, rich_facts_1)
+let test_catch = (RCatch { name = "x"; ref = (xref, 0) }, rich_facts_1)
+let test_alias = (RAlias { name = "x"; ref = (xref, 0); source = Argument 0 }, rich_facts_1)
+let test_read = (RRead { ref = (xref, 0); value = v1 }, rich_facts_1)
+let test_write = (RWrite { oldref = (xref, 0); ref = (xref, 0); value = v1; success = true }, rich_facts_1)
+let test_return = (RReturn obj1_cyc1, rich_facts_1)
+let test_throw = (RThrow obj1_cyc1, rich_facts_1)
+let test_with = (RWith obj1_cyc1, rich_facts_1)
+let test_enter = (RFunEnter { f = obj1_fun1; this = vundef; args = obj1_simp1 }, rich_facts_1)
+let test_exit = (RFunExit { ret = v1; exc = vundef }, rich_facts_1)
+let test_senter = (RScriptEnter, rich_facts_1)
+let test_sexit = (RScriptExit, rich_facts_1)
+let test_sexc = (RScriptExc v0, rich_facts_1)
+let test_binary = (RBinary { op = "+"; left = v1; right = v2; result = v1 }, rich_facts_1)
+let test_unary = (RUnary { op = "-"; arg = v0; result = v0 }, rich_facts_1)
+let test_eend = (REndExpression, rich_facts_1)
+let test_cond = (RConditional vtrue, rich_facts_1)
 
 let test_all_ops = [
   test_funpre; test_funpost; test_literal; test_forin; test_local; test_catch; test_alias; test_read; test_write;
@@ -109,7 +109,7 @@ let tests_may_insert_in_toString_simple =
 
 let tests_is_fun_literal_simple =
   simple_simple_predicate_tester_pos "is_fun_literal" is_fun_literal
-    [ (RLiteral { value = obj1_fun1; hasGetterSetter = false }, local_facts_1) ]
+    [ (RLiteral { value = obj1_fun1; hasGetterSetter = false }, rich_facts_1) ]
 
 let tests_is_local_decl_simple =
   simple_simple_predicate_tester_pos "is_local_decl" is_local_decl
@@ -117,7 +117,7 @@ let tests_is_local_decl_simple =
 
 let tests_is_fun_read_simple =
   simple_simple_predicate_tester_pos "is_fun_read" is_fun_read
-    [ (RRead { ref = (xref, 0); value = obj1_fun1 }, local_facts_1) ]
+    [ (RRead { ref = (xref, 0); value = obj1_fun1 }, rich_facts_1) ]
 
 let tests_is_end_of_expr_simple =
   simple_simple_predicate_tester_pos "is_end_of_expr" is_end_of_expr
@@ -178,18 +178,18 @@ let simple_predicate_tests =
 
 let tests_is_instrumentation_write =
   simple_predicate_tester_pos "is_instrumentation_write" is_instrumentation_write
-    [ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, local_facts_1) ]
+    [ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, rich_facts_1) ]
 
 let tests_is_function_update =
   let funref = Reference.reference_of_field (OObject 0) "toString" in
   simple_predicate_tester_pos "is_function_update" is_function_update
-    [ (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1) ]
+    [ (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, rich_facts_1) ]
 
 let tests_may_insert_in_init =
   let funref = Reference.reference_of_field (OObject 0) "toString" in
   simple_predicate_tester_pos "may_insert_in_init" may_insert_in_init
-    [ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, local_facts_1);
-      (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1);
+    [ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, rich_facts_1);
+      (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, rich_facts_1);
       test_funpost; test_literal; test_forin; test_local; test_catch;
       test_alias; test_read; test_return; test_with; test_enter;
       test_senter; test_sexit;	test_sexc; test_binary;	test_unary;
@@ -198,8 +198,8 @@ let tests_may_insert_in_init =
 let tests_may_insert_in_wrap_simple =
   let funref = Reference.reference_of_field (OObject 0) "toString" in
   simple_predicate_tester_pos "may_insert_in_wrap_simple" may_insert_in_wrap_simple
-    [ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, local_facts_1);
-      (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, local_facts_1);
+    [ (RWrite { ref = (obj0_toString, 0); oldref = (obj0_toString, 0); value = v0; success = true }, rich_facts_1);
+      (RWrite { ref = (funref, 0); oldref = (funref, 0); value = vtrue; success = true }, rich_facts_1);
       test_funpost; test_literal; test_forin; test_local; test_catch;
       test_alias; test_read; test_return; test_with; test_enter;
       test_senter; test_sexit;	test_sexc; test_binary;	test_unary;
@@ -223,8 +223,8 @@ let test_is_internal_call_impl_neg =
 
 let tests_is_internal_call =
   default_simple_predicate_tester "is_internal_call" (is_internal_call test_rt2)
-    [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
-    [ (RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
+    [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, rich_facts_2) ]
+    [ (RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, rich_facts_2) ]
 
 let internal_call_tests =
   test_is_internal_call_impl_pos ::
@@ -250,27 +250,27 @@ let test_comparator funcname func pos1 pos2 neg1 neg2 neg =
   List.flatten (List.map (fun op1 -> List.map (fun op2 -> make_neg op1 op2) (neg2 @ neg)) (neg1 @ neg))
 
 let xref2 = Reference.reference_of_field (OObject 1) "val"
-let test2_funpre = (RFunPre { f = obj2_fun1; base = vundef; args = obj2_simp1; call_type = Method }, local_facts_2) 
-let test2_funpost = (RFunPost { f = obj2_fun1; base = vundef; args = obj2_simp1; result = v1; call_type = Method }, local_facts_2)
-let test2_literal = (RLiteral { value = v2; hasGetterSetter = false }, local_facts_2)
-let test2_forin = (RForIn obj2_cyc1, local_facts_2)
-let test2_local = (RLocal { name = "x"; ref = (xref2, 0) }, local_facts_2)
-let test2_catch = (RCatch { name = "x"; ref = (xref2, 0) }, local_facts_2)
-let test2_alias = (RAlias { name = "x"; ref = (xref2, 0); source = Argument 0 }, local_facts_2)
-let test2_read = (RRead { ref = (xref2, 0); value = v1 }, local_facts_2)
-let test2_write = (RWrite { oldref = (xref2, 0); ref = (xref2, 0); value = v1; success = true }, local_facts_2)
-let test2_return = (RReturn obj2_cyc1, local_facts_2)
-let test2_throw = (RThrow obj2_cyc1, local_facts_2)
-let test2_with = (RWith obj2_cyc1, local_facts_2)
-let test2_enter = (RFunEnter { f = obj2_fun1; this = vundef; args = obj2_simp1 }, local_facts_2)
-let test2_exit = (RFunExit { ret = v1; exc = vundef }, local_facts_2)
-let test2_senter = (RScriptEnter, local_facts_2)
-let test2_sexit = (RScriptExit, local_facts_2)
-let test2_sexc = (RScriptExc v0, local_facts_2)
-let test2_binary = (RBinary { op = "+"; left = v1; right = v2; result = v1 }, local_facts_2)
-let test2_unary = (RUnary { op = "-"; arg = v0; result = v0 }, local_facts_2)
-let test2_eend = (REndExpression, local_facts_2)
-let test2_cond = (RConditional vtrue, local_facts_2)
+let test2_funpre = (RFunPre { f = obj2_fun1; base = vundef; args = obj2_simp1; call_type = Method }, rich_facts_2) 
+let test2_funpost = (RFunPost { f = obj2_fun1; base = vundef; args = obj2_simp1; result = v1; call_type = Method }, rich_facts_2)
+let test2_literal = (RLiteral { value = v2; hasGetterSetter = false }, rich_facts_2)
+let test2_forin = (RForIn obj2_cyc1, rich_facts_2)
+let test2_local = (RLocal { name = "x"; ref = (xref2, 0) }, rich_facts_2)
+let test2_catch = (RCatch { name = "x"; ref = (xref2, 0) }, rich_facts_2)
+let test2_alias = (RAlias { name = "x"; ref = (xref2, 0); source = Argument 0 }, rich_facts_2)
+let test2_read = (RRead { ref = (xref2, 0); value = v1 }, rich_facts_2)
+let test2_write = (RWrite { oldref = (xref2, 0); ref = (xref2, 0); value = v1; success = true }, rich_facts_2)
+let test2_return = (RReturn obj2_cyc1, rich_facts_2)
+let test2_throw = (RThrow obj2_cyc1, rich_facts_2)
+let test2_with = (RWith obj2_cyc1, rich_facts_2)
+let test2_enter = (RFunEnter { f = obj2_fun1; this = vundef; args = obj2_simp1 }, rich_facts_2)
+let test2_exit = (RFunExit { ret = v1; exc = vundef }, rich_facts_2)
+let test2_senter = (RScriptEnter, rich_facts_2)
+let test2_sexit = (RScriptExit, rich_facts_2)
+let test2_sexc = (RScriptExc v0, rich_facts_2)
+let test2_binary = (RBinary { op = "+"; left = v1; right = v2; result = v1 }, rich_facts_2)
+let test2_unary = (RUnary { op = "-"; arg = v0; result = v0 }, rich_facts_2)
+let test2_eend = (REndExpression, rich_facts_2)
+let test2_cond = (RConditional vtrue, rich_facts_2)
 
 let tests_match_operations =
   test_comparator "match_operations" match_operations
@@ -330,22 +330,22 @@ let noncall_neg2 = [
 
 let tests_is_matching_internal_call =
   test_comparator "is_matching_internal_call" is_matching_internal_call
-    [ (RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_1);
-      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_1) ]
-    [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2);
-      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_2) ]
-    ((RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_1) :: noncall_neg1)
-    ((RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2) :: noncall_neg2)
+    [ (RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Method }, rich_facts_1);
+      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Method }, rich_facts_1) ]
+    [ (RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, rich_facts_2);
+      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Method }, rich_facts_2) ]
+    ((RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Method }, rich_facts_1) :: noncall_neg1)
+    ((RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, rich_facts_2) :: noncall_neg2)
     []
 
 let tests_is_matching_external_call =
   test_comparator "is_matching_external_call" is_matching_external_call
-    ([(RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_1);
-      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_1) ])
-    ([(RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, local_facts_2);
-      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Method }, local_facts_2) ])
-    ([(RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_1)] @ noncall_neg1)
-    ([(RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, local_facts_2)] @ noncall_neg2)
+    ([(RFunPre { f = obj1_fun1; base = vundef; args = vnull; call_type = Method }, rich_facts_1);
+      (RFunPre { f = obj1_fun2; base = vundef; args = vnull; call_type = Method }, rich_facts_1) ])
+    ([(RFunPre { f = obj2_fun1; base = vundef; args = vnull; call_type = Method }, rich_facts_2);
+      (RFunPre { f = obj2_fun2; base = vundef; args = vnull; call_type = Method }, rich_facts_2) ])
+    ([(RFunPre { f = obj1_fun4; base = vundef; args = vnull; call_type = Method }, rich_facts_1)] @ noncall_neg1)
+    ([(RFunPre { f = obj2_fun4; base = vundef; args = vnull; call_type = Method }, rich_facts_2)] @ noncall_neg2)
     []
 
 let comparator_tests =

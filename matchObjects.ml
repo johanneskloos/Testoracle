@@ -13,8 +13,8 @@ let is_base = function
 type data = {
   funs1: functions;
   funs2: functions;
-  facts1: local_facts;
-  facts2: local_facts;
+  facts1: rich_facts;
+  facts2: rich_facts;
   pt1: Reference.points_to_map;
   pt2: Reference.points_to_map;
   noneq: IntIntSet.t
@@ -52,33 +52,29 @@ let normalize str =
 
 (** Strict matching of functions. *)
 let match_functions { funs1; funs2 } fun1 fun2 =
+  (* This is a hack. The function text used here can be either *)
+  (* function name(args) { body } or (unknown). We say that two *)
+  (* functions are "intensionally equivalent" if they have the same *)
+  (* function body. This is, strictly speaking, not correct, but we *)
+  (* simply use this as a heuristic to drive the search, and actually *)
+  (* validate that guess using the trace. Note that the original  *)
+  (* implementation blindly compared the two strings. This will not *)
+  (* work: It is likely that the function names are different, due to *)
+  (* the way the transform works. Thus, we compare the arguments and *)
+  (* the body separately.*)
+  (* XXX Consider using an even better comparison *)
+  (* based on actually parsing the Javascript, at least removing *)
+  (* comments and normalizing semicolons and whitespace. *)
   match (BatDynArray.get funs1 fun1, BatDynArray.get funs2 fun2) with
-  | (Local { from_toString = i1; from_jalangi = u1 },
-     Local { from_toString = i2; from_jalangi = u2 }) ->
-    (* This is a hack. The function text used here can be either *)
-    (* function name(args) { body } or (unknown). We say that two *)
-    (* functions are "intensionally equivalent" if they have the same *)
-    (* function body. This is, strictly speaking, not correct, but we *)
-    (* simply use this as a heuristic to drive the search, and actually *)
-    (* validate that guess using the trace. Note that the original  *)
-    (* implementation blindly compared the two strings. This will not *)
-    (* work: It is likely that the function names are different, due to *)
-    (* the way the transform works. Thus, we compare the arguments and *)
-    (* the body separately.*)
-    (* XXX Consider using an even better comparison *)
-    (* based on actually parsing the Javascript, at least removing *)
-    (* comments and normalizing semicolons and whitespace. *)
-    begin
-      match function_body_split u1, function_body_split u2 with
-      | Some body1, Some body2 ->
-        let body1' = normalize body1
-        and body2' = normalize body2 in
-        if body1' = body2' then None else Some (DifferentBodies (body1', body2'))
-      | None, None ->
-        if i1 = i2 then None else Some (DifferentInstrumentedBodies (i1, i2))
-      | _ ->
-        Some InconsistentlyInstrumented
-    end
+  | (Instrumented i1, Instrumented i2) ->
+    if i1 = i2 then None else Some (DifferentInstrumentedBodies (i1, i2))
+  | (Uninstrumented (_, u1), Uninstrumented (_, u2)) ->
+    let body1' = normalize u1
+    and body2' = normalize u2 in
+    if body1' = body2' then None else Some (DifferentBodies (body1', body2'))
+  | (Instrumented _, Uninstrumented _)        
+  | (Uninstrumented _, Instrumented _) ->
+    Some InconsistentlyInstrumented
   | (External id1, External id2) -> if id1 = id2 then None else Some (DifferentExternal (id1, id2))
   | _ -> Some InternalExternal
 
@@ -86,7 +82,8 @@ let match_functions { funs1; funs2 } fun1 fun2 =
  * over-approximation. *)
 let match_functions_associated { funs1; funs2; noneq } fun1 fun2 =
   match BatDynArray.get funs1 fun1, BatDynArray.get funs2 fun2 with
-  | (Local _, Local _) -> not (IntIntSet.mem (fun1, fun2) noneq)
+  | (Instrumented _, Instrumented _)
+  | (Uninstrumented _, Uninstrumented _) -> not (IntIntSet.mem (fun1, fun2) noneq)
   | (External id1, External id2) -> id1 = id2
   | _ -> false
 
@@ -176,8 +173,7 @@ let match_values name = fun
   | None -> None
 
 let match_refs_naming name (r1, _) (r2, _) = let open Reference in match r1, r2 with
-  | LocalVariable v1, LocalVariable v2 when v1 = v2 -> None
-  | GlobalVariable v1, GlobalVariable v2 when v1 = v2 -> None
+  | Variable (_, v1), Variable (_, v2) when v1 = v2 -> None
   | Field (_, f1), Field (_, f2) when f1 = f2 -> None
   | _, _ -> Some (name, Other "Non-matching reference names")
 
@@ -186,8 +182,8 @@ let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
     match match_refs_naming name r1 r2 with
     | None ->
       match_values name rt1 rt2 facts1 facts2 noneq
-        (Reference.VersionReferenceMap.find r1 rt1.points_to)
-        (Reference.VersionReferenceMap.find r2 rt2.points_to)
+        (Reference.VersionedReferenceMap.find r1 rt1.points_to)
+        (Reference.VersionedReferenceMap.find r2 rt2.points_to)
         objeq
     | Some _ as r -> r
   with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found

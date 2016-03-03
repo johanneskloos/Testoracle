@@ -44,7 +44,7 @@ val build_candidates :
 *)
 val can_be_added_as_initialisation :
   matching_state ->
-  (rich_operation * local_facts) list ->
+  (rich_operation * rich_facts) list ->
   match_mode list -> mismatch option
 
 (**
@@ -70,10 +70,10 @@ val extend_matching :
 
 (** Collect the references belonging to an object value. *)
 val collect_object_references :
-  matching_state -> local_facts -> objectid -> Reference.versioned_reference list
+  matching_state -> rich_facts -> objectid -> Reference.versioned_reference list
 (** Collect the references belonging to a value. *)
 val collect_references :
-  matching_state -> local_facts ->
+  matching_state -> rich_facts ->
   jsval -> Reference.versioned_reference list
 (** Perpetuate initialisation-produced data. *)
 val perpetuate_initialisation_data :

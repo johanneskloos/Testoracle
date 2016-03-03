@@ -134,7 +134,7 @@ type matching_state = {
   rt1: TraceTypes.rich_tracefile;
   rt2: TraceTypes.rich_tracefile;
   objeq: objeq ref;
-  initialisation_data: Reference.VersionReferenceSet.t;
+  initialisation_data: Reference.VersionedReferenceSet.t;
   toString_data: Types.jsval list;
   mutable nonequivalent_functions: IntIntSet.t;
   mutable known_blocked: match_mode list list IntIntMap.t
