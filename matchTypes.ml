@@ -128,7 +128,7 @@ type mismatch =
 
 type failure_trace = obj_match_failure option
 type named_failure_trace = (string * obj_match_failure) option
-type objeq = failure_trace Misc.IntIntMap.t
+type objeq = failure_trace IntIntMap.t
 
 type matching_state = {
   rt1: TraceTypes.rich_tracefile;
@@ -136,8 +136,8 @@ type matching_state = {
   objeq: objeq ref;
   initialisation_data: Reference.VersionReferenceSet.t;
   toString_data: Types.jsval list;
-  mutable nonequivalent_functions: Misc.IntIntSet.t;
-  mutable known_blocked: match_mode list list Misc.IntIntMap.t
+  mutable nonequivalent_functions: IntIntSet.t;
+  mutable known_blocked: match_mode list list IntIntMap.t
 }
 
 (** Pretty-printers *)
@@ -270,7 +270,7 @@ let pp_mismatch = pp_reason
 let pp_failed pp (failed_cons, op) =
   fprintf pp "@[<v 2>%a failed because the following conditions don't hold:@ %a@]@ "
     pp_match_operation op
-    (FormatHelper.pp_print_list_lines
+    (Fmt.list
        (fun pp (cond, reason) -> fprintf pp "%a because %a" pp_cond cond pp_reason reason))
     failed_cons
 

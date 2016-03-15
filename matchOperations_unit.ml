@@ -12,19 +12,19 @@ let obj0_toString = Reference.reference_of_field (OObject 0) "toString"
 let default_state = {
   rt1 = test_rt1;
   rt2 = test_rt2;
-  objeq = ref Misc.IntIntMap.empty;
+  objeq = ref IntIntMap.empty;
   initialisation_data =
     Reference.VersionReferenceSet.empty
     |> Reference.VersionReferenceSet.add (obj0_toString, 0);
   toString_data = [];
-  nonequivalent_functions = Misc.IntIntSet.empty;
-  known_blocked = Misc.IntIntMap.empty
+  nonequivalent_functions = IntIntSet.empty;
+  known_blocked = IntIntMap.empty
 }
 
 let reset_default_state () =
-  default_state.objeq := Misc.IntIntMap.empty;
-  default_state.nonequivalent_functions <- Misc.IntIntSet.empty;
-  default_state.known_blocked <- Misc.IntIntMap.empty
+  default_state.objeq := IntIntMap.empty;
+  default_state.nonequivalent_functions <- IntIntSet.empty;
+  default_state.known_blocked <- IntIntMap.empty
 
 let pp_rich_event pp (op, _) = pp_rich_operation pp op
 

@@ -13,7 +13,7 @@ let test_data = {
   facts2 = local_facts_2;
   pt1 = points_to_1;
   pt2 = points_to_2;
-  noneq = Misc.IntIntSet.empty
+  noneq = IntIntSet.empty
 }
 
 let is_base_test_true (name, value) =
@@ -41,9 +41,9 @@ module ValPairMap = Map.Make(struct
     type t = jsval * jsval
     let compare = Pervasives.compare
   end);;
-module ValPairMapFormat = FormatHelper.MapFormat(ValPairMap);;
+module ValPairMapFormat = Fmt.Map(ValPairMap);;
 
-let print_reason = Misc.to_string MatchTypes.pp_fun_match_failure
+let print_reason = Fmt.to_to_string MatchTypes.pp_fun_match_failure
 
 let match_functions_ins_ins_eq =
   Test.make_simple_test ~title:"match_functions - equal instrumented code"
@@ -83,25 +83,25 @@ let match_functions_tests =
    match_functions_ext_ins; match_functions_nins_ext]
 
 let testobj1 =
-  Misc.StringMap.empty
-  |> Misc.StringMap.add "f1" v1
-  |> Misc.StringMap.add "f2" obj1_cyc1
-  |> Misc.StringMap.add "ign1" vundef
-  |> Misc.StringMap.add "ign2" vnull
+  StringMap.empty
+  |> StringMap.add "f1" v1
+  |> StringMap.add "f2" obj1_cyc1
+  |> StringMap.add "ign1" vundef
+  |> StringMap.add "ign2" vnull
 
 let testobj2 =
-  Misc.StringMap.empty
-  |> Misc.StringMap.add "f1" v1
-  |> Misc.StringMap.add "f2" obj2_cyc1
-  |> Misc.StringMap.add "ign1" vnull
-  |> Misc.StringMap.add "ign3" vundef
+  StringMap.empty
+  |> StringMap.add "f1" v1
+  |> StringMap.add "f2" obj2_cyc1
+  |> StringMap.add "ign1" vnull
+  |> StringMap.add "ign3" vundef
 
 let testobj2' =
-  Misc.StringMap.empty
-  |> Misc.StringMap.add "f1" v1
-  |> Misc.StringMap.add "f2" obj2_cyc2
-  |> Misc.StringMap.add "ign1" vnull
-  |> Misc.StringMap.add "ign3" vundef
+  StringMap.empty
+  |> StringMap.add "f1" v1
+  |> StringMap.add "f2" obj2_cyc2
+  |> StringMap.add "ign1" vnull
+  |> StringMap.add "ign3" vundef
 
 let test_tab =
   ValPairMap.empty
@@ -112,10 +112,10 @@ let test_tab =
   |> ValPairMap.add (obj1_cyc2, obj2_cyc2) true
   |> ValPairMap.add (obj1_cyc2, obj2_cyc3) false
 
-module IIA = Assert.Set(Misc.IntIntSet)
+module IIA = Assert.Set(IntIntSet)
                (struct
                   type t = int * int
-                  let to_string = Misc.to_string Misc.pp_print_int_pair
+                  let to_string = Fmt.to_to_string Misc.pp_print_int_pair
                 end)
 let same_data
       { funs1 = funs11;
@@ -144,7 +144,7 @@ let same_data
 
 let matcher_stub seen_tab data cycle_set objeq vals =
   Format.eprintf "Considering value pair %a@."
-    (FormatHelper.pp_print_pair pp_jsval pp_jsval) vals;
+    (Fmt.pair pp_jsval pp_jsval) vals;
   same_data test_data data;
   seen_tab := ValPairMap.add vals
       (1 + try ValPairMap.find vals !seen_tab with Not_found -> 0)
@@ -154,13 +154,13 @@ let matcher_stub seen_tab data cycle_set objeq vals =
   with
     Not_found ->
     Assert.fail_msg ("Trying to look up " ^
-                     Misc.to_string (FormatHelper.pp_print_pair pp_jsval pp_jsval) vals) 
+                     Misc.to_string (Fmt.pair pp_jsval pp_jsval) vals) 
 
 let good_ignore = [ "ign1"; "ign2"; "ign3" ]
 
 let pp_seen_map =
   ValPairMapFormat.pp_print_map_default
-    (FormatHelper.pp_print_pair pp_jsval pp_jsval)
+    (Fmt.pair pp_jsval pp_jsval)
     (Format.pp_print_int)
 
 let eq_seen_map = ValPairMap.equal (=)
@@ -170,8 +170,8 @@ let test_match_objects_raw_obj1_obj2_good_ignore =
   Test.make_simple_test ~title:"match_objects_raw - obj1 vs. obj2, good ignore set"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty in
-       assert_is_None (match_objects_raw (matcher_stub seen) good_ignore test_data Misc.IntIntSet.empty objeq testobj1 testobj2);
+       and objeq = ref IntIntMap.empty in
+       assert_is_None (match_objects_raw (matcher_stub seen) good_ignore test_data IntIntSet.empty objeq testobj1 testobj2);
        assert_equal_seen_map
          (ValPairMap.empty |> ValPairMap.add (v1, v1) 1 |> ValPairMap.add (obj1_cyc1, obj2_cyc1) 1)
          !seen
@@ -181,33 +181,33 @@ let test_match_objects_raw_obj1_obj2_not_ignoring_2 =
   Test.make_simple_test ~title:"match_objects_raw - obj1 vs. obj2, not ignoring ign2"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty in
-       assert_is_Some (match_objects_raw (matcher_stub seen) ["ign1";"ign3"] test_data Misc.IntIntSet.empty objeq testobj1 testobj2);
+       and objeq = ref IntIntMap.empty in
+       assert_is_Some (match_objects_raw (matcher_stub seen) ["ign1";"ign3"] test_data IntIntSet.empty objeq testobj1 testobj2);
     )
 
 let test_match_objects_raw_obj1_obj2_not_ignoring_3 =
   Test.make_simple_test ~title:"match_objects_raw - obj1 vs. obj2, not ignoring ign3"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty in
-       assert_is_Some (match_objects_raw (matcher_stub seen) ["ign1";"ign2"] test_data Misc.IntIntSet.empty objeq testobj1 testobj2);
+       and objeq = ref IntIntMap.empty in
+       assert_is_Some (match_objects_raw (matcher_stub seen) ["ign1";"ign2"] test_data IntIntSet.empty objeq testobj1 testobj2);
     )
 
 let test_match_objects_raw_obj1_obj2_not_ignoring_1 =
   Test.make_simple_test ~title:"match_objects_raw - obj1 vs. obj2, not ignoring ign1"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty in
+       and objeq = ref IntIntMap.empty in
        Assert.raises ~msg:"Expected Not_found exception"
-         (fun () -> match_objects_raw (matcher_stub seen) ["ign3";"ign2"] test_data Misc.IntIntSet.empty objeq testobj1 testobj2)
+         (fun () -> match_objects_raw (matcher_stub seen) ["ign3";"ign2"] test_data IntIntSet.empty objeq testobj1 testobj2)
     )
 
 let test_match_objects_raw_obj1_obj2'_good_ignore =
   Test.make_simple_test ~title:"match_objects_raw - obj1 vs. obj2', good ignore set"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty in
-       assert_is_Some (match_objects_raw (matcher_stub seen) good_ignore test_data Misc.IntIntSet.empty objeq testobj1 testobj2');
+       and objeq = ref IntIntMap.empty in
+       assert_is_Some (match_objects_raw (matcher_stub seen) good_ignore test_data IntIntSet.empty objeq testobj1 testobj2');
        Assert.equal_int 1 (ValPairMap.find (obj1_cyc1, obj2_cyc2) !seen)
     )
 
@@ -218,32 +218,32 @@ let test_match_objects_memo_cyc1_cyc1 =
   Test.make_simple_test ~title:"match_objects_memo - cyc1 vs. cyc1, uncached"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty
+       and objeq = ref IntIntMap.empty
        and id1 = objectid_of_jsval obj1_cyc1
        and id2 = objectid_of_jsval obj2_cyc1 in
-       assert_is_None ~msg:"Return value" (match_objects_memo (matcher_stub seen) ["toString"] test_data Misc.IntIntSet.empty objeq id1 id2);
-       assert_is_None ~msg:"Cached values" (Misc.IntIntMap.find (get_object_id id1, get_object_id id2) !objeq)
+       assert_is_None ~msg:"Return value" (match_objects_memo (matcher_stub seen) ["toString"] test_data IntIntSet.empty objeq id1 id2);
+       assert_is_None ~msg:"Cached values" (IntIntMap.find (get_object_id id1, get_object_id id2) !objeq)
     )
 
 let test_match_objects_memo_cyc1_cyc2 =
   Test.make_simple_test ~title:"match_objects_memo - cyc1 vs. cyc2, uncached"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty
+       and objeq = ref IntIntMap.empty
        and id1 = objectid_of_jsval obj1_cyc1
        and id2 = objectid_of_jsval obj2_cyc2 in
-       assert_is_Some ~msg:"Return value" (match_objects_memo (matcher_stub seen) ["toString"] test_data Misc.IntIntSet.empty objeq id1 id2);
-       assert_is_Some ~msg:"Cached values" (Misc.IntIntMap.find (get_object_id id1, get_object_id id2) !objeq)
+       assert_is_Some ~msg:"Return value" (match_objects_memo (matcher_stub seen) ["toString"] test_data IntIntSet.empty objeq id1 id2);
+       assert_is_Some ~msg:"Cached values" (IntIntMap.find (get_object_id id1, get_object_id id2) !objeq)
     )
 
 let test_match_objects_memo_cyc3_cyc3_seen_cache =
   Test.make_simple_test ~title:"match_objects_memo - cyc3 vs. cyc3, seen case"
     (fun () ->
        let seen = ref ValPairMap.empty
-       and objeq = ref Misc.IntIntMap.empty
+       and objeq = ref IntIntMap.empty
        and id1 = objectid_of_jsval obj1_cyc3
        and id2 = objectid_of_jsval obj2_cyc3 in
-       let cycle_seen = Misc.IntIntSet.empty |> Misc.IntIntSet.add (get_object_id id1, get_object_id id2) in
+       let cycle_seen = IntIntSet.empty |> IntIntSet.add (get_object_id id1, get_object_id id2) in
        assert_is_None (match_objects_memo (matcher_stub seen) ["toString"] test_data cycle_seen objeq id1 id2)
     )
 
@@ -253,8 +253,8 @@ let test_match_objects_memo_cyc3_cyc3_objeq_cache =
        let seen = ref ValPairMap.empty
        and id1 = objectid_of_jsval obj1_cyc3
        and id2 = objectid_of_jsval obj2_cyc3
-       and cycle_seen = Misc.IntIntSet.empty in
-       let objeq = ref (Misc.IntIntMap.empty |> Misc.IntIntMap.add (get_object_id id1, get_object_id id2) None) in
+       and cycle_seen = IntIntSet.empty in
+       let objeq = ref (IntIntMap.empty |> IntIntMap.add (get_object_id id1, get_object_id id2) None) in
        assert_is_None (match_objects_memo (matcher_stub seen) ["toString"] test_data cycle_seen objeq id1 id2)
     )
 
@@ -264,9 +264,9 @@ let test_match_objects_memo_cyc3_cyc3_objeq_cache_fail =
        let seen = ref ValPairMap.empty
        and id1 = objectid_of_jsval obj1_cyc3
        and id2 = objectid_of_jsval obj2_cyc3
-       and cycle_seen = Misc.IntIntSet.empty
+       and cycle_seen = IntIntSet.empty
        and msg = MatchTypes.Other "mark" in
-       let objeq = ref (Misc.IntIntMap.empty |> Misc.IntIntMap.add (get_object_id id1, get_object_id id2) (Some msg)) in
+       let objeq = ref (IntIntMap.empty |> IntIntMap.add (get_object_id id1, get_object_id id2) (Some msg)) in
        Assert.make_equal (=)
          (function
               None -> "None"
@@ -281,40 +281,40 @@ let test_match_objects_memo_cyc3_cyc3_objeq_cache_fail =
 let test_match_raw_values_v1_v1 =
   Test.make_simple_test ~title:"match_values_raw - equal ints"
     (fun () ->
-       let objeq = ref Misc.IntIntMap.empty in
-       assert_is_None (match_values_raw test_data Misc.IntIntSet.empty objeq (v1, v1));
-       Assert.equal_int 0 (Misc.IntIntMap.cardinal !objeq))
+       let objeq = ref IntIntMap.empty in
+       assert_is_None (match_values_raw test_data IntIntSet.empty objeq (v1, v1));
+       Assert.equal_int 0 (IntIntMap.cardinal !objeq))
 
 let test_match_raw_values_cyc1_cyc1 =
   Test.make_simple_test ~title:"match_values_raw - cyc1 vs. cyc1"
     (fun () ->
-       let objeq = ref Misc.IntIntMap.empty in
-       assert_is_None (match_values_raw test_data Misc.IntIntSet.empty objeq (obj1_cyc1, obj2_cyc1)))
+       let objeq = ref IntIntMap.empty in
+       assert_is_None (match_values_raw test_data IntIntSet.empty objeq (obj1_cyc1, obj2_cyc1)))
 
 let test_match_raw_values_cyc1_cyc2 =
   Test.make_simple_test ~title:"match_values_raw - cyc1 vs. cyc2"
     (fun () ->
-       let objeq = ref Misc.IntIntMap.empty in
-       assert_is_Some (match_values_raw test_data Misc.IntIntSet.empty objeq (obj1_cyc1, obj2_cyc2)))
+       let objeq = ref IntIntMap.empty in
+       assert_is_Some (match_values_raw test_data IntIntSet.empty objeq (obj1_cyc1, obj2_cyc2)))
 
 let test_match_values_v1_v1 =
   Test.make_simple_test ~title:"match_values - equal ints"
     (fun () ->
-       let objeq = ref Misc.IntIntMap.empty in
-       assert_is_None (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 Misc.IntIntSet.empty v1 v1 objeq);
-       Assert.equal_int 0 (Misc.IntIntMap.cardinal !objeq))
+       let objeq = ref IntIntMap.empty in
+       assert_is_None (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 IntIntSet.empty v1 v1 objeq);
+       Assert.equal_int 0 (IntIntMap.cardinal !objeq))
 
 let test_match_values_cyc1_cyc1 =
   Test.make_simple_test ~title:"match_values - cyc1 vs. cyc1"
     (fun () ->
-       let objeq = ref Misc.IntIntMap.empty in
-       assert_is_None (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 Misc.IntIntSet.empty obj1_cyc1 obj2_cyc1 objeq))
+       let objeq = ref IntIntMap.empty in
+       assert_is_None (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 IntIntSet.empty obj1_cyc1 obj2_cyc1 objeq))
 
 let test_match_values_cyc1_cyc2 =
   Test.make_simple_test ~title:"match_values - cyc1 vs. cyc2"
     (fun () ->
-       let objeq = ref Misc.IntIntMap.empty in
-       assert_is_Some (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 Misc.IntIntSet.empty obj1_cyc1 obj2_cyc2 objeq))
+       let objeq = ref IntIntMap.empty in
+       assert_is_Some (match_values "XYZ" test_rt1 test_rt2 test_lf1 test_lf2 IntIntSet.empty obj1_cyc1 obj2_cyc2 objeq))
 
 let tests = (is_base_tests @ [
     match_functions_ins_ins_eq;

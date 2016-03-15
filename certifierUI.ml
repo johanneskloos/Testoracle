@@ -218,7 +218,7 @@ let trace_details_summary = let open CertifierData in function
     | SuccessNode -> <:html< <strong>Match successful</strong> >>
     | BlockedData _ -> <:html< <strong>Shared block</strong> >> 
 
-let output_mode m = <:html< $str:Misc.to_string MatchTypes.pp_match_mode m$>>
+let output_mode m = <:html< $str:Fmt.to_to_string MatchTypes.pp_match_mode m$>>
 
 let output_matchop = let open MatchTypes in function
     | MatchSimple -> <:html< Simple match>>
