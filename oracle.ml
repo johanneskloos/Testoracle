@@ -8,7 +8,12 @@ let debug_print msg pp data =
 
 let rich_tracefile_from_path path =
   let chan = open_in path in
-  let rt = Trace.parse_tracefile chan
+  let rt =
+    begin if Filename.check_suffix path ".gz" then
+      Trace.parse_tracefile_zlib chan
+    else
+      Trace.parse_tracefile chan
+    end
     >>> debug_print ("Read trace file " ^ path) TraceTypes.pp_tracefile
            |> RichTrace.tracefile_to_rich_tracefile
     >>> debug_print "Enrichted trace file" TraceTypes.pp_rich_tracefile in
