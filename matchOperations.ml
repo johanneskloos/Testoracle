@@ -180,6 +180,7 @@ let is_function_property_update = explain_wrapper NotFunctionUpdate (function
     | _ -> false)
 let is_uninitialized_dummy_write = explain_wrapper OtherOperation (function
     | RWrite { ref; oldref; value = OUndefined } when ref = oldref -> true
+    | RWrite { ref = (Reference.Field(Object id, _), 0) as ref; oldref } when ref = oldref -> true
     | _ -> false)
 
 (**
