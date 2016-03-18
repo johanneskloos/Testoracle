@@ -14,5 +14,4 @@ let parse_match_flags str =
                try List.assoc name flag_names := true
                with Not_found ->
                  Format.eprintf "Can't parse matching flag %s!@." name)
-    (Str.split flag_delimiter str);
-  Format.eprintf "lax_args: %b@." !lax_args;
+    (Str.split flag_delimiter str)
