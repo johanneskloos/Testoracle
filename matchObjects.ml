@@ -66,14 +66,14 @@ let match_functions { funs1; funs2 } fun1 fun2 =
   (* based on actually parsing the Javascript, at least removing *)
   (* comments and normalizing semicolons and whitespace. *)
   match (BatDynArray.get funs1 fun1, BatDynArray.get funs2 fun2) with
-  | (Instrumented i1, Instrumented i2) ->
+  | (ReflectedCode i1, ReflectedCode i2) ->
     if i1 = i2 then None else Some (DifferentInstrumentedBodies (i1, i2))
-  | (Uninstrumented (_, u1), Uninstrumented (_, u2)) ->
+  | (OrigCode (_, u1), OrigCode (_, u2)) ->
     let body1' = normalize u1
     and body2' = normalize u2 in
     if body1' = body2' then None else Some (DifferentBodies (body1', body2'))
-  | (Instrumented _, Uninstrumented _)        
-  | (Uninstrumented _, Instrumented _) ->
+  | (OrigCode _, ReflectedCode _)
+  | (ReflectedCode _, OrigCode _) ->
     Some InconsistentlyInstrumented
   | (External id1, External id2) -> if id1 = id2 then None else Some (DifferentExternal (id1, id2))
   | _ -> Some InternalExternal
@@ -82,8 +82,8 @@ let match_functions { funs1; funs2 } fun1 fun2 =
  * over-approximation. *)
 let match_functions_associated { funs1; funs2; noneq } fun1 fun2 =
   match BatDynArray.get funs1 fun1, BatDynArray.get funs2 fun2 with
-  | (Instrumented _, Instrumented _)
-  | (Uninstrumented _, Uninstrumented _) -> not (IntIntSet.mem (fun1, fun2) noneq)
+  | (OrigCode _, OrigCode _)
+  | (ReflectedCode _, ReflectedCode _) -> not (IntIntSet.mem (fun1, fun2) noneq)
   | (External id1, External id2) -> id1 = id2
   | _ -> false
 
@@ -182,8 +182,8 @@ let match_refs name rt1 rt2 facts1 facts2 noneq r1 r2 objeq =
     match match_refs_naming name r1 r2 with
     | None ->
       match_values name rt1 rt2 facts1 facts2 noneq
-        (Reference.VersionedReferenceMap.find r1 rt1.points_to)
-        (Reference.VersionedReferenceMap.find r2 rt2.points_to)
+        (Reference.VersionedReferenceMap.find rt1.points_to r1)
+        (Reference.VersionedReferenceMap.find rt2.points_to r2)
         objeq
     | Some _ as r -> r
   with Not_found -> Format.eprintf "Some ref not find in points_to"; raise Not_found

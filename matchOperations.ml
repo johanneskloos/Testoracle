@@ -148,7 +148,7 @@ let match_operations matching_state (op1, facts1) (op2, facts2) =
     | RUnary { op = op1; arg = arg1; result = result1 }, RUnary { op = op2; arg = arg2; result = result2 } ->
       check "arg" arg1 arg2 &&& check "result" result1 result2 &&& check_eq "op" op1 op2
     | REndExpression, REndExpression -> None
-    | RConditional val1, RConditional val2 -> check "val" val1 val2
+    | RConditional (_, val1), RConditional (_, val2) -> check "val" val1 val2
     | _, _ -> Some DifferentOperations
   end
 
@@ -164,7 +164,7 @@ let is_instrumentation_write { initialisation_data } = explain_wrapper NotInitDa
 
 let is_function_update { rt2 } = explain_wrapper NotFunctionUpdate (function
     | RWrite { ref } ->
-      begin try match Reference.VersionedReferenceMap.find ref rt2.points_to with
+      begin try match Reference.VersionedReferenceMap.find rt2.points_to ref with
         | OFunction _ -> true
         | _ -> false
         with Not_found ->
