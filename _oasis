@@ -12,6 +12,10 @@ Flag certifier
   Description:  "Build the certifier"
   Default:      false
 
+Flag prettyprint
+  Description:  "Build the pretty-printers"
+  Default:      false
+
 Executable "jstruthiness"
   Path:         .
   BuildTools:   ocamlbuild
