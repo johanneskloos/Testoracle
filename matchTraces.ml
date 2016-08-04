@@ -51,13 +51,13 @@ let extend_matching op op1 op2 matching =
   | Initialization | InitializationPush _ | InitializationPop | MatchDroppable -> Init op2 :: matching
 
 let collect_object_references { rt2 = { TraceTypes.objs } } facts id =
-  BatDynArray.get objs (Types.get_object_id id)
+  BatDynArray.get objs (TypesJS.get_object_id id)
   |> StringMap.bindings
   |> List.map (fun (field, _) -> Reference.reference_of_fieldref (id, field) |> LocalFacts.make_versioned facts)
 
 let collect_references matching_state facts obj = match obj with
-    Types.OObject _ | Types.OFunction _ | Types.OOther _ ->
-    collect_object_references matching_state facts (Types.objectid_of_jsval obj)
+    TypesJS.OObject _ | TypesJS.OFunction _ | TypesJS.OOther _ ->
+    collect_object_references matching_state facts (TypesJS.objectid_of_jsval obj)
   | _ -> []
 
 let perpetuate_initialisation_data matching_state (op, facts) =

@@ -6,7 +6,7 @@ open Kaputt
 open Abbreviations
 open Reference
 open LocalFacts
-open Types
+open TypesJS
 
 let (|>>) = (|>)
 let (|>) = Pervasives.(|>)

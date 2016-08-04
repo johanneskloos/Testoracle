@@ -11,7 +11,7 @@ let bad_path_page path =
   </html>
   >> |> Cow.Html.to_string)
 
-let output_val = let open Types in function 
+let output_val = let open TypesJS in function 
     | OUndefined -> <:html<(undefined)>>
     | ONull -> <:html<(null)>>
     | OBoolean x -> <:html<$str:string_of_bool x$>>
@@ -23,7 +23,7 @@ let output_val = let open Types in function
     | OFunction(id, fid) -> <:html<fun#$int:id$/$int:fid$>>
     | OOther (ty, id) -> <:html<$str:ty$#$int:id$>>
 
-let output_objectid obj = output_val (Types.objectid_to_jsval obj)
+let output_objectid obj = output_val (TypesJS.objectid_to_jsval obj)
 
 let output_ref (ref, ver) =
   let open Reference in match ref with

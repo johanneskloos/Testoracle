@@ -1,5 +1,5 @@
 open MatchTypes
-open Types
+open TypesJS
 open TraceTypes
 
 (** Check if a value is of base type. *)

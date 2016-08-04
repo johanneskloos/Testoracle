@@ -1,6 +1,6 @@
 open MatchObjects
 open Kaputt.Abbreviations
-open Types
+open TypesJS
 open TestBaseData
 open MatchTypes
 open TraceTypes
@@ -159,7 +159,7 @@ let good_ignore = [ "ign1"; "ign2"; "ign3" ]
 
 let pp_seen_map =
   let open Fmt in
-  let open Types in
+  let open TypesJS in
     using ValPairMap.bindings
       (list (pair (pair pp_jsval pp_jsval) int));;
 

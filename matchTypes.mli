@@ -85,7 +85,7 @@ type event_match =
 
 (** Match failure explanation *)
 type obj_match_failure =
-    NonMatching of string list * Types.jsval * Types.jsval
+    NonMatching of string list * TypesJS.jsval * TypesJS.jsval
   | MissingOrig of string * string list
   | MissingXfrm of string * string list
   | Other of string
@@ -143,7 +143,7 @@ type matching_state = {
   rt2: TraceTypes.rich_tracefile;
   objeq: objeq ref;
   initialisation_data: Reference.VersionedReferenceSet.t;
-  toString_data: Types.jsval list;
+  toString_data: TypesJS.jsval list;
   mutable nonequivalent_functions: IntIntSet.t;
   mutable known_blocked: match_mode list list IntIntMap.t
 }

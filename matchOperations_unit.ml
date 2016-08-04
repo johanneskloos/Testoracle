@@ -3,7 +3,7 @@ open MatchOperations
 open TestBaseData
 open Kaputt.Abbreviations
 open TraceTypes
-open Types
+open TypesJS
 
 let (|>) = Pervasives.(|>)
 

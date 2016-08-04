@@ -1,5 +1,5 @@
 open TraceTypes
-open Types
+open TypesJS
 open MatchTypes
 
 (**

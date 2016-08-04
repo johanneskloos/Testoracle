@@ -1,6 +1,6 @@
 open TraceTypes
 open MatchTypes
-open Types
+open TypesJS
 
 (** The trace matcher is built in two parts,
  * the match candidate finder and the matching engine.
